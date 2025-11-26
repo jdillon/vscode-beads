@@ -241,7 +241,7 @@ Contributions are welcome! Please see the [Beads repository](https://github.com/
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+Apache License 2.0 - see [LICENSE](LICENSE) for details.
 
 ## Links
 

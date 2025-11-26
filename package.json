@@ -4,7 +4,7 @@
   "description": "VS Code extension for visualizing and managing Beads issues via multiple rich views",
   "version": "0.1.0",
   "publisher": "beads",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/steveyegge/vscode-beads"
