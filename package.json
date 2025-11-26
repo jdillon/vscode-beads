@@ -1,0 +1,215 @@
+{
+  "name": "beads-dashboard",
+  "displayName": "Beads Dashboard",
+  "description": "VS Code extension for visualizing and managing Beads issues via multiple rich views",
+  "version": "0.1.0",
+  "publisher": "beads",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/steveyegge/vscode-beads"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "beads",
+    "issues",
+    "project management",
+    "kanban",
+    "dashboard"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "beads",
+          "title": "Beads",
+          "icon": "resources/beads-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "beads": [
+        {
+          "type": "webview",
+          "id": "beadsPanel",
+          "name": "Beads Panel",
+          "visibility": "visible"
+        },
+        {
+          "type": "webview",
+          "id": "beadsDashboard",
+          "name": "Dashboard",
+          "visibility": "visible"
+        },
+        {
+          "type": "webview",
+          "id": "beadsKanban",
+          "name": "Kanban Board",
+          "visibility": "collapsed"
+        },
+        {
+          "type": "webview",
+          "id": "beadsGraph",
+          "name": "Dependency Graph",
+          "visibility": "collapsed"
+        },
+        {
+          "type": "webview",
+          "id": "beadsDetails",
+          "name": "Bead Details",
+          "visibility": "collapsed"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "beads.switchProject",
+        "title": "Beads: Switch Project",
+        "icon": "$(folder)"
+      },
+      {
+        "command": "beads.openDashboard",
+        "title": "Beads: Open Dashboard",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "beads.openBeadsPanel",
+        "title": "Beads: Open Beads Panel",
+        "icon": "$(list-unordered)"
+      },
+      {
+        "command": "beads.openKanban",
+        "title": "Beads: Open Kanban Board",
+        "icon": "$(layout)"
+      },
+      {
+        "command": "beads.openDependencyGraph",
+        "title": "Beads: Open Dependency Graph",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "beads.openBeadDetails",
+        "title": "Beads: Open Bead Details",
+        "icon": "$(file-text)"
+      },
+      {
+        "command": "beads.refresh",
+        "title": "Beads: Refresh All Views",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "beads.createBead",
+        "title": "Beads: Create New Bead",
+        "icon": "$(add)"
+      },
+      {
+        "command": "beads.startDaemon",
+        "title": "Beads: Start Daemon",
+        "icon": "$(play)"
+      },
+      {
+        "command": "beads.stopDaemon",
+        "title": "Beads: Stop Daemon",
+        "icon": "$(debug-stop)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "beads.refresh",
+          "when": "view =~ /beads/",
+          "group": "navigation"
+        },
+        {
+          "command": "beads.switchProject",
+          "when": "view =~ /beads/",
+          "group": "navigation"
+        },
+        {
+          "command": "beads.createBead",
+          "when": "view =~ /beads/",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Beads Dashboard",
+      "properties": {
+        "beads.pathToBd": {
+          "type": "string",
+          "default": "bd",
+          "description": "Path to the bd CLI executable"
+        },
+        "beads.autoStartDaemon": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start daemon when switching to a project"
+        },
+        "beads.statusColumns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "backlog",
+            "ready",
+            "in_progress",
+            "blocked",
+            "done"
+          ],
+          "description": "Status columns order for the Kanban board"
+        },
+        "beads.maxGraphNodes": {
+          "type": "number",
+          "default": 100,
+          "description": "Maximum number of nodes to display in the dependency graph"
+        },
+        "beads.refreshInterval": {
+          "type": "number",
+          "default": 30000,
+          "description": "Auto-refresh interval in milliseconds (0 to disable)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "npm run compile:extension && npm run compile:webview",
+    "compile:extension": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18",
+    "compile:webview": "esbuild src/webview/index.tsx --bundle --outfile=dist/webview/main.js --format=iife --platform=browser --target=es2020 --loader:.tsx=tsx --loader:.ts=ts --loader:.css=css --define:process.env.NODE_ENV=\\\"production\\\"",
+    "watch": "concurrently \"npm run watch:extension\" \"npm run watch:webview\"",
+    "watch:extension": "npm run compile:extension -- --watch --sourcemap",
+    "watch:webview": "npm run compile:webview -- --watch --sourcemap",
+    "lint": "eslint src --ext ts,tsx",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "vscode:prepublish": "npm run compile",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.14.0",
+    "@typescript-eslint/parser": "^6.14.0",
+    "concurrently": "^8.2.2",
+    "esbuild": "^0.19.10",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}
