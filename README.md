@@ -40,11 +40,11 @@ A VS Code extension for visualizing and managing [Beads](https://github.com/stev
 1. Clone this repository
 2. Install dependencies:
    ```bash
-   npm install
+   bun install
    ```
 3. Compile the extension:
    ```bash
-   npm run compile
+   bun run compile
    ```
 4. Press `F5` in VS Code to launch the Extension Development Host
 
@@ -143,13 +143,13 @@ Full editing interface for a single issue.
 
 ```bash
 # Install dependencies
-npm install
+bun install
 
 # Compile extension and webview
-npm run compile
+bun run compile
 
 # Watch mode for development
-npm run watch
+bun run watch
 ```
 
 ### Project Structure

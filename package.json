@@ -183,15 +183,15 @@
     }
   },
   "scripts": {
-    "compile": "npm run compile:extension && npm run compile:webview",
+    "compile": "bun run compile:extension && bun run compile:webview",
     "compile:extension": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18",
     "compile:webview": "esbuild src/webview/index.tsx --bundle --outfile=dist/webview/main.js --format=iife --platform=browser --target=es2020 --loader:.tsx=tsx --loader:.ts=ts --loader:.css=css --define:process.env.NODE_ENV=\\\"production\\\"",
-    "watch": "concurrently \"npm run watch:extension\" \"npm run watch:webview\"",
-    "watch:extension": "npm run compile:extension -- --watch --sourcemap",
-    "watch:webview": "npm run compile:webview -- --watch --sourcemap",
+    "watch": "concurrently \"bun run watch:extension\" \"bun run watch:webview\"",
+    "watch:extension": "bun run compile:extension -- --watch --sourcemap",
+    "watch:webview": "bun run compile:webview -- --watch --sourcemap",
     "lint": "eslint src --ext ts,tsx",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "bun run compile",
     "package": "vsce package"
   },
   "devDependencies": {
