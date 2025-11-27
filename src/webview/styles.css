@@ -55,7 +55,7 @@ body {
 .app-content {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
   padding: 0;
 }
 
@@ -1199,6 +1199,9 @@ textarea {
   flex-direction: column;
   gap: var(--spacing-sm);
   padding: var(--spacing-sm);
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .details-header {
