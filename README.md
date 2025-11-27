@@ -1,5 +1,7 @@
 # Beads - VS Code Extension
 
+<img src="resources/icon.png" alt="Beads icon" width="128" align="right">
+
 VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issues. Communicates with the Beads daemon via `bd` CLI.
 
 ![Beads VS Code Extension](docs/images/beads-vscode-screenshot.png)
