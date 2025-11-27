@@ -1,0 +1,177 @@
+{
+  "name": "vscode-beads",
+  "displayName": "Beads",
+  "description": "VS Code extension for managing Beads issues",
+  "version": "0.1.0",
+  "publisher": "planet57",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/steveyegge/vscode-beads"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "beads",
+    "issues",
+    "project management",
+    "kanban",
+    "dashboard"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "beads",
+          "title": "Beads",
+          "icon": "resources/beads-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "beads": [
+        {
+          "type": "webview",
+          "id": "beadsDashboard",
+          "name": "Dashboard",
+          "visibility": "hidden"
+        },
+        {
+          "type": "webview",
+          "id": "beadsPanel",
+          "name": "Issues",
+          "visibility": "visible"
+        },
+        {
+          "type": "webview",
+          "id": "beadsDetails",
+          "name": "Details",
+          "visibility": "visible"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "beads.switchProject",
+        "title": "Beads: Switch Project",
+        "icon": "$(folder)"
+      },
+      {
+        "command": "beads.openBeadsPanel",
+        "title": "Beads: Open Issues Panel",
+        "icon": "$(list-unordered)"
+      },
+      {
+        "command": "beads.openBeadDetails",
+        "title": "Beads: Open Issue Details",
+        "icon": "$(file-text)"
+      },
+      {
+        "command": "beads.refresh",
+        "title": "Beads: Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "beads.createBead",
+        "title": "Beads: Create New Issue",
+        "icon": "$(add)"
+      },
+      {
+        "command": "beads.startDaemon",
+        "title": "Beads: Start Daemon",
+        "icon": "$(play)"
+      },
+      {
+        "command": "beads.stopDaemon",
+        "title": "Beads: Stop Daemon",
+        "icon": "$(debug-stop)"
+      }
+    ],
+    "menus": {
+      "viewContainer/title": [
+        {
+          "command": "beads.switchProject",
+          "when": "viewContainer == beads",
+          "group": "navigation"
+        },
+        {
+          "command": "beads.refresh",
+          "when": "viewContainer == beads",
+          "group": "navigation"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "beads.createBead",
+          "when": "view == beadsPanel",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Beads",
+      "properties": {
+        "beads.pathToBd": {
+          "type": "string",
+          "default": "bd",
+          "description": "Path to the bd CLI executable"
+        },
+        "beads.autoStartDaemon": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start daemon when switching to a project"
+        },
+        "beads.refreshInterval": {
+          "type": "number",
+          "default": 30000,
+          "description": "Auto-refresh interval in milliseconds (0 to disable)"
+        },
+        "beads.renderMarkdown": {
+          "type": "boolean",
+          "default": true,
+          "description": "Render markdown in description, design notes, and other text fields"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "bun run compile:extension && bun run compile:webview",
+    "compile:extension": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18",
+    "compile:webview": "esbuild src/webview/index.tsx --bundle --outfile=dist/webview/main.js --format=iife --platform=browser --target=es2020 --loader:.tsx=tsx --loader:.ts=ts --loader:.css=css --define:process.env.NODE_ENV=\\\"production\\\"",
+    "watch": "concurrently \"bun run watch:extension\" \"bun run watch:webview\"",
+    "watch:extension": "bun run compile:extension -- --watch --sourcemap",
+    "watch:webview": "bun run compile:webview -- --watch --sourcemap",
+    "lint": "eslint src --ext ts,tsx",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "vscode:prepublish": "bun run compile",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.14.0",
+    "@typescript-eslint/parser": "^6.14.0",
+    "concurrently": "^8.2.2",
+    "esbuild": "^0.19.10",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "marked": "^17.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}
