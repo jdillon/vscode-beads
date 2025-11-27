@@ -446,6 +446,20 @@ textarea {
   min-height: 28px;
 }
 
+.filter-preset-select {
+  padding: 2px 6px;
+  font-size: 11px;
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+  border: 1px solid var(--vscode-dropdown-border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.filter-preset-select:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
 .filter-chip {
   display: inline-flex;
   align-items: center;

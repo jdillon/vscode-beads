@@ -64,6 +64,19 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
 
 const ISSUE_TYPES = ["bug", "feature", "task", "epic", "chore"];
 
+// Filter presets for quick filtering
+interface FilterPreset {
+  id: string;
+  label: string;
+  filters: Omit<Filters, "search">;
+}
+
+const FILTER_PRESETS: FilterPreset[] = [
+  { id: "all", label: "All", filters: { status: [], priority: [], type: [] } },
+  { id: "not-closed", label: "Not Closed", filters: { status: ["open", "in_progress", "blocked"], priority: [], type: [] } },
+  { id: "active", label: "Active", filters: { status: ["in_progress", "blocked"], priority: [], type: [] } },
+];
+
 export function BeadsPanel({
   beads,
   loading,
@@ -76,13 +89,14 @@ export function BeadsPanel({
 }: BeadsPanelProps): React.ReactElement {
   const [sortField, setSortField] = useState<SortField>("updatedAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  // Initialize with "Not Closed" preset
+  const defaultPreset = FILTER_PRESETS.find((p) => p.id === "not-closed")!;
   const [filters, setFilters] = useState<Filters>({
-    status: [],
-    priority: [],
-    type: [],
+    ...defaultPreset.filters,
     search: "",
   });
-  const [filterBarOpen, setFilterBarOpen] = useState(false);
+  const [activePreset, setActivePreset] = useState<string | null>("not-closed");
+  const [filterBarOpen, setFilterBarOpen] = useState(true); // Start open to show default filter
   const [filterMenuOpen, setFilterMenuOpen] = useState<string | null>(null);
   const [columnMenuOpen, setColumnMenuOpen] = useState(false);
   const [resizing, setResizing] = useState<{ id: SortField; startX: number; startWidth: number } | null>(null);
@@ -225,9 +239,20 @@ export function BeadsPanel({
     });
   }, []);
 
+  // Apply a filter preset
+  const applyPreset = (presetId: string) => {
+    const preset = FILTER_PRESETS.find((p) => p.id === presetId);
+    if (preset) {
+      setFilters((prev) => ({ ...preset.filters, search: prev.search }));
+      setActivePreset(presetId);
+      setFilterMenuOpen(null);
+    }
+  };
+
   const addStatusFilter = (status: BeadStatus) => {
     if (!filters.status.includes(status)) {
       setFilters((prev) => ({ ...prev, status: [...prev.status, status] }));
+      setActivePreset(null); // Manual change clears preset
     }
     setFilterMenuOpen(null);
   };
@@ -235,6 +260,7 @@ export function BeadsPanel({
   const addPriorityFilter = (priority: BeadPriority) => {
     if (!filters.priority.includes(priority)) {
       setFilters((prev) => ({ ...prev, priority: [...prev.priority, priority] }));
+      setActivePreset(null);
     }
     setFilterMenuOpen(null);
   };
@@ -242,6 +268,7 @@ export function BeadsPanel({
   const addTypeFilter = (type: string) => {
     if (!filters.type.includes(type)) {
       setFilters((prev) => ({ ...prev, type: [...prev.type, type] }));
+      setActivePreset(null);
     }
     setFilterMenuOpen(null);
   };
@@ -251,6 +278,7 @@ export function BeadsPanel({
       ...prev,
       status: prev.status.filter((s) => s !== status),
     }));
+    setActivePreset(null);
   };
 
   const removePriorityFilter = (priority: BeadPriority) => {
@@ -258,6 +286,7 @@ export function BeadsPanel({
       ...prev,
       priority: prev.priority.filter((p) => p !== priority),
     }));
+    setActivePreset(null);
   };
 
   const removeTypeFilter = (type: string) => {
@@ -265,10 +294,12 @@ export function BeadsPanel({
       ...prev,
       type: prev.type.filter((t) => t !== type),
     }));
+    setActivePreset(null);
   };
 
   const clearAllFilters = () => {
     setFilters({ status: [], priority: [], type: [], search: "" });
+    setActivePreset("all");
   };
 
   const SortIndicator = ({ field }: { field: SortField }) => {
@@ -322,6 +353,20 @@ export function BeadsPanel({
       {/* Row 2: Filter bar (shown when filters active or menu open) */}
       {showFilterRow && (
         <div className="filter-bar">
+          {/* Preset dropdown */}
+          <select
+            className="filter-preset-select"
+            value={activePreset || ""}
+            onChange={(e) => applyPreset(e.target.value)}
+          >
+            {!activePreset && <option value="" disabled>Custom</option>}
+            {FILTER_PRESETS.map((preset) => (
+              <option key={preset.id} value={preset.id}>
+                {preset.label}
+              </option>
+            ))}
+          </select>
+
           {/* Active filter chips */}
           {filters.status.map((status) => (
             <span key={`status-${status}`} className="filter-chip">
@@ -362,7 +407,7 @@ export function BeadsPanel({
             {filterMenuOpen === "status" && (
               <div className="filter-menu">
                 {(Object.keys(STATUS_LABELS) as BeadStatus[])
-                  .filter((s) => !filters.status.includes(s))
+                  .filter((s) => s !== "unknown" && !filters.status.includes(s))
                   .map((status) => (
                     <button key={status} onClick={() => addStatusFilter(status)}>
                       <StatusBadge status={status} size="small" />

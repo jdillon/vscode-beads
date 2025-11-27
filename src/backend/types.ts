@@ -4,13 +4,11 @@
  * These types mirror the Beads issue schema as exposed by `bd list --json` and `bd show --json`.
  * The extension normalizes CLI output into these internal types.
  *
- * Status Mapping (from Beads CLI to internal):
- * - "backlog" -> "backlog"
- * - "ready" -> "ready"
+ * Status Mapping (beads canonical statuses):
+ * - "open" -> "open"
  * - "in_progress" / "in-progress" / "active" -> "in_progress"
  * - "blocked" -> "blocked"
- * - "done" / "completed" -> "done"
- * - "closed" / "cancelled" -> "closed"
+ * - "closed" / "done" / "completed" / "cancelled" -> "closed"
  * - anything else -> "unknown"
  *
  * Priority Mapping:
@@ -19,12 +17,11 @@
  */
 
 // Bead status values used in the UI
+// Matches beads canonical statuses: open, in_progress, blocked, closed
 export type BeadStatus =
-  | "backlog"
-  | "ready"
+  | "open"
   | "in_progress"
   | "blocked"
-  | "done"
   | "closed"
   | "unknown";
 
@@ -223,19 +220,15 @@ export function normalizeStatus(status: string | undefined): BeadStatus {
   const normalized = status.toLowerCase().replace(/-/g, "_");
   switch (normalized) {
     case "open":
-    case "backlog":
-      return "backlog";
-    case "ready":
-      return "ready";
+      return "open";
     case "in_progress":
     case "active":
       return "in_progress";
     case "blocked":
       return "blocked";
+    case "closed":
     case "done":
     case "completed":
-      return "done";
-    case "closed":
     case "cancelled":
     case "canceled":
       return "closed";

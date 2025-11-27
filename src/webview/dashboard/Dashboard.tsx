@@ -38,7 +38,7 @@ export function Dashboard({
     return <div className="dashboard loading">Loading dashboard...</div>;
   }
 
-  const readyBeads = beads.filter((b) => b.status === "ready").slice(0, 5);
+  const openBeads = beads.filter((b) => b.status === "open").slice(0, 5);
   const blockedBeads = beads.filter((b) => b.status === "blocked").slice(0, 5);
   const inProgressBeads = beads.filter((b) => b.status === "in_progress").slice(0, 5);
 
@@ -131,11 +131,11 @@ export function Dashboard({
 
       {/* Work Sections */}
       <div className="work-sections">
-        {readyBeads.length > 0 && (
-          <div className="work-section ready">
-            <h3>Ready to Start</h3>
+        {openBeads.length > 0 && (
+          <div className="work-section open">
+            <h3>Open</h3>
             <ul className="bead-list">
-              {readyBeads.map((bead) => (
+              {openBeads.map((bead) => (
                 <BeadListItem key={bead.id} bead={bead} onClick={onSelectBead} />
               ))}
             </ul>

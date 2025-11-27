@@ -24,13 +24,12 @@ interface KanbanBoardProps {
   onSelectBead: (beadId: string) => void;
 }
 
-// Default column order
+// Default column order (matches beads canonical statuses)
 const COLUMN_ORDER: BeadStatus[] = [
-  "backlog",
-  "ready",
+  "open",
   "in_progress",
   "blocked",
-  "done",
+  "closed",
 ];
 
 export function KanbanBoard({
@@ -45,11 +44,9 @@ export function KanbanBoard({
   // Group beads by status
   const columns = useMemo(() => {
     const grouped: Record<BeadStatus, Bead[]> = {
-      backlog: [],
-      ready: [],
+      open: [],
       in_progress: [],
       blocked: [],
-      done: [],
       closed: [],
       unknown: [],
     };

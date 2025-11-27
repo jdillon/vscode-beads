@@ -95,12 +95,12 @@ export class DashboardViewProvider extends BaseViewProvider {
 
       this.postMessage({ type: "setSummary", summary });
 
-      // Get ready and blocked beads for quick access
-      const readyBeads = beads.filter((b) => b.status === "ready").slice(0, 5);
+      // Get open and blocked beads for quick access
+      const openBeads = beads.filter((b) => b.status === "open").slice(0, 5);
       const blockedBeads = beads.filter((b) => b.status === "blocked").slice(0, 5);
       const inProgressBeads = beads.filter((b) => b.status === "in_progress").slice(0, 5);
 
-      const importantBeads = [...readyBeads, ...blockedBeads, ...inProgressBeads];
+      const importantBeads = [...openBeads, ...blockedBeads, ...inProgressBeads];
       this.postMessage({ type: "setBeads", beads: importantBeads });
     } catch (err) {
       this.setError(`Error: ${err}`);
