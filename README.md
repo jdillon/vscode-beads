@@ -21,15 +21,9 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 
 ## Installation
 
-```bash
-# From source
-bun install
-bun run compile
-# Press F5 to launch Extension Development Host
+Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=planet57.vscode-beads) or search "Beads" in VS Code Extensions.
 
-# Or install VSIX
-code --install-extension vscode-beads-0.1.0.vsix
-```
+For development setup, see [docs/development.md](docs/development.md).
 
 ## Usage
 
