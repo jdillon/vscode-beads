@@ -55,6 +55,8 @@ code --install-extension vscode-beads-0.1.0.vsix
 | Command | Description |
 |---------|-------------|
 | `Beads: Switch Project` | Select active project |
+| `Beads: Open Issues Panel` | Open the issues panel |
+| `Beads: Open Issue Details` | Open the details panel |
 | `Beads: Refresh` | Refresh all views |
 | `Beads: Create New Issue` | Create issue via quick input |
 | `Beads: Start Daemon` | Start daemon for active project |
