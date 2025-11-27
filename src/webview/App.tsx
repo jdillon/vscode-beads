@@ -20,6 +20,7 @@ import { BeadsPanel } from "./beads-panel/BeadsPanel";
 import { BeadDetails } from "./details/BeadDetails";
 import { Loading } from "./common/Loading";
 import { ErrorMessage } from "./common/ErrorMessage";
+import { ToastProvider, triggerToast } from "./common/Toast";
 
 interface AppState {
   viewType: string;
@@ -92,6 +93,9 @@ export function App(): React.ReactElement {
         break;
       case "refresh":
         vscode.postMessage({ type: "refresh" });
+        break;
+      case "showToast":
+        triggerToast(message.text, "top-right");
         break;
     }
   }, []);
@@ -204,8 +208,10 @@ export function App(): React.ReactElement {
   };
 
   return (
-    <div className="app">
-      <main className="app-content">{renderView()}</main>
-    </div>
+    <ToastProvider>
+      <div className="app">
+        <main className="app-content">{renderView()}</main>
+      </div>
+    </ToastProvider>
   );
 }

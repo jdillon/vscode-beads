@@ -97,23 +97,16 @@
       }
     ],
     "menus": {
-      "viewContainer/title": [
-        {
-          "command": "beads.switchProject",
-          "when": "viewContainer == beads",
-          "group": "navigation"
-        },
+      "view/title": [
         {
           "command": "beads.refresh",
-          "when": "viewContainer == beads",
-          "group": "navigation"
-        }
-      ],
-      "view/title": [
+          "when": "view == beadsPanel",
+          "group": "navigation@1"
+        },
         {
           "command": "beads.createBead",
           "when": "view == beadsPanel",
-          "group": "navigation"
+          "group": "navigation@2"
         }
       ]
     },

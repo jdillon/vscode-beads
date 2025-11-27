@@ -20,6 +20,7 @@ import { StatusBadge } from "../common/StatusBadge";
 import { PriorityBadge } from "../common/PriorityBadge";
 import { LabelBadge } from "../common/LabelBadge";
 import { Markdown } from "../common/Markdown";
+import { useToast } from "../common/Toast";
 
 interface BeadDetailsProps {
   bead: Bead | null;
@@ -52,6 +53,7 @@ export function BeadDetails({
   onViewInGraph,
   onSelectBead,
 }: BeadDetailsProps): React.ReactElement {
+  const { showToast } = useToast();
   const [editMode, setEditMode] = useState(false);
   const [editedBead, setEditedBead] = useState<Partial<Bead>>({});
   const [newLabel, setNewLabel] = useState("");
@@ -134,8 +136,9 @@ export function BeadDetails({
       <div className="details-header">
         <span
           className="bead-id-badge clickable"
-          onClick={() => {
+          onClick={(e) => {
             navigator.clipboard.writeText(bead.id);
+            showToast("Copied!", e);
           }}
           title="Click to copy ID"
         >

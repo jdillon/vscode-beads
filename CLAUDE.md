@@ -70,6 +70,8 @@ Priority is 0-4 where 0 = Critical (P0), 4 = None (P4).
 
 Use beads MCP tools for ALL issue tracking. Do NOT use TodoWrite or markdown TODOs.
 
+**Do NOT close issues prematurely.** Wait for explicit user verification that the work is complete before closing. Build succeeding is not enough - the user must confirm the feature works as expected.
+
 **Commit format**: Include `Resolves: platform-xxx` or `Related: platform-xxx` in commit messages.
 See `bd onboard` for more information.
 

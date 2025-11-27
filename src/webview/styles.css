@@ -446,6 +446,20 @@ textarea {
   min-height: 28px;
 }
 
+.filter-preset-select {
+  padding: 2px 6px;
+  font-size: 11px;
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+  border: 1px solid var(--vscode-dropdown-border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.filter-preset-select:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
 .filter-chip {
   display: inline-flex;
   align-items: center;
@@ -766,29 +780,29 @@ textarea {
 
 .summary-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: var(--spacing-md);
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: var(--spacing-sm);
 }
 
 .summary-card {
-  padding: var(--spacing-lg);
-  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-md);
   background-color: var(--vscode-sideBar-background);
   border: 1px solid var(--vscode-panel-border);
   text-align: center;
 }
 
 .summary-card .card-value {
-  font-size: 28px;
+  font-size: 18px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.1;
 }
 
 .summary-card .card-label {
-  font-size: 11px;
+  font-size: 9px;
   color: var(--vscode-descriptionForeground);
   text-transform: uppercase;
-  margin-top: var(--spacing-xs);
+  margin-top: 2px;
 }
 
 .summary-card.total .card-value {
@@ -1609,4 +1623,37 @@ textarea {
 
 ::-webkit-scrollbar-thumb:active {
   background-color: var(--vscode-scrollbarSlider-activeBackground);
+}
+
+/* ==================== Toast Notifications ==================== */
+
+.toast-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.toast {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  background: #fff176;  /* Classic sticky note yellow */
+  color: #1a1a1a;
+  border-radius: 3px;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.toast.below {
+  transform: translate(-50%, 0);
+}
+
+.toast.fading {
+  opacity: 0;
 }

@@ -5,12 +5,11 @@
  */
 
 // Re-export types that are shared between extension and webview
+// These match beads canonical statuses: open, in_progress, blocked, closed
 export type BeadStatus =
-  | "backlog"
-  | "ready"
+  | "open"
   | "in_progress"
   | "blocked"
-  | "done"
   | "closed"
   | "unknown";
 
@@ -100,7 +99,8 @@ export type ExtensionMessage =
   | { type: "setLoading"; loading: boolean }
   | { type: "setError"; error: string | null }
   | { type: "setSettings"; settings: WebviewSettings }
-  | { type: "refresh" };
+  | { type: "refresh" }
+  | { type: "showToast"; text: string };
 
 // Messages from webview to extension
 export type WebviewMessage =
@@ -129,11 +129,9 @@ export const PRIORITY_LABELS: Record<BeadPriority, string> = {
 };
 
 export const STATUS_LABELS: Record<BeadStatus, string> = {
-  backlog: "Backlog",
-  ready: "Ready",
+  open: "Open",
   in_progress: "In Progress",
   blocked: "Blocked",
-  done: "Done",
   closed: "Closed",
   unknown: "Unknown",
 };
@@ -155,12 +153,10 @@ export const PRIORITY_TEXT_COLORS: Record<BeadPriority, string> = {
 };
 
 export const STATUS_COLORS: Record<BeadStatus, string> = {
-  backlog: "#6b7280",
-  ready: "#10b981",
-  in_progress: "#3b82f6",
-  blocked: "#ef4444",
-  done: "#22c55e",
-  closed: "#6b7280",
+  open: "#10b981",      // green - ready to work
+  in_progress: "#3b82f6", // blue
+  blocked: "#ef4444",   // red
+  closed: "#6b7280",    // gray
   unknown: "#9ca3af",
 };
 
