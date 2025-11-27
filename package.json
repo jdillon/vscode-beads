@@ -42,32 +42,14 @@
         {
           "type": "webview",
           "id": "beadsPanel",
-          "name": "Beads Panel",
+          "name": "Issues",
           "visibility": "visible"
-        },
-        {
-          "type": "webview",
-          "id": "beadsDashboard",
-          "name": "Dashboard",
-          "visibility": "visible"
-        },
-        {
-          "type": "webview",
-          "id": "beadsKanban",
-          "name": "Kanban Board",
-          "visibility": "collapsed"
-        },
-        {
-          "type": "webview",
-          "id": "beadsGraph",
-          "name": "Dependency Graph",
-          "visibility": "collapsed"
         },
         {
           "type": "webview",
           "id": "beadsDetails",
-          "name": "Bead Details",
-          "visibility": "collapsed"
+          "name": "Details",
+          "visibility": "visible"
         }
       ]
     },
@@ -78,38 +60,23 @@
         "icon": "$(folder)"
       },
       {
-        "command": "beads.openDashboard",
-        "title": "Beads: Open Dashboard",
-        "icon": "$(dashboard)"
-      },
-      {
         "command": "beads.openBeadsPanel",
-        "title": "Beads: Open Beads Panel",
+        "title": "Beads: Open Issues Panel",
         "icon": "$(list-unordered)"
       },
       {
-        "command": "beads.openKanban",
-        "title": "Beads: Open Kanban Board",
-        "icon": "$(layout)"
-      },
-      {
-        "command": "beads.openDependencyGraph",
-        "title": "Beads: Open Dependency Graph",
-        "icon": "$(type-hierarchy)"
-      },
-      {
         "command": "beads.openBeadDetails",
-        "title": "Beads: Open Bead Details",
+        "title": "Beads: Open Issue Details",
         "icon": "$(file-text)"
       },
       {
         "command": "beads.refresh",
-        "title": "Beads: Refresh All Views",
+        "title": "Beads: Refresh",
         "icon": "$(refresh)"
       },
       {
         "command": "beads.createBead",
-        "title": "Beads: Create New Bead",
+        "title": "Beads: Create New Issue",
         "icon": "$(add)"
       },
       {
@@ -124,26 +91,23 @@
       }
     ],
     "menus": {
-      "view/title": [
+      "viewContainer/title": [
         {
           "command": "beads.refresh",
-          "when": "view =~ /beads/",
+          "when": "viewContainer == beads",
           "group": "navigation"
-        },
-        {
-          "command": "beads.switchProject",
-          "when": "view =~ /beads/",
-          "group": "navigation"
-        },
+        }
+      ],
+      "view/title": [
         {
           "command": "beads.createBead",
-          "when": "view =~ /beads/",
+          "when": "view == beadsPanel",
           "group": "navigation"
         }
       ]
     },
     "configuration": {
-      "title": "Beads Dashboard",
+      "title": "Beads",
       "properties": {
         "beads.pathToBd": {
           "type": "string",
@@ -155,29 +119,15 @@
           "default": true,
           "description": "Automatically start daemon when switching to a project"
         },
-        "beads.statusColumns": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [
-            "backlog",
-            "ready",
-            "in_progress",
-            "blocked",
-            "done"
-          ],
-          "description": "Status columns order for the Kanban board"
-        },
-        "beads.maxGraphNodes": {
-          "type": "number",
-          "default": 100,
-          "description": "Maximum number of nodes to display in the dependency graph"
-        },
         "beads.refreshInterval": {
           "type": "number",
           "default": 30000,
           "description": "Auto-refresh interval in milliseconds (0 to disable)"
+        },
+        "beads.renderMarkdown": {
+          "type": "boolean",
+          "default": true,
+          "description": "Render markdown in description, design notes, and other text fields"
         }
       }
     }
@@ -209,6 +159,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "marked": "^17.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   }

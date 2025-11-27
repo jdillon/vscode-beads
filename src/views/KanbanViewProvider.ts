@@ -4,14 +4,14 @@
  * Features:
  * - Columns for each status
  * - Drag-and-drop cards between columns
- * - Status updates via bd CLI
+ * - Status updates via daemon RPC
  * - Priority and label badges
  */
 
 import * as vscode from "vscode";
 import { BaseViewProvider } from "./BaseViewProvider";
 import { BeadsProjectManager } from "../backend/BeadsProjectManager";
-import { WebviewToExtensionMessage, Bead } from "../backend/types";
+import { WebviewToExtensionMessage, issueToWebviewBead } from "../backend/types";
 
 export class KanbanViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsKanban";
@@ -25,8 +25,8 @@ export class KanbanViewProvider extends BaseViewProvider {
   }
 
   protected async loadData(): Promise<void> {
-    const backend = this.projectManager.getBackend();
-    if (!backend) {
+    const client = this.projectManager.getClient();
+    if (!client) {
       this.postMessage({ type: "setBeads", beads: [] });
       return;
     }
@@ -35,14 +35,9 @@ export class KanbanViewProvider extends BaseViewProvider {
     this.setError(null);
 
     try {
-      const result = await backend.listBeads();
-
-      if (result.success && result.data) {
-        this.postMessage({ type: "setBeads", beads: result.data });
-      } else {
-        this.setError(result.error || "Failed to load beads");
-        this.postMessage({ type: "setBeads", beads: [] });
-      }
+      const issues = await client.list();
+      const beads = issues.map(issueToWebviewBead);
+      this.postMessage({ type: "setBeads", beads });
     } catch (err) {
       this.setError(`Error: ${err}`);
       this.postMessage({ type: "setBeads", beads: [] });
@@ -54,8 +49,8 @@ export class KanbanViewProvider extends BaseViewProvider {
   protected async handleCustomMessage(
     message: WebviewToExtensionMessage
   ): Promise<void> {
-    const backend = this.projectManager.getBackend();
-    if (!backend) {
+    const client = this.projectManager.getClient();
+    if (!client) {
       return;
     }
 
@@ -65,19 +60,14 @@ export class KanbanViewProvider extends BaseViewProvider {
           `[Kanban] Updating bead ${message.beadId}: ${JSON.stringify(message.updates)}`
         );
 
-        const result = await backend.updateBead(
-          message.beadId,
-          message.updates
-        );
-
-        if (result.success) {
-          await this.loadData();
-          // Also refresh other views
-          vscode.commands.executeCommand("beads.refresh");
-        } else {
-          vscode.window.showErrorMessage(
-            `Failed to update bead: ${result.error}`
-          );
+        try {
+          await client.update({
+            id: message.beadId,
+            ...message.updates,
+          });
+          // Data will refresh via mutation events
+        } catch (err) {
+          vscode.window.showErrorMessage(`Failed to update bead: ${err}`);
         }
         break;
     }

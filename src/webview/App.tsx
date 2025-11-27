@@ -12,14 +12,11 @@ import {
   BeadsSummary,
   DependencyGraph,
   ExtensionMessage,
+  WebviewSettings,
   vscode,
 } from "./types";
 import { BeadsPanel } from "./beads-panel/BeadsPanel";
-import { Dashboard } from "./dashboard/Dashboard";
-import { KanbanBoard } from "./kanban/KanbanBoard";
-import { DependencyGraphView } from "./graph/DependencyGraphView";
 import { BeadDetails } from "./details/BeadDetails";
-import { ProjectSelector } from "./common/ProjectSelector";
 import { Loading } from "./common/Loading";
 import { ErrorMessage } from "./common/ErrorMessage";
 
@@ -29,10 +26,12 @@ interface AppState {
   projects: BeadsProject[];
   beads: Bead[];
   selectedBead: Bead | null;
+  selectedBeadId: string | null;
   summary: BeadsSummary | null;
   graph: DependencyGraph | null;
   loading: boolean;
   error: string | null;
+  settings: WebviewSettings;
 }
 
 const initialState: AppState = {
@@ -41,10 +40,12 @@ const initialState: AppState = {
   projects: [],
   beads: [],
   selectedBead: null,
+  selectedBeadId: null,
   summary: null,
   graph: null,
   loading: true,
   error: null,
+  settings: { renderMarkdown: true },
 };
 
 export function App(): React.ReactElement {
@@ -70,6 +71,9 @@ export function App(): React.ReactElement {
       case "setBead":
         setState((prev) => ({ ...prev, selectedBead: message.bead }));
         break;
+      case "setSelectedBeadId":
+        setState((prev) => ({ ...prev, selectedBeadId: (message as { type: "setSelectedBeadId"; beadId: string | null }).beadId }));
+        break;
       case "setSummary":
         setState((prev) => ({ ...prev, summary: message.summary }));
         break;
@@ -81,6 +85,9 @@ export function App(): React.ReactElement {
         break;
       case "setError":
         setState((prev) => ({ ...prev, error: message.error }));
+        break;
+      case "setSettings":
+        setState((prev) => ({ ...prev, settings: message.settings }));
         break;
       case "refresh":
         vscode.postMessage({ type: "refresh" });
@@ -102,7 +109,8 @@ export function App(): React.ReactElement {
 
   // Render the appropriate view
   const renderView = () => {
-    if (state.loading && state.beads.length === 0 && !state.summary && !state.graph) {
+    // Only show loading for beadsPanel when loading initial data
+    if (state.viewType === "beadsPanel" && state.loading && state.beads.length === 0) {
       return <Loading />;
     }
 
@@ -115,76 +123,43 @@ export function App(): React.ReactElement {
       );
     }
 
-    if (!state.project && state.projects.length === 0) {
-      return (
-        <div className="empty-state">
-          <div className="empty-state-icon">📦</div>
-          <h2>No Beads Projects Found</h2>
-          <p>
-            Initialize a Beads project in your workspace with{" "}
-            <code>bd init</code> to get started.
-          </p>
-        </div>
-      );
-    }
-
     switch (state.viewType) {
       case "beadsPanel":
         return (
           <BeadsPanel
             beads={state.beads}
             loading={state.loading}
+            selectedBeadId={state.selectedBeadId}
+            projects={state.projects}
+            activeProject={state.project}
+            onSelectProject={(projectId) =>
+              vscode.postMessage({ type: "selectProject", projectId })
+            }
             onSelectBead={(beadId) =>
               vscode.postMessage({ type: "openBeadDetails", beadId })
             }
             onUpdateBead={(beadId, updates) =>
               vscode.postMessage({ type: "updateBead", beadId, updates })
-            }
-          />
-        );
-
-      case "beadsDashboard":
-        return (
-          <Dashboard
-            summary={state.summary}
-            beads={state.beads}
-            loading={state.loading}
-            onSelectBead={(beadId) =>
-              vscode.postMessage({ type: "openBeadDetails", beadId })
-            }
-          />
-        );
-
-      case "beadsKanban":
-        return (
-          <KanbanBoard
-            beads={state.beads}
-            loading={state.loading}
-            onUpdateBead={(beadId, updates) =>
-              vscode.postMessage({ type: "updateBead", beadId, updates })
-            }
-            onSelectBead={(beadId) =>
-              vscode.postMessage({ type: "openBeadDetails", beadId })
-            }
-          />
-        );
-
-      case "beadsGraph":
-        return (
-          <DependencyGraphView
-            graph={state.graph}
-            loading={state.loading}
-            onSelectBead={(beadId) =>
-              vscode.postMessage({ type: "openBeadDetails", beadId })
             }
           />
         );
 
       case "beadsDetails":
+        if (!state.selectedBead && !state.loading) {
+          return (
+            <div className="empty-state compact">
+              <p>Select an issue from the list</p>
+            </div>
+          );
+        }
+        if (!state.selectedBead) {
+          return <Loading />;
+        }
         return (
           <BeadDetails
             bead={state.selectedBead}
             loading={state.loading}
+            renderMarkdown={state.settings.renderMarkdown}
             onUpdateBead={(beadId, updates) =>
               vscode.postMessage({ type: "updateBead", beadId, updates })
             }
@@ -194,8 +169,14 @@ export function App(): React.ReactElement {
             onRemoveDependency={(beadId, dependsOnId) =>
               vscode.postMessage({ type: "removeDependency", beadId, dependsOnId })
             }
+            onAddComment={(beadId, text) =>
+              vscode.postMessage({ type: "addComment", beadId, text })
+            }
             onViewInGraph={(beadId) =>
               vscode.postMessage({ type: "viewInGraph", beadId })
+            }
+            onSelectBead={(beadId) =>
+              vscode.postMessage({ type: "openBeadDetails", beadId })
             }
           />
         );
@@ -203,9 +184,7 @@ export function App(): React.ReactElement {
       default:
         return (
           <div className="empty-state">
-            <div className="empty-state-icon">🔧</div>
-            <h2>Loading...</h2>
-            <p>Waiting for view configuration.</p>
+            <p>Loading...</p>
           </div>
         );
     }
@@ -213,22 +192,6 @@ export function App(): React.ReactElement {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <ProjectSelector
-          projects={state.projects}
-          activeProject={state.project}
-          onSelectProject={(projectId) =>
-            vscode.postMessage({ type: "selectProject", projectId })
-          }
-        />
-        <button
-          className="icon-button"
-          onClick={() => vscode.postMessage({ type: "refresh" })}
-          title="Refresh"
-        >
-          ↻
-        </button>
-      </header>
       <main className="app-content">{renderView()}</main>
     </div>
   );

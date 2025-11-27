@@ -1,32 +1,19 @@
 /**
- * Beads Dashboard VS Code Extension - Main Entry Point
+ * Beads VS Code Extension - Main Entry Point
  *
- * This extension provides rich views for managing Beads issues:
- * - Beads Panel: Table/list view with filtering and sorting
- * - Dashboard: Summary cards and statistics
- * - Kanban Board: Drag-and-drop status management
- * - Dependency Graph: Visual relationship mapping
- * - Bead Details: Full editing of individual beads
- *
- * All data operations go through the BeadsBackend which talks to the `bd` CLI.
+ * Simplified to two views:
+ * - Issues: List of all beads
+ * - Details: Selected bead details
  */
 
 import * as vscode from "vscode";
 import { BeadsProjectManager } from "./backend/BeadsProjectManager";
-import { BeadsBackend } from "./backend/BeadsBackend";
 import { BeadsPanelViewProvider } from "./views/BeadsPanelViewProvider";
-import { DashboardViewProvider } from "./views/DashboardViewProvider";
-import { KanbanViewProvider } from "./views/KanbanViewProvider";
-import { DependencyGraphViewProvider } from "./views/DependencyGraphViewProvider";
 import { BeadDetailsViewProvider } from "./views/BeadDetailsViewProvider";
-import { Bead } from "./backend/types";
 
 let outputChannel: vscode.OutputChannel;
 let projectManager: BeadsProjectManager;
 let beadsPanelProvider: BeadsPanelViewProvider;
-let dashboardProvider: DashboardViewProvider;
-let kanbanProvider: KanbanViewProvider;
-let graphProvider: DependencyGraphViewProvider;
 let detailsProvider: BeadDetailsViewProvider;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
@@ -44,24 +31,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     outputChannel
   );
 
-  dashboardProvider = new DashboardViewProvider(
-    context.extensionUri,
-    projectManager,
-    outputChannel
-  );
-
-  kanbanProvider = new KanbanViewProvider(
-    context.extensionUri,
-    projectManager,
-    outputChannel
-  );
-
-  graphProvider = new DependencyGraphViewProvider(
-    context.extensionUri,
-    projectManager,
-    outputChannel
-  );
-
   detailsProvider = new BeadDetailsViewProvider(
     context.extensionUri,
     projectManager,
@@ -71,15 +40,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Register webview providers
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("beadsPanel", beadsPanelProvider, {
-      webviewOptions: { retainContextWhenHidden: true },
-    }),
-    vscode.window.registerWebviewViewProvider("beadsDashboard", dashboardProvider, {
-      webviewOptions: { retainContextWhenHidden: true },
-    }),
-    vscode.window.registerWebviewViewProvider("beadsKanban", kanbanProvider, {
-      webviewOptions: { retainContextWhenHidden: true },
-    }),
-    vscode.window.registerWebviewViewProvider("beadsGraph", graphProvider, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
     vscode.window.registerWebviewViewProvider("beadsDetails", detailsProvider, {
@@ -93,71 +53,56 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       await projectManager.showProjectPicker();
     }),
 
-    vscode.commands.registerCommand("beads.openDashboard", () => {
-      vscode.commands.executeCommand("beadsDashboard.focus");
-    }),
-
     vscode.commands.registerCommand("beads.openBeadsPanel", () => {
       vscode.commands.executeCommand("beadsPanel.focus");
-    }),
-
-    vscode.commands.registerCommand("beads.openKanban", () => {
-      vscode.commands.executeCommand("beadsKanban.focus");
-    }),
-
-    vscode.commands.registerCommand("beads.openDependencyGraph", () => {
-      vscode.commands.executeCommand("beadsGraph.focus");
     }),
 
     vscode.commands.registerCommand("beads.openBeadDetails", async (beadId?: string) => {
       if (!beadId) {
         // Prompt for bead ID
-        const backend = projectManager.getBackend();
-        if (!backend) {
+        const client = projectManager.getClient();
+        if (!client) {
           vscode.window.showWarningMessage("No active Beads project");
           return;
         }
 
-        const beadsResult = await backend.listBeads();
-        if (!beadsResult.success || !beadsResult.data) {
-          vscode.window.showErrorMessage("Failed to load beads");
+        try {
+          const beads = await client.list();
+          const items = beads.map((bead) => ({
+            label: bead.title,
+            description: bead.id,
+            detail: `Status: ${bead.status} | Priority: P${bead.priority}`,
+            bead,
+          }));
+
+          const selected = await vscode.window.showQuickPick(items, {
+            placeHolder: "Select a bead to view details",
+          });
+
+          if (selected) {
+            beadId = selected.bead.id;
+          }
+        } catch (err) {
+          vscode.window.showErrorMessage(`Failed to load beads: ${err}`);
           return;
-        }
-
-        const items = beadsResult.data.map((bead) => ({
-          label: bead.title,
-          description: bead.id,
-          detail: `Status: ${bead.status} | Priority: ${bead.priority ?? "N/A"}`,
-          bead,
-        }));
-
-        const selected = await vscode.window.showQuickPick(items, {
-          placeHolder: "Select a bead to view details",
-        });
-
-        if (selected) {
-          beadId = selected.bead.id;
         }
       }
 
       if (beadId) {
         detailsProvider.showBead(beadId);
-        vscode.commands.executeCommand("beadsDetails.focus");
+        beadsPanelProvider.setSelectedBead(beadId);
       }
     }),
 
     vscode.commands.registerCommand("beads.refresh", async () => {
       await projectManager.refresh();
       beadsPanelProvider.refresh();
-      dashboardProvider.refresh();
-      kanbanProvider.refresh();
-      graphProvider.refresh();
       detailsProvider.refresh();
     }),
 
     vscode.commands.registerCommand("beads.createBead", async () => {
-      const backend = projectManager.getBackend();
-      if (!backend) {
+      const client = projectManager.getClient();
+      if (!client) {
         vscode.window.showWarningMessage("No active Beads project");
         return;
       }
@@ -172,7 +117,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       const type = await vscode.window.showQuickPick(
-        ["bug", "feature", "task", "enhancement", "docs"],
+        ["bug", "feature", "task", "epic", "chore"],
         { placeHolder: "Select bead type (optional)" }
       );
 
@@ -187,18 +132,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         { placeHolder: "Select priority (optional)" }
       );
 
-      const result = await backend.createBead({
-        title,
-        type: type || undefined,
-        priority: priority?.value as 0 | 1 | 2 | 3 | 4 | undefined,
-        status: "backlog",
-      });
-
-      if (result.success && result.data) {
-        vscode.window.showInformationMessage(`Created bead: ${result.data.id}`);
-        vscode.commands.executeCommand("beads.refresh");
-      } else {
-        vscode.window.showErrorMessage(`Failed to create bead: ${result.error}`);
+      try {
+        const created = await client.create({
+          title,
+          issue_type: type || "task",
+          priority: priority?.value ?? 2,
+        });
+        vscode.window.showInformationMessage(`Created bead: ${created.id}`);
+      } catch (err) {
+        vscode.window.showErrorMessage(`Failed to create bead: ${err}`);
       }
     }),
 
@@ -221,37 +163,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     })
   );
 
-  // Subscribe to project changes to refresh all views
+  // Subscribe to project changes to refresh views
   context.subscriptions.push(
     projectManager.onDataChanged(() => {
       beadsPanelProvider.refresh();
-      dashboardProvider.refresh();
-      kanbanProvider.refresh();
-      graphProvider.refresh();
+      detailsProvider.refresh();
     }),
 
     projectManager.onActiveProjectChanged(() => {
+      beadsPanelProvider.setSelectedBead(null); // Clear selection on project switch
       beadsPanelProvider.refresh();
-      dashboardProvider.refresh();
-      kanbanProvider.refresh();
-      graphProvider.refresh();
       detailsProvider.refresh();
     })
   );
-
-  // Set up auto-refresh if configured
-  const config = vscode.workspace.getConfiguration("beads");
-  const refreshInterval = config.get<number>("refreshInterval", 30000);
-
-  if (refreshInterval > 0) {
-    const intervalId = setInterval(() => {
-      projectManager.refresh();
-    }, refreshInterval);
-
-    context.subscriptions.push({
-      dispose: () => clearInterval(intervalId),
-    });
-  }
 
   // Add project manager to subscriptions for disposal
   context.subscriptions.push(projectManager);

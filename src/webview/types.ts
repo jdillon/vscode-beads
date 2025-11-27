@@ -16,20 +16,33 @@ export type BeadStatus =
 
 export type BeadPriority = 0 | 1 | 2 | 3 | 4;
 
+export interface BeadComment {
+  id: number;
+  author: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface Bead {
   id: string;
   title: string;
   description?: string;
+  design?: string;
+  acceptanceCriteria?: string;
+  notes?: string;
   type?: string;
   priority?: BeadPriority;
   status: BeadStatus;
   assignee?: string;
   labels?: string[];
+  estimatedMinutes?: number;
+  externalRef?: string;
   createdAt?: string;
   updatedAt?: string;
   closedAt?: string;
   dependsOn?: string[];
   blocks?: string[];
+  comments?: BeadComment[];
   sortOrder?: number;
 }
 
@@ -70,17 +83,23 @@ export interface DependencyGraph {
   edges: GraphEdge[];
 }
 
+export interface WebviewSettings {
+  renderMarkdown: boolean;
+}
+
 // Messages from extension to webview
 export type ExtensionMessage =
   | { type: "setViewType"; viewType: string }
   | { type: "setProject"; project: BeadsProject | null }
   | { type: "setBeads"; beads: Bead[] }
   | { type: "setBead"; bead: Bead | null }
+  | { type: "setSelectedBeadId"; beadId: string | null }
   | { type: "setSummary"; summary: BeadsSummary }
   | { type: "setGraph"; graph: DependencyGraph }
   | { type: "setProjects"; projects: BeadsProject[] }
   | { type: "setLoading"; loading: boolean }
   | { type: "setError"; error: string | null }
+  | { type: "setSettings"; settings: WebviewSettings }
   | { type: "refresh" };
 
 // Messages from webview to extension
@@ -94,6 +113,7 @@ export type WebviewMessage =
   | { type: "deleteBead"; beadId: string }
   | { type: "addDependency"; beadId: string; dependsOnId: string }
   | { type: "removeDependency"; beadId: string; dependsOnId: string }
+  | { type: "addComment"; beadId: string; text: string }
   | { type: "openBeadDetails"; beadId: string }
   | { type: "viewInGraph"; beadId: string }
   | { type: "startDaemon" }
@@ -124,6 +144,14 @@ export const PRIORITY_COLORS: Record<BeadPriority, string> = {
   2: "#ffcc00", // Medium - yellow
   3: "#44aa44", // Low - green
   4: "#888888", // None - gray
+};
+
+export const PRIORITY_TEXT_COLORS: Record<BeadPriority, string> = {
+  0: "#ffffff", // white on red
+  1: "#ffffff", // white on orange
+  2: "#1a1a1a", // dark on yellow
+  3: "#ffffff", // white on green
+  4: "#ffffff", // white on gray
 };
 
 export const STATUS_COLORS: Record<BeadStatus, string> = {

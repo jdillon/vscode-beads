@@ -12,7 +12,7 @@
 import * as vscode from "vscode";
 import { BaseViewProvider } from "./BaseViewProvider";
 import { BeadsProjectManager } from "../backend/BeadsProjectManager";
-import { WebviewToExtensionMessage, DependencyGraph } from "../backend/types";
+import { DependencyGraph, GraphNode, GraphEdge, issueToWebviewBead } from "../backend/types";
 
 export class DependencyGraphViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsGraph";
@@ -27,8 +27,8 @@ export class DependencyGraphViewProvider extends BaseViewProvider {
   }
 
   protected async loadData(): Promise<void> {
-    const backend = this.projectManager.getBackend();
-    if (!backend) {
+    const client = this.projectManager.getClient();
+    if (!client) {
       this.postMessage({ type: "setGraph", graph: { nodes: [], edges: [] } });
       return;
     }
@@ -37,36 +37,63 @@ export class DependencyGraphViewProvider extends BaseViewProvider {
     this.setError(null);
 
     try {
-      const result = await backend.getDependencyGraph();
+      const issues = await client.list();
+      const beads = issues.map(issueToWebviewBead);
 
-      if (result.success && result.data) {
-        // Apply max nodes limit
-        const config = vscode.workspace.getConfiguration("beads");
-        const maxNodes = config.get<number>("maxGraphNodes", 100);
+      // Build dependency graph from beads
+      const nodes: GraphNode[] = [];
+      const edges: GraphEdge[] = [];
 
-        let graph = result.data;
+      for (const bead of beads) {
+        nodes.push({
+          id: bead.id,
+          title: bead.title,
+          status: bead.status,
+          priority: bead.priority,
+        });
 
-        if (graph.nodes.length > maxNodes) {
-          // Truncate and warn
-          graph = {
-            nodes: graph.nodes.slice(0, maxNodes),
-            edges: graph.edges.filter(
-              (e) =>
-                graph.nodes.slice(0, maxNodes).some((n) => n.id === e.source) &&
-                graph.nodes.slice(0, maxNodes).some((n) => n.id === e.target)
-            ),
-          };
-
-          vscode.window.showWarningMessage(
-            `Graph truncated to ${maxNodes} nodes. Increase beads.maxGraphNodes to see more.`
-          );
+        if (bead.dependsOn) {
+          for (const depId of bead.dependsOn) {
+            edges.push({
+              source: bead.id,
+              target: depId,
+              type: "depends_on",
+            });
+          }
         }
 
-        this.postMessage({ type: "setGraph", graph });
-      } else {
-        this.setError(result.error || "Failed to load dependency graph");
-        this.postMessage({ type: "setGraph", graph: { nodes: [], edges: [] } });
+        if (bead.blocks) {
+          for (const blockedId of bead.blocks) {
+            edges.push({
+              source: bead.id,
+              target: blockedId,
+              type: "blocks",
+            });
+          }
+        }
       }
+
+      let graph: DependencyGraph = { nodes, edges };
+
+      // Apply max nodes limit
+      const config = vscode.workspace.getConfiguration("beads");
+      const maxNodes = config.get<number>("maxGraphNodes", 100);
+
+      if (graph.nodes.length > maxNodes) {
+        const limitedNodeIds = new Set(graph.nodes.slice(0, maxNodes).map((n) => n.id));
+        graph = {
+          nodes: graph.nodes.slice(0, maxNodes),
+          edges: graph.edges.filter(
+            (e) => limitedNodeIds.has(e.source) && limitedNodeIds.has(e.target)
+          ),
+        };
+
+        vscode.window.showWarningMessage(
+          `Graph truncated to ${maxNodes} nodes. Increase beads.maxGraphNodes to see more.`
+        );
+      }
+
+      this.postMessage({ type: "setGraph", graph });
     } catch (err) {
       this.setError(`Error: ${err}`);
       this.postMessage({ type: "setGraph", graph: { nodes: [], edges: [] } });

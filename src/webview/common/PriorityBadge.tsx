@@ -5,7 +5,7 @@
  */
 
 import React from "react";
-import { BeadPriority, PRIORITY_LABELS, PRIORITY_COLORS } from "../types";
+import { BeadPriority, PRIORITY_LABELS, PRIORITY_COLORS, PRIORITY_TEXT_COLORS } from "../types";
 
 interface PriorityBadgeProps {
   priority: BeadPriority;
@@ -17,12 +17,13 @@ export function PriorityBadge({
   size = "medium",
 }: PriorityBadgeProps): React.ReactElement {
   const label = PRIORITY_LABELS[priority] || `P${priority}`;
-  const color = PRIORITY_COLORS[priority] || "#888888";
+  const bgColor = PRIORITY_COLORS[priority] || "#888888";
+  const textColor = PRIORITY_TEXT_COLORS[priority] || "#ffffff";
 
   return (
     <span
       className={`priority-badge priority-badge-${size}`}
-      style={{ backgroundColor: color }}
+      style={{ backgroundColor: bgColor, color: textColor }}
       title={`Priority: ${label}`}
     >
       P{priority}

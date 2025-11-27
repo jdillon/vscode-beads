@@ -84,6 +84,15 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
     const projects = this.projectManager.getProjects();
     this.postMessage({ type: "setProjects", projects });
 
+    // Send settings
+    const config = vscode.workspace.getConfiguration("beads");
+    this.postMessage({
+      type: "setSettings",
+      settings: {
+        renderMarkdown: config.get<boolean>("renderMarkdown", true),
+      },
+    });
+
     // Load view-specific data
     await this.loadData();
   }
@@ -173,6 +182,9 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
    * Triggers a refresh of the view
    */
   public refresh(): void {
+    // Also update project state in webview
+    const project = this.projectManager.getActiveProject();
+    this.postMessage({ type: "setProject", project });
     this.loadData();
   }
 

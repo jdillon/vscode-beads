@@ -56,11 +56,16 @@ export interface Bead {
   id: string; // e.g., "bd-a1b2", including dotted child IDs
   title: string;
   description?: string;
-  type?: string; // Beads "type" / category
+  design?: string; // Design notes
+  acceptanceCriteria?: string; // Acceptance criteria
+  notes?: string; // Working notes
+  type?: string; // Beads issue_type: bug, feature, task, epic, chore
   priority?: BeadPriority;
   status: BeadStatus;
   assignee?: string;
   labels?: string[];
+  estimatedMinutes?: number; // Time estimate
+  externalRef?: string; // External reference e.g., "gh-9", "jira-ABC"
   createdAt?: string; // ISO/RFC3339 timestamps
   updatedAt?: string;
   closedAt?: string;
@@ -69,9 +74,20 @@ export interface Bead {
   dependsOn?: string[]; // IDs this bead depends on (blockers)
   blocks?: string[]; // IDs this bead blocks
 
+  // Comments
+  comments?: BeadComment[];
+
   // UI-specific fields (not from CLI)
   sortOrder?: number;
   statusColumn?: string;
+}
+
+// Comment on a bead
+export interface BeadComment {
+  id: number;
+  author: string;
+  text: string;
+  createdAt: string;
 }
 
 // Represents a Beads project (database/workspace)
@@ -136,17 +152,24 @@ export interface DependencyGraph {
   edges: GraphEdge[];
 }
 
+// Settings that can be passed to webview
+export interface WebviewSettings {
+  renderMarkdown: boolean;
+}
+
 // Messages sent from extension to webview
 export type ExtensionToWebviewMessage =
   | { type: "setViewType"; viewType: string }
   | { type: "setProject"; project: BeadsProject | null }
   | { type: "setBeads"; beads: Bead[] }
   | { type: "setBead"; bead: Bead | null }
+  | { type: "setSelectedBeadId"; beadId: string | null }
   | { type: "setSummary"; summary: BeadsSummary }
   | { type: "setGraph"; graph: DependencyGraph }
   | { type: "setProjects"; projects: BeadsProject[] }
   | { type: "setLoading"; loading: boolean }
   | { type: "setError"; error: string | null }
+  | { type: "setSettings"; settings: WebviewSettings }
   | { type: "refresh" };
 
 // Messages sent from webview to extension
@@ -160,6 +183,7 @@ export type WebviewToExtensionMessage =
   | { type: "deleteBead"; beadId: string }
   | { type: "addDependency"; beadId: string; dependsOnId: string }
   | { type: "removeDependency"; beadId: string; dependsOnId: string }
+  | { type: "addComment"; beadId: string; text: string }
   | { type: "openBeadDetails"; beadId: string }
   | { type: "viewInGraph"; beadId: string }
   | { type: "startDaemon" }
@@ -198,6 +222,7 @@ export function normalizeStatus(status: string | undefined): BeadStatus {
   }
   const normalized = status.toLowerCase().replace(/-/g, "_");
   switch (normalized) {
+    case "open":
     case "backlog":
       return "backlog";
     case "ready":
@@ -285,5 +310,61 @@ export function normalizeBead(raw: Record<string, unknown>): Bead {
         ? raw.dependsOn.map(String)
         : undefined,
     blocks: Array.isArray(raw.blocks) ? raw.blocks.map(String) : undefined,
+  };
+}
+
+/**
+ * Converts a daemon Issue to webview Bead format
+ */
+export function issueToWebviewBead(issue: {
+  id: string;
+  title: string;
+  description?: string;
+  design?: string;
+  acceptance_criteria?: string;
+  notes?: string;
+  status: string;
+  priority: number;
+  issue_type: string;
+  assignee?: string;
+  labels?: string[];
+  estimated_minutes?: number;
+  external_ref?: string;
+  created_at: string;
+  updated_at: string;
+  closed_at?: string;
+  dependencies?: Array<{ id: string; dependency_type: string }>;
+  dependents?: Array<{ id: string; dependency_type: string }>;
+  comments?: Array<{ id: number; author: string; text: string; created_at: string }>;
+}): Bead {
+  return {
+    id: issue.id,
+    title: issue.title,
+    description: issue.description,
+    design: issue.design,
+    acceptanceCriteria: issue.acceptance_criteria,
+    notes: issue.notes,
+    type: issue.issue_type,
+    priority: normalizePriority(issue.priority),
+    status: normalizeStatus(issue.status),
+    assignee: issue.assignee,
+    labels: issue.labels,
+    estimatedMinutes: issue.estimated_minutes,
+    externalRef: issue.external_ref,
+    createdAt: issue.created_at,
+    updatedAt: issue.updated_at,
+    closedAt: issue.closed_at,
+    dependsOn: issue.dependencies
+      ?.filter((d) => d.dependency_type === "blocks")
+      .map((d) => d.id),
+    blocks: issue.dependents
+      ?.filter((d) => d.dependency_type === "blocks")
+      .map((d) => d.id),
+    comments: issue.comments?.map((c) => ({
+      id: c.id,
+      author: c.author,
+      text: c.text,
+      createdAt: c.created_at,
+    })),
   };
 }

@@ -1,250 +1,80 @@
-# Beads Dashboard - VS Code Extension
+# Beads - VS Code Extension
 
-A VS Code extension for visualizing and managing [Beads](https://github.com/steveyegge/beads) issues via multiple rich views. This extension talks to the Beads daemon via the `bd` CLI, providing a modern UI for issue tracking directly within your editor.
+VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issues. Communicates with the Beads daemon via `bd` CLI.
 
 ## Features
 
-### Multiple Views
-
-- **Beads Panel**: Table/list view with sorting, filtering, and search
-- **Dashboard**: Summary cards, status/priority breakdowns, and quick access to important issues
-- **Kanban Board**: Drag-and-drop cards between status columns
-- **Dependency Graph**: Visual representation of issue dependencies
-- **Bead Details**: Full view/edit of individual issues
-
-### Multi-Project Support
-
-- Automatic detection of Beads projects in your workspace
-- Project selector to switch between multiple projects
-- Daemon status monitoring per project
-- Auto-start daemon option
-
-### Key Capabilities
-
-- Real-time synchronization with the Beads daemon
-- Keyboard-accessible workflows
-- VS Code theme integration (light and dark themes)
-- Configurable refresh intervals
-- Status updates via drag-and-drop or context menu
+- **Issues Panel**: Sortable, filterable table with search
+- **Details Panel**: View/edit individual issues with markdown rendering
+- **Multi-Project**: Auto-detects `.beads` directories, switch between projects
+- **Daemon Management**: Auto-start option, status monitoring
 
 ## Requirements
 
-- **VS Code** 1.85.0 or higher
-- **Beads CLI** (`bd`) installed and available in your PATH
-- A Beads project initialized with `bd init`
+- VS Code 1.85.0+
+- Beads CLI (`bd`) in PATH
+- Initialized project (`bd init`)
 
 ## Installation
 
-### From Source
-
-1. Clone this repository
-2. Install dependencies:
-   ```bash
-   bun install
-   ```
-3. Compile the extension:
-   ```bash
-   bun run compile
-   ```
-4. Press `F5` in VS Code to launch the Extension Development Host
-
-### From VSIX (coming soon)
-
 ```bash
+# From source
+bun install
+bun run compile
+# Press F5 to launch Extension Development Host
+
+# Or install VSIX
 code --install-extension beads-dashboard-0.1.0.vsix
 ```
 
 ## Usage
 
-### Getting Started
+1. Initialize: `bd init`
+2. Start daemon: `bd daemon start`
+3. Click Beads icon in Activity Bar
 
-1. Initialize a Beads project in your workspace:
-   ```bash
-   bd init
-   ```
+### Issues Panel
 
-2. Start the Beads daemon:
-   ```bash
-   bd daemon start
-   ```
+- Click column headers to sort
+- Search filters by title/description/ID
+- Filter by status, priority, type via filter bar
+- Show/hide columns via ⋮ menu
+- Click row to view details
 
-3. Open the Beads sidebar in VS Code (click the Beads icon in the Activity Bar)
+### Details Panel
 
-4. The extension will automatically detect your project and load issues
+- View/edit title, description, status, priority, type, labels
+- Markdown rendering in description and notes fields
+- Manage dependencies
+- Click Edit to modify, Save to commit changes
 
-### Commands
+## Commands
 
 | Command | Description |
 |---------|-------------|
-| `Beads: Switch Project` | Select which Beads project to view |
-| `Beads: Open Dashboard` | Focus the Dashboard view |
-| `Beads: Open Beads Panel` | Focus the Beads Panel view |
-| `Beads: Open Kanban Board` | Focus the Kanban Board view |
-| `Beads: Open Dependency Graph` | Focus the Dependency Graph view |
-| `Beads: Open Bead Details` | View details for a specific bead |
-| `Beads: Refresh All Views` | Refresh data in all views |
-| `Beads: Create New Bead` | Create a new bead with quick input |
-| `Beads: Start Daemon` | Start the Beads daemon for the active project |
-| `Beads: Stop Daemon` | Stop the Beads daemon for the active project |
+| `Beads: Switch Project` | Select active project |
+| `Beads: Refresh` | Refresh all views |
+| `Beads: Create New Issue` | Create issue via quick input |
+| `Beads: Start Daemon` | Start daemon for active project |
+| `Beads: Stop Daemon` | Stop daemon |
 
-### Views
-
-#### Beads Panel
-The main list view showing all beads in a sortable, filterable table.
-
-- Click column headers to sort
-- Use the search box to filter by title/description/ID
-- Click the Filters button to filter by status, priority, labels
-- Click any row to open bead details
-
-#### Dashboard
-A high-level overview of your project's issues.
-
-- Summary cards show total counts by status
-- Bar charts break down issues by status and priority
-- Quick lists show Ready, In Progress, and Blocked issues
-
-#### Kanban Board
-Trello-style board for visual task management.
-
-- Drag cards between columns to change status
-- Cards show priority badges, labels, and assignees
-- Click the ⋮ menu on a card for quick status changes
-
-#### Dependency Graph
-Visual representation of issue dependencies.
-
-- Nodes are colored by status
-- Edges show "depends on" relationships
-- Pan and zoom with mouse
-- Click nodes to view details
-- Search to highlight specific nodes
-
-#### Bead Details
-Full editing interface for a single issue.
-
-- Edit title, description, status, priority, type, labels, assignee
-- View and manage dependencies
-- See creation/update timestamps
-
-## Configuration
+## Settings
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `beads.pathToBd` | `"bd"` | Path to the Beads CLI executable |
-| `beads.autoStartDaemon` | `true` | Automatically start daemon when switching projects |
-| `beads.statusColumns` | `["backlog", "ready", "in_progress", "blocked", "done"]` | Column order for Kanban board |
-| `beads.maxGraphNodes` | `100` | Maximum nodes to display in dependency graph |
-| `beads.refreshInterval` | `30000` | Auto-refresh interval in ms (0 to disable) |
-
-## Development
-
-### Building
-
-```bash
-# Install dependencies
-bun install
-
-# Compile extension and webview
-bun run compile
-
-# Watch mode for development
-bun run watch
-```
-
-### Project Structure
-
-```
-vscode-beads/
-├── src/
-│   ├── extension.ts          # Extension entry point
-│   ├── backend/
-│   │   ├── types.ts          # TypeScript data models
-│   │   ├── BeadsBackend.ts   # CLI wrapper
-│   │   └── BeadsProjectManager.ts  # Multi-project support
-│   ├── views/
-│   │   ├── BaseViewProvider.ts
-│   │   ├── BeadsPanelViewProvider.ts
-│   │   ├── DashboardViewProvider.ts
-│   │   ├── KanbanViewProvider.ts
-│   │   ├── DependencyGraphViewProvider.ts
-│   │   └── BeadDetailsViewProvider.ts
-│   └── webview/
-│       ├── index.tsx         # Webview entry point
-│       ├── App.tsx           # Main React app
-│       ├── styles.css        # CSS styles
-│       ├── common/           # Shared components
-│       ├── beads-panel/
-│       ├── dashboard/
-│       ├── kanban/
-│       ├── graph/
-│       └── details/
-├── resources/
-│   └── beads-icon.svg
-├── package.json
-├── tsconfig.json
-└── README.md
-```
-
-### Data Flow
-
-1. The extension host (`BeadsBackend`) is the single source of truth per project
-2. All data operations go through the `bd` CLI with `--json` output
-3. Webviews receive data via VS Code message passing
-4. On mutations, the backend broadcasts updates to all views
-
-### Status Mapping
-
-The extension normalizes Beads status values to an internal set:
-
-| CLI Status | Internal Status |
-|------------|-----------------|
-| `backlog` | `backlog` |
-| `ready` | `ready` |
-| `in_progress`, `in-progress`, `active` | `in_progress` |
-| `blocked` | `blocked` |
-| `done`, `completed` | `done` |
-| `closed`, `cancelled` | `closed` |
-
-### Priority Mapping
-
-| Value | Label |
-|-------|-------|
-| 0 | Critical (P0) |
-| 1 | High (P1) |
-| 2 | Medium (P2) |
-| 3 | Low (P3) |
-| 4 | None (P4) |
+| `beads.pathToBd` | `"bd"` | Path to `bd` CLI |
+| `beads.autoStartDaemon` | `true` | Auto-start daemon on project switch |
+| `beads.refreshInterval` | `30000` | Auto-refresh interval in ms (0 = disable) |
+| `beads.renderMarkdown` | `true` | Render markdown in text fields |
 
 ## Troubleshooting
 
-### "No Beads projects found"
+**"No Beads projects found"** - Run `bd init` in project root
 
-- Ensure you have a `.beads` directory in your workspace
-- Run `bd init` in your project root to initialize Beads
+**"Daemon not running"** - Click "Start Daemon" or run `bd daemon start`
 
-### "Daemon not running"
-
-- Click "Start Daemon" in the notification, or
-- Run `bd daemon start` in your terminal, or
-- Enable `beads.autoStartDaemon` in settings
-
-### Commands fail with errors
-
-- Check the "Beads Dashboard" output channel for detailed logs
-- Ensure `bd` is in your PATH or configure `beads.pathToBd`
-- Verify the daemon is running with `bd info`
-
-## Contributing
-
-Contributions are welcome! Please see the [Beads repository](https://github.com/steveyegge/beads) for guidelines.
+**Commands fail** - Check "Beads Dashboard" output channel, verify `bd` in PATH
 
 ## License
 
-Apache License 2.0 - see [LICENSE](LICENSE) for details.
-
-## Links
-
-- [Beads Project](https://github.com/steveyegge/beads)
-- [Beads CLI Reference](https://github.com/steveyegge/beads/blob/main/docs/CLI_REFERENCE.md)
-- [Beads Daemon Documentation](https://github.com/steveyegge/beads/blob/main/docs/DAEMON.md)
+Apache License 2.0

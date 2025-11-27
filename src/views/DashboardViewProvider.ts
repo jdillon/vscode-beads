@@ -11,7 +11,7 @@
 import * as vscode from "vscode";
 import { BaseViewProvider } from "./BaseViewProvider";
 import { BeadsProjectManager } from "../backend/BeadsProjectManager";
-import { WebviewToExtensionMessage, Bead, BeadsSummary } from "../backend/types";
+import { Bead, BeadsSummary, issueToWebviewBead, BeadStatus, BeadPriority } from "../backend/types";
 
 export class DashboardViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsDashboard";
@@ -25,8 +25,8 @@ export class DashboardViewProvider extends BaseViewProvider {
   }
 
   protected async loadData(): Promise<void> {
-    const backend = this.projectManager.getBackend();
-    if (!backend) {
+    const client = this.projectManager.getClient();
+    if (!client) {
       this.postMessage({
         type: "setSummary",
         summary: {
@@ -54,36 +54,53 @@ export class DashboardViewProvider extends BaseViewProvider {
     this.setError(null);
 
     try {
-      // Get summary
-      const summaryResult = await backend.getSummary();
-      if (summaryResult.success && summaryResult.data) {
-        this.postMessage({ type: "setSummary", summary: summaryResult.data });
+      // Get all issues and compute summary
+      const issues = await client.list();
+      const beads = issues.map(issueToWebviewBead);
+
+      // Compute summary
+      const byStatus: Record<BeadStatus, number> = {
+        backlog: 0,
+        ready: 0,
+        in_progress: 0,
+        blocked: 0,
+        done: 0,
+        closed: 0,
+        unknown: 0,
+      };
+
+      const byPriority: Record<BeadPriority, number> = {
+        0: 0,
+        1: 0,
+        2: 0,
+        3: 0,
+        4: 0,
+      };
+
+      for (const bead of beads) {
+        byStatus[bead.status]++;
+        if (bead.priority !== undefined) {
+          byPriority[bead.priority]++;
+        }
       }
 
-      // Get ready beads for the "What's Ready" section
-      const readyResult = await backend.getReadyBeads();
-      const blockedResult = await backend.getBlockedBeads();
-      const allBeadsResult = await backend.listBeads();
+      const summary: BeadsSummary = {
+        total: beads.length,
+        byStatus,
+        byPriority,
+        readyCount: byStatus.ready,
+        blockedCount: byStatus.blocked,
+        inProgressCount: byStatus.in_progress,
+      };
 
-      // Combine important beads for the dashboard
-      const importantBeads: Bead[] = [];
+      this.postMessage({ type: "setSummary", summary });
 
-      if (readyResult.success && readyResult.data) {
-        importantBeads.push(...readyResult.data.slice(0, 5));
-      }
+      // Get ready and blocked beads for quick access
+      const readyBeads = beads.filter((b) => b.status === "ready").slice(0, 5);
+      const blockedBeads = beads.filter((b) => b.status === "blocked").slice(0, 5);
+      const inProgressBeads = beads.filter((b) => b.status === "in_progress").slice(0, 5);
 
-      if (blockedResult.success && blockedResult.data) {
-        importantBeads.push(...blockedResult.data.slice(0, 5));
-      }
-
-      // Add in-progress beads
-      if (allBeadsResult.success && allBeadsResult.data) {
-        const inProgress = allBeadsResult.data.filter(
-          (b) => b.status === "in_progress"
-        );
-        importantBeads.push(...inProgress.slice(0, 5));
-      }
-
+      const importantBeads = [...readyBeads, ...blockedBeads, ...inProgressBeads];
       this.postMessage({ type: "setBeads", beads: importantBeads });
     } catch (err) {
       this.setError(`Error: ${err}`);

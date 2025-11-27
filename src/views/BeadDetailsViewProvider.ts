@@ -11,11 +11,12 @@
 import * as vscode from "vscode";
 import { BaseViewProvider } from "./BaseViewProvider";
 import { BeadsProjectManager } from "../backend/BeadsProjectManager";
-import { WebviewToExtensionMessage, Bead } from "../backend/types";
+import { WebviewToExtensionMessage, issueToWebviewBead } from "../backend/types";
 
 export class BeadDetailsViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsDetails";
   private currentBeadId: string | null = null;
+  private currentProjectId: string | null = null;
 
   constructor(
     extensionUri: vscode.Uri,
@@ -30,13 +31,38 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
    */
   public async showBead(beadId: string): Promise<void> {
     this.currentBeadId = beadId;
+    this.currentProjectId = this.projectManager.getActiveProject()?.id || null;
+
+    // Auto-expand the details panel
+    if (this._view) {
+      this._view.show(true); // true = preserve focus
+    }
+
     await this.loadData();
   }
 
+  /**
+   * Clear the current bead (e.g., when switching projects)
+   */
+  public clearBead(): void {
+    this.currentBeadId = null;
+    this.postMessage({ type: "setBead", bead: null });
+    this.setLoading(false);
+  }
+
   protected async loadData(): Promise<void> {
-    const backend = this.projectManager.getBackend();
-    if (!backend || !this.currentBeadId) {
+    const client = this.projectManager.getClient();
+    const activeProjectId = this.projectManager.getActiveProject()?.id;
+
+    // Clear selection if project changed
+    if (this.currentProjectId && activeProjectId !== this.currentProjectId) {
+      this.currentBeadId = null;
+      this.currentProjectId = activeProjectId || null;
+    }
+
+    if (!client || !this.currentBeadId) {
       this.postMessage({ type: "setBead", bead: null });
+      this.setLoading(false);
       return;
     }
 
@@ -44,12 +70,12 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
     this.setError(null);
 
     try {
-      const result = await backend.getBead(this.currentBeadId);
-
-      if (result.success && result.data) {
-        this.postMessage({ type: "setBead", bead: result.data });
+      const issue = await client.show(this.currentBeadId);
+      if (issue) {
+        const bead = issueToWebviewBead(issue);
+        this.postMessage({ type: "setBead", bead });
       } else {
-        this.setError(result.error || "Failed to load bead details");
+        this.setError("Bead not found");
         this.postMessage({ type: "setBead", bead: null });
       }
     } catch (err) {
@@ -63,8 +89,8 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
   protected async handleCustomMessage(
     message: WebviewToExtensionMessage
   ): Promise<void> {
-    const backend = this.projectManager.getBackend();
-    if (!backend) {
+    const client = this.projectManager.getClient();
+    if (!client) {
       return;
     }
 
@@ -74,51 +100,55 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
           `[Details] Updating bead ${message.beadId}: ${JSON.stringify(message.updates)}`
         );
 
-        const updateResult = await backend.updateBead(
-          message.beadId,
-          message.updates
-        );
-
-        if (updateResult.success) {
-          await this.loadData();
-          // Refresh other views
-          vscode.commands.executeCommand("beads.refresh");
-        } else {
-          vscode.window.showErrorMessage(
-            `Failed to update bead: ${updateResult.error}`
-          );
+        try {
+          await client.update({
+            id: message.beadId,
+            ...message.updates,
+          });
+          // Data will refresh via mutation events
+        } catch (err) {
+          vscode.window.showErrorMessage(`Failed to update bead: ${err}`);
         }
         break;
 
       case "addDependency":
-        const addResult = await backend.addDependency(
-          message.beadId,
-          message.dependsOnId
-        );
-
-        if (addResult.success) {
-          await this.loadData();
-          vscode.commands.executeCommand("beads.refresh");
-        } else {
-          vscode.window.showErrorMessage(
-            `Failed to add dependency: ${addResult.error}`
-          );
+        try {
+          await client.addDependency({
+            from_id: message.beadId,
+            to_id: message.dependsOnId,
+            dep_type: "blocks",
+          });
+          // Data will refresh via mutation events
+        } catch (err) {
+          vscode.window.showErrorMessage(`Failed to add dependency: ${err}`);
         }
         break;
 
       case "removeDependency":
-        const removeResult = await backend.removeDependency(
-          message.beadId,
-          message.dependsOnId
-        );
+        try {
+          await client.removeDependency({
+            from_id: message.beadId,
+            to_id: message.dependsOnId,
+          });
+          // Data will refresh via mutation events
+        } catch (err) {
+          vscode.window.showErrorMessage(`Failed to remove dependency: ${err}`);
+        }
+        break;
 
-        if (removeResult.success) {
+      case "addComment":
+        try {
+          // Get username from environment or default
+          const author = process.env.USER || process.env.USERNAME || "vscode";
+          await client.addComment({
+            id: message.beadId,
+            author,
+            text: message.text,
+          });
+          // Refresh to show new comment
           await this.loadData();
-          vscode.commands.executeCommand("beads.refresh");
-        } else {
-          vscode.window.showErrorMessage(
-            `Failed to remove dependency: ${removeResult.error}`
-          );
+        } catch (err) {
+          vscode.window.showErrorMessage(`Failed to add comment: ${err}`);
         }
         break;
 

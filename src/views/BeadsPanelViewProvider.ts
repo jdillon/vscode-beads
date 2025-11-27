@@ -12,10 +12,11 @@
 import * as vscode from "vscode";
 import { BaseViewProvider } from "./BaseViewProvider";
 import { BeadsProjectManager } from "../backend/BeadsProjectManager";
-import { WebviewToExtensionMessage, Bead } from "../backend/types";
+import { WebviewToExtensionMessage, Bead, issueToWebviewBead } from "../backend/types";
 
 export class BeadsPanelViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsPanel";
+  private selectedBeadId: string | null = null;
 
   constructor(
     extensionUri: vscode.Uri,
@@ -25,9 +26,17 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
     super(extensionUri, projectManager, outputChannel);
   }
 
+  /**
+   * Set the selected bead ID and notify webview
+   */
+  public setSelectedBead(beadId: string | null): void {
+    this.selectedBeadId = beadId;
+    this.postMessage({ type: "setSelectedBeadId", beadId });
+  }
+
   protected async loadData(): Promise<void> {
-    const backend = this.projectManager.getBackend();
-    if (!backend) {
+    const client = this.projectManager.getClient();
+    if (!client) {
       this.postMessage({ type: "setBeads", beads: [] });
       return;
     }
@@ -36,14 +45,9 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
     this.setError(null);
 
     try {
-      const result = await backend.listBeads();
-
-      if (result.success && result.data) {
-        this.postMessage({ type: "setBeads", beads: result.data });
-      } else {
-        this.setError(result.error || "Failed to load beads");
-        this.postMessage({ type: "setBeads", beads: [] });
-      }
+      const issues = await client.list();
+      const beads = issues.map(issueToWebviewBead);
+      this.postMessage({ type: "setBeads", beads });
     } catch (err) {
       this.setError(`Error: ${err}`);
       this.postMessage({ type: "setBeads", beads: [] });
@@ -55,30 +59,27 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
   protected async handleCustomMessage(
     message: WebviewToExtensionMessage
   ): Promise<void> {
-    const backend = this.projectManager.getBackend();
-    if (!backend) {
+    const client = this.projectManager.getClient();
+    if (!client) {
       return;
     }
 
     switch (message.type) {
       case "updateBead":
-        const updateResult = await backend.updateBead(
-          message.beadId,
-          message.updates
-        );
-        if (updateResult.success) {
-          await this.loadData();
-        } else {
-          vscode.window.showErrorMessage(
-            `Failed to update bead: ${updateResult.error}`
-          );
+        try {
+          await client.update({
+            id: message.beadId,
+            ...message.updates,
+          });
+          // Data will refresh via mutation events
+        } catch (err) {
+          vscode.window.showErrorMessage(`Failed to update bead: ${err}`);
         }
         break;
 
       case "deleteBead":
-        // Note: Beads CLI might not have a delete command
         vscode.window.showWarningMessage(
-          "Delete functionality is not available via CLI"
+          "Delete functionality is not yet implemented"
         );
         break;
     }
