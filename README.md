@@ -26,7 +26,7 @@ bun run compile
 # Press F5 to launch Extension Development Host
 
 # Or install VSIX
-code --install-extension beads-dashboard-0.1.0.vsix
+code --install-extension vscode-beads-0.1.0.vsix
 ```
 
 ## Usage

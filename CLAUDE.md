@@ -24,17 +24,17 @@ bun run package          # Create VSIX package
 **Option 2: Symlink for local testing**
 ```bash
 # Link extension to VS Code extensions directory
-ln -s "$(pwd)" ~/.vscode/extensions/beads-dashboard
+ln -s "$(pwd)" ~/.vscode/extensions/vscode-beads
 
 # Reload VS Code window: Cmd+Shift+P → "Developer: Reload Window"
 # Unlink when done
-rm ~/.vscode/extensions/beads-dashboard
+rm ~/.vscode/extensions/vscode-beads
 ```
 
 **Option 3: Install VSIX locally**
 ```bash
-bun run package                              # Creates beads-dashboard-0.1.0.vsix
-code --install-extension beads-dashboard-0.1.0.vsix
+bun run package                              # Creates vscode-beads-0.1.0.vsix
+code --install-extension vscode-beads-0.1.0.vsix
 ```
 
 ## Architecture
