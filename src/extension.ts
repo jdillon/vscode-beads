@@ -23,7 +23,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   outputChannel.appendLine("Beads extension activating...");
 
   // Initialize the project manager
-  projectManager = new BeadsProjectManager(outputChannel);
+  projectManager = new BeadsProjectManager(context, outputChannel);
   await projectManager.initialize();
 
   // Create view providers
