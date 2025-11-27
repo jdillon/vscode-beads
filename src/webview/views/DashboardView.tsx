@@ -1,5 +1,5 @@
 /**
- * Dashboard Component
+ * DashboardView
  *
  * High-level overview with:
  * - Summary cards (total, by status, by priority)
@@ -21,19 +21,19 @@ import {
 import { StatusBadge } from "../common/StatusBadge";
 import { PriorityBadge } from "../common/PriorityBadge";
 
-interface DashboardProps {
+interface DashboardViewProps {
   summary: BeadsSummary | null;
   beads: Bead[];
   loading: boolean;
   onSelectBead: (beadId: string) => void;
 }
 
-export function Dashboard({
+export function DashboardView({
   summary,
   beads,
   loading,
   onSelectBead,
-}: DashboardProps): React.ReactElement {
+}: DashboardViewProps): React.ReactElement {
   if (!summary && loading) {
     return <div className="dashboard loading">Loading dashboard...</div>;
   }
