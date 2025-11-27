@@ -32,9 +32,13 @@ jobs:
       - name: Package VSIX
         run: npx @vscode/vsce package --no-dependencies
 
+      - name: Get version
+        id: version
+        run: echo "version=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
+
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v4
         with:
-          name: vscode-beads-${{ github.sha }}
+          name: vscode-beads-${{ steps.version.outputs.version }}-${{ github.run_number }}
           path: "*.vsix"
           retention-days: 7
