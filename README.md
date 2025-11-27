@@ -75,7 +75,7 @@ code --install-extension beads-dashboard-0.1.0.vsix
 
 **"Daemon not running"** - Click "Start Daemon" or run `bd daemon start`
 
-**Commands fail** - Check "Beads Dashboard" output channel, verify `bd` in PATH
+**Commands fail** - Check "Beads" output channel, verify `bd` in PATH
 
 ## License
 

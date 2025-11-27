@@ -1,5 +1,5 @@
 /**
- * Beads Dashboard - TypeScript Data Models
+ * Beads - TypeScript Data Models
  *
  * These types mirror the Beads issue schema as exposed by `bd list --json` and `bd show --json`.
  * The extension normalizes CLI output into these internal types.

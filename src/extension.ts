@@ -19,8 +19,8 @@ let beadsPanelProvider: BeadsPanelViewProvider;
 let detailsProvider: BeadDetailsViewProvider;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  outputChannel = vscode.window.createOutputChannel("Beads Dashboard");
-  outputChannel.appendLine("Beads Dashboard extension activating...");
+  outputChannel = vscode.window.createOutputChannel("Beads");
+  outputChannel.appendLine("Beads extension activating...");
 
   // Initialize the project manager
   projectManager = new BeadsProjectManager(outputChannel);
@@ -197,7 +197,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(projectManager);
   context.subscriptions.push(outputChannel);
 
-  outputChannel.appendLine("Beads Dashboard extension activated");
+  outputChannel.appendLine("Beads extension activated");
 
   // Show warning if no projects found
   if (projectManager.getProjects().length === 0) {
@@ -213,5 +213,5 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 }
 
 export function deactivate(): void {
-  outputChannel?.appendLine("Beads Dashboard extension deactivating...");
+  outputChannel?.appendLine("Beads extension deactivating...");
 }
