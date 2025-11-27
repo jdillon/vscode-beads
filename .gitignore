@@ -4,12 +4,3 @@ dist/
 .vscode-test/
 *.log
 .DS_Store
-
-# Beads - ignore most but track the JSONL source of truth
-.beads/*
-!.beads/.gitignore
-!.beads/beads.jsonl
-!.beads/issues.jsonl
-!.beads/metadata.json
-!.beads/config.yaml
-!.beads/README.md
