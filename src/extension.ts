@@ -177,12 +177,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Subscribe to project changes to refresh views
   context.subscriptions.push(
     projectManager.onDataChanged(() => {
+      dashboardProvider.refresh();
       beadsPanelProvider.refresh();
       detailsProvider.refresh();
     }),
 
     projectManager.onActiveProjectChanged(() => {
       beadsPanelProvider.setSelectedBead(null); // Clear selection on project switch
+      dashboardProvider.refresh();
       beadsPanelProvider.refresh();
       detailsProvider.refresh();
     })
