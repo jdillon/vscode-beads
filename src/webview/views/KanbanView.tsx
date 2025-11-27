@@ -1,5 +1,5 @@
 /**
- * KanbanBoard Component
+ * KanbanView
  *
  * Trello-style board with:
  * - Columns for each status
@@ -17,7 +17,7 @@ import {
 import { PriorityBadge } from "../common/PriorityBadge";
 import { LabelBadge } from "../common/LabelBadge";
 
-interface KanbanBoardProps {
+interface KanbanViewProps {
   beads: Bead[];
   loading: boolean;
   onUpdateBead: (beadId: string, updates: Partial<Bead>) => void;
@@ -32,12 +32,12 @@ const COLUMN_ORDER: BeadStatus[] = [
   "closed",
 ];
 
-export function KanbanBoard({
+export function KanbanView({
   beads,
   loading,
   onUpdateBead,
   onSelectBead,
-}: KanbanBoardProps): React.ReactElement {
+}: KanbanViewProps): React.ReactElement {
   const [draggedBead, setDraggedBead] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<BeadStatus | null>(null);
 

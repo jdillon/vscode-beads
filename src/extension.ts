@@ -8,9 +8,9 @@
 
 import * as vscode from "vscode";
 import { BeadsProjectManager } from "./backend/BeadsProjectManager";
-import { DashboardViewProvider } from "./views/DashboardViewProvider";
-import { BeadsPanelViewProvider } from "./views/BeadsPanelViewProvider";
-import { BeadDetailsViewProvider } from "./views/BeadDetailsViewProvider";
+import { DashboardViewProvider } from "./providers/DashboardViewProvider";
+import { BeadsPanelViewProvider } from "./providers/BeadsPanelViewProvider";
+import { BeadDetailsViewProvider } from "./providers/BeadDetailsViewProvider";
 
 let outputChannel: vscode.OutputChannel;
 let projectManager: BeadsProjectManager;

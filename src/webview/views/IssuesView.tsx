@@ -1,7 +1,7 @@
 /**
- * BeadsPanel Component
+ * IssuesView
  *
- * Main table/list view for beads with:
+ * Main table/list view for issues with:
  * - Sortable columns
  * - Modern chip-based filtering
  * - Text search
@@ -22,7 +22,7 @@ import { StatusBadge } from "../common/StatusBadge";
 import { PriorityBadge } from "../common/PriorityBadge";
 import { LabelBadge } from "../common/LabelBadge";
 
-interface BeadsPanelProps {
+interface IssuesViewProps {
   beads: Bead[];
   loading: boolean;
   selectedBeadId: string | null;
@@ -77,7 +77,7 @@ const FILTER_PRESETS: FilterPreset[] = [
   { id: "active", label: "Active", filters: { status: ["in_progress", "blocked"], priority: [], type: [] } },
 ];
 
-export function BeadsPanel({
+export function IssuesView({
   beads,
   loading,
   selectedBeadId,
@@ -86,7 +86,7 @@ export function BeadsPanel({
   onSelectProject,
   onSelectBead,
   onUpdateBead,
-}: BeadsPanelProps): React.ReactElement {
+}: IssuesViewProps): React.ReactElement {
   const [sortField, setSortField] = useState<SortField>("updatedAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   // Initialize with "Not Closed" preset

@@ -1,7 +1,7 @@
 /**
- * BeadDetails Component
+ * DetailsView
  *
- * Full view/edit of a single bead with:
+ * Full view/edit of a single issue with:
  * - Editable fields
  * - Dependency management
  * - Metadata display
@@ -22,7 +22,7 @@ import { LabelBadge } from "../common/LabelBadge";
 import { Markdown } from "../common/Markdown";
 import { useToast } from "../common/Toast";
 
-interface BeadDetailsProps {
+interface DetailsViewProps {
   bead: Bead | null;
   loading: boolean;
   renderMarkdown?: boolean;
@@ -42,7 +42,7 @@ function TextContent({ content, renderMarkdown }: { content: string; renderMarkd
   return <p className="description-text">{content}</p>;
 }
 
-export function BeadDetails({
+export function DetailsView({
   bead,
   loading,
   renderMarkdown = true,
@@ -52,7 +52,7 @@ export function BeadDetails({
   onAddComment,
   onViewInGraph,
   onSelectBead,
-}: BeadDetailsProps): React.ReactElement {
+}: DetailsViewProps): React.ReactElement {
   const { showToast } = useToast();
   const [editMode, setEditMode] = useState(false);
   const [editedBead, setEditedBead] = useState<Partial<Bead>>({});

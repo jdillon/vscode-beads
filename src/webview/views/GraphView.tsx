@@ -1,7 +1,7 @@
 /**
- * DependencyGraphView Component
+ * GraphView
  *
- * Visual graph of bead dependencies with:
+ * Visual graph of issue dependencies with:
  * - Nodes colored by status/priority
  * - Pan and zoom
  * - Click to view details
@@ -17,7 +17,7 @@ import {
   PRIORITY_COLORS,
 } from "../types";
 
-interface DependencyGraphViewProps {
+interface GraphViewProps {
   graph: DependencyGraph | null;
   loading: boolean;
   onSelectBead: (beadId: string) => void;
@@ -30,11 +30,11 @@ interface NodePosition {
   vy: number;
 }
 
-export function DependencyGraphView({
+export function GraphView({
   graph,
   loading,
   onSelectBead,
-}: DependencyGraphViewProps): React.ReactElement {
+}: GraphViewProps): React.ReactElement {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [positions, setPositions] = useState<Map<string, NodePosition>>(new Map());

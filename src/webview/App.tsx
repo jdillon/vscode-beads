@@ -15,9 +15,9 @@ import {
   WebviewSettings,
   vscode,
 } from "./types";
-import { Dashboard } from "./dashboard/Dashboard";
-import { BeadsPanel } from "./beads-panel/BeadsPanel";
-import { BeadDetails } from "./details/BeadDetails";
+import { DashboardView } from "./views/DashboardView";
+import { IssuesView } from "./views/IssuesView";
+import { DetailsView } from "./views/DetailsView";
 import { Loading } from "./common/Loading";
 import { ErrorMessage } from "./common/ErrorMessage";
 import { ToastProvider, triggerToast } from "./common/Toast";
@@ -131,7 +131,7 @@ export function App(): React.ReactElement {
     switch (state.viewType) {
       case "beadsDashboard":
         return (
-          <Dashboard
+          <DashboardView
             summary={state.summary}
             beads={state.beads}
             loading={state.loading}
@@ -143,7 +143,7 @@ export function App(): React.ReactElement {
 
       case "beadsPanel":
         return (
-          <BeadsPanel
+          <IssuesView
             beads={state.beads}
             loading={state.loading}
             selectedBeadId={state.selectedBeadId}
@@ -173,7 +173,7 @@ export function App(): React.ReactElement {
           return <Loading />;
         }
         return (
-          <BeadDetails
+          <DetailsView
             bead={state.selectedBead}
             loading={state.loading}
             renderMarkdown={state.settings.renderMarkdown}
