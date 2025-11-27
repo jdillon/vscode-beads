@@ -15,7 +15,9 @@ import {
   BeadStatus,
   BeadPriority,
   STATUS_LABELS,
+  STATUS_COLORS,
   PRIORITY_LABELS,
+  PRIORITY_COLORS,
   vscode,
 } from "../types";
 import { StatusBadge } from "../common/StatusBadge";
@@ -53,13 +55,13 @@ interface ColumnConfig {
 }
 
 const DEFAULT_COLUMNS: ColumnConfig[] = [
+  { id: "type", label: "Type", visible: true, width: 70, minWidth: 50, sortable: true },
   { id: "title", label: "Title", visible: true, width: 200, minWidth: 50, sortable: true },
   { id: "status", label: "Status", visible: true, width: 80, minWidth: 60, sortable: true },
   { id: "priority", label: "Priority", visible: true, width: 70, minWidth: 50, sortable: true },
-  { id: "type", label: "Type", visible: true, width: 70, minWidth: 50, sortable: true },
-  { id: "labels", label: "Labels", visible: true, width: 100, minWidth: 60, sortable: false },
-  { id: "createdAt", label: "Created", visible: false, width: 80, minWidth: 60, sortable: true },
+  { id: "labels", label: "Labels", visible: false, width: 100, minWidth: 60, sortable: false },
   { id: "updatedAt", label: "Updated", visible: true, width: 80, minWidth: 60, sortable: true },
+  { id: "createdAt", label: "Created", visible: true, width: 80, minWidth: 60, sortable: true },
 ];
 
 const ISSUE_TYPES = ["bug", "feature", "task", "epic", "chore"];
@@ -344,7 +346,7 @@ export function IssuesView({
           }}
           title="Filter"
         >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
             <path d="M6 10.5v-1h4v1H6zm-2-3v-1h8v1H4zm-2-3v-1h12v1H2z"/>
           </svg>
         </button>
@@ -369,13 +371,21 @@ export function IssuesView({
 
           {/* Active filter chips */}
           {filters.status.map((status) => (
-            <span key={`status-${status}`} className="filter-chip">
+            <span
+              key={`status-${status}`}
+              className="filter-chip"
+              style={{ "--chip-accent-color": STATUS_COLORS[status] } as React.CSSProperties}
+            >
               {STATUS_LABELS[status]}
               <button onClick={() => removeStatusFilter(status)}>×</button>
             </span>
           ))}
           {filters.priority.map((priority) => (
-            <span key={`priority-${priority}`} className="filter-chip">
+            <span
+              key={`priority-${priority}`}
+              className="filter-chip"
+              style={{ "--chip-accent-color": PRIORITY_COLORS[priority] } as React.CSSProperties}
+            >
               P{priority}
               <button onClick={() => removePriorityFilter(priority)}>×</button>
             </span>
@@ -494,6 +504,16 @@ export function IssuesView({
                         {col.label}
                       </label>
                     ))}
+                    <hr className="col-menu-divider" />
+                    <button
+                      className="col-menu-reset"
+                      onClick={() => {
+                        setColumns(DEFAULT_COLUMNS);
+                        setColumnMenuOpen(false);
+                      }}
+                    >
+                      Reset to defaults
+                    </button>
                   </div>
                 )}
               </th>

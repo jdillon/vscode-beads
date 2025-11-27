@@ -54,8 +54,9 @@ body {
 
 .app-content {
   flex: 1;
-  overflow: auto;
-  padding: var(--spacing-md);
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
 }
 
 /* ==================== Common Components ==================== */
@@ -356,6 +357,7 @@ textarea {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
 }
 
 /* Compact single-row toolbar */
@@ -407,7 +409,7 @@ textarea {
   padding: 4px;
   border-radius: var(--border-radius);
   flex-shrink: 0;
-  opacity: 0.6;
+  opacity: 0.8;
 }
 
 .filter-toggle:hover {
@@ -442,7 +444,7 @@ textarea {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  padding: 4px 0;
+  padding: 6px 8px;
   min-height: 28px;
 }
 
@@ -464,11 +466,13 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
+  padding: 2px 8px 2px 10px;
   font-size: 11px;
-  background: var(--vscode-badge-background);
-  color: var(--vscode-badge-foreground);
-  border-radius: 12px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  border: 1px solid var(--vscode-panel-border);
+  border-left: 3px solid var(--chip-accent-color, var(--vscode-panel-border));
+  border-radius: 3px;
 }
 
 .filter-chip button {
@@ -489,7 +493,7 @@ textarea {
 
 .filter-chip button:hover {
   opacity: 1;
-  background: rgba(255,255,255,0.2);
+  background: var(--vscode-toolbar-hoverBackground);
 }
 
 .filter-add-wrapper {
@@ -558,19 +562,23 @@ textarea {
 
 .beads-table-container {
   flex: 1;
+  min-height: 0;
   overflow: auto;
   border: 1px solid var(--vscode-panel-border);
   border-radius: var(--border-radius);
 }
 
 .beads-table {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 12px;
+  width: 100%;
 }
 
 .beads-table th {
   position: sticky;
   top: 0;
+  z-index: 1;
   padding: var(--spacing-sm) var(--spacing-md);
   text-align: left;
   font-weight: 600;
@@ -667,9 +675,7 @@ textarea {
 }
 
 /* Column resize handles */
-.beads-table th {
-  position: relative;
-}
+/* Note: position:sticky (set above) also acts as positioning context for children */
 
 .resize-handle {
   position: absolute;
@@ -733,6 +739,28 @@ textarea {
 }
 
 .col-menu label:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.col-menu-divider {
+  margin: 4px 0;
+  border: none;
+  border-top: 1px solid var(--vscode-panel-border);
+}
+
+.col-menu-reset {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  font-size: 12px;
+  text-align: left;
+  color: var(--vscode-foreground);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.col-menu-reset:hover {
   background: var(--vscode-list-hoverBackground);
 }
 
