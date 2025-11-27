@@ -780,29 +780,29 @@ textarea {
 
 .summary-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: var(--spacing-md);
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: var(--spacing-sm);
 }
 
 .summary-card {
-  padding: var(--spacing-lg);
-  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-md);
   background-color: var(--vscode-sideBar-background);
   border: 1px solid var(--vscode-panel-border);
   text-align: center;
 }
 
 .summary-card .card-value {
-  font-size: 28px;
+  font-size: 18px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.1;
 }
 
 .summary-card .card-label {
-  font-size: 11px;
+  font-size: 9px;
   color: var(--vscode-descriptionForeground);
   text-transform: uppercase;
-  margin-top: var(--spacing-xs);
+  margin-top: 2px;
 }
 
 .summary-card.total .card-value {

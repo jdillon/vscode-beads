@@ -2,6 +2,8 @@
 
 VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issues. Communicates with the Beads daemon via `bd` CLI.
 
+![Beads VS Code Extension](docs/images/beads-vscode-screenshot.png)
+
 ## Features
 
 - **Issues Panel**: Sortable, filterable table with search
