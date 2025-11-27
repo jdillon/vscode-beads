@@ -29,5 +29,12 @@ jobs:
       - name: Compile
         run: bun run compile
 
-      - name: Package (dry-run)
+      - name: Package VSIX
         run: npx @vscode/vsce package --no-dependencies
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-beads-${{ github.sha }}
+          path: "*.vsix"
+          retention-days: 7
