@@ -1,9 +1,9 @@
 {
-  "name": "beads-dashboard",
-  "displayName": "Beads Dashboard",
-  "description": "VS Code extension for visualizing and managing Beads issues via multiple rich views",
+  "name": "vscode-beads",
+  "displayName": "Beads",
+  "description": "VS Code extension for managing Beads issues",
   "version": "0.1.0",
-  "publisher": "beads",
+  "publisher": "planet57",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
