@@ -238,7 +238,7 @@ export class BeadsDaemonClient extends EventEmitter {
   private expectedDb?: string;
   private timeout: number;
   private mutationInterval?: NodeJS.Timeout;
-  private lastMutationTimestamp: string = "";
+  private lastMutationTime: number = 0;
   private connected: boolean = false;
 
   constructor(beadsDir: string, options: ClientOptions = {}) {
@@ -484,18 +484,22 @@ export class BeadsDaemonClient extends EventEmitter {
       return; // Already watching
     }
 
-    this.lastMutationTimestamp = new Date().toISOString();
+    // Store as Unix timestamp (ms) for reliable comparison across timezones
+    this.lastMutationTime = Date.now();
 
     this.mutationInterval = setInterval(async () => {
       try {
         const mutations = await this.getMutations(0);
         // Filter to only new mutations since last check
-        const newMutations = mutations.filter(
-          (m) => m.Timestamp > this.lastMutationTimestamp
-        );
+        // Convert ISO timestamps to Date for proper comparison
+        const newMutations = mutations.filter((m) => {
+          const mutationTime = new Date(m.Timestamp).getTime();
+          return mutationTime > this.lastMutationTime;
+        });
         if (newMutations.length > 0) {
           // Update timestamp to the latest mutation
-          this.lastMutationTimestamp = newMutations[newMutations.length - 1].Timestamp;
+          const latestMutation = newMutations[newMutations.length - 1];
+          this.lastMutationTime = new Date(latestMutation.Timestamp).getTime();
           for (const mutation of newMutations) {
             this.emit("mutation", mutation);
           }
