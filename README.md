@@ -1,5 +1,7 @@
 # Beads - VS Code Extension
 
+<img src="resources/icon.png" alt="Beads icon" width="128" align="right">
+
 VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issues. Communicates with the Beads daemon via `bd` CLI.
 
 ![Beads VS Code Extension](docs/images/beads-vscode-screenshot.png)
@@ -55,6 +57,8 @@ code --install-extension vscode-beads-0.1.0.vsix
 | Command | Description |
 |---------|-------------|
 | `Beads: Switch Project` | Select active project |
+| `Beads: Open Issues Panel` | Open the issues panel |
+| `Beads: Open Issue Details` | Open the details panel |
 | `Beads: Refresh` | Refresh all views |
 | `Beads: Create New Issue` | Create issue via quick input |
 | `Beads: Start Daemon` | Start daemon for active project |
@@ -76,6 +80,10 @@ code --install-extension vscode-beads-0.1.0.vsix
 **"Daemon not running"** - Click "Start Daemon" or run `bd daemon start`
 
 **Commands fail** - Check "Beads" output channel, verify `bd` in PATH
+
+## Credits
+
+Icon inspired by <a href="https://www.flaticon.com/free-icons/beads" title="Beads icons">Beads icons created by imaginationlol - Flaticon</a>
 
 ## License
 

@@ -1,0 +1,71 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 128 128"
+  role="img"
+>
+  <defs>
+    <style>
+      .thread {
+        fill: none;
+        stroke: #000;
+        stroke-width: 6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .bead-big {
+        fill: #777;
+        stroke: #000;
+        stroke-width: 6;
+      }
+      .bead-small {
+        fill: #d0d0d0;
+        stroke: #000;
+        stroke-width: 4;
+      }
+      .bead-square {
+        fill: #d0d0d0;
+        stroke: #000;
+        stroke-width: 6;
+      }
+    </style>
+  </defs>
+
+  <!-- main thread -->
+  <path
+    class="thread"
+    d="M10 88 H26
+       C52 88 70 78 78 64
+       C86 50 85 34 70 24
+       H54"
+  />
+
+  <!-- left large bead -->
+  <circle class="bead-big" cx="30" cy="36" r="10" />
+
+  <!-- small beads near left -->
+  <circle class="bead-small" cx="48" cy="40" r="4.5" />
+  <circle class="bead-small" cx="40" cy="54" r="5.5" />
+
+  <!-- bottom beads on thread -->
+  <circle class="bead-big" cx="34" cy="88" r="10" />
+  <rect class="bead-square" x="48" y="80" width="16" height="16" rx="2" />
+  <circle class="bead-big" cx="74" cy="88" r="10" />
+
+  <!-- right chain of small beads -->
+  <circle class="bead-small" cx="96" cy="72" r="6" />
+  <circle class="bead-small" cx="104" cy="82" r="5" />
+  <circle class="bead-small" cx="110" cy="92" r="4.5" />
+
+  <!-- upper-right large bead -->
+  <circle class="bead-big" cx="94" cy="48" r="11" />
+
+  <!-- diamond bead at top of thread -->
+  <rect
+    class="bead-square"
+    x="80"
+    y="20"
+    width="16"
+    height="16"
+    transform="rotate(45 88 28)"
+  />
+</svg>

@@ -5,8 +5,10 @@
   "version": "0.1.0",
   "publisher": "planet57",
   "license": "Apache-2.0",
+  "icon": "resources/icon.png",
   "files": [
     "LICENSE",
+    "CHANGELOG.md",
     "dist/**",
     "resources/**",
     "docs/images/**"
@@ -26,7 +28,6 @@
     "beads",
     "issues",
     "project management",
-    "kanban",
     "dashboard"
   ],
   "activationEvents": [

@@ -118,7 +118,9 @@ export function IssuesView({
         const newColumns = DEFAULT_COLUMNS.filter((c) => !savedIds.has(c.id));
         return [...merged, ...newColumns];
       }
-    } catch {}
+    } catch (e) {
+      console.error('Failed to restore column state:', e);
+    }
     return DEFAULT_COLUMNS;
   });
 
@@ -127,7 +129,9 @@ export function IssuesView({
     try {
       const current = vscode.getState() as Record<string, unknown> | null;
       vscode.setState({ ...current, columns });
-    } catch {}
+    } catch (e) {
+      console.error('Failed to save column state:', e);
+    }
   }, [columns]);
 
   const hasActiveFilters = filters.status.length > 0 || filters.priority.length > 0 || filters.type.length > 0;

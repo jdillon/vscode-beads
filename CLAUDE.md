@@ -75,6 +75,18 @@ Use beads MCP tools for ALL issue tracking. Do NOT use TodoWrite or markdown TOD
 **Commit format**: Include `Resolves: platform-xxx` or `Related: platform-xxx` in commit messages.
 See `bd onboard` for more information.
 
+## CHANGELOG
+
+Maintain `CHANGELOG.md` using [Keep a Changelog](https://keepachangelog.com/) format.
+
+- Add entries under `## [Unreleased]` as features/fixes are completed
+- Only log notable changes: features, bug fixes, breaking changes
+- Skip minor/internal changes (refactors, typos, CI tweaks)
+- Keep entries terse - one line per change, with bead reference (e.g., `vsbeads-xxx`)
+- Use sections: `### Added`, `### Fixed`, `### Changed`, `### Removed`
+
+At release time, `[Unreleased]` content moves to `## [x.y.z] - date`.
+
 ## Code Conventions
 
 - **kebab-case**: Source code, docs, configs (`my-module.ts`, `api-reference.md`)
