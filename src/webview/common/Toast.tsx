@@ -16,11 +16,21 @@ export interface ToastMessage {
 
 interface ToastContextValue {
   showToast: (text: string, event: React.MouseEvent) => void;
+  showToastAt: (text: string, position: "top-right" | "top-center") => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
 let toastId = 0;
+
+// Global function for triggering toasts from outside React (e.g., extension messages)
+let globalShowToast: ((text: string, position: "top-right" | "top-center") => void) | null = null;
+
+export function triggerToast(text: string, position: "top-right" | "top-center" = "top-right"): void {
+  if (globalShowToast) {
+    globalShowToast(text, position);
+  }
+}
 
 export function ToastProvider({ children }: { children: React.ReactNode }): React.ReactElement {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -42,12 +52,35 @@ export function ToastProvider({ children }: { children: React.ReactNode }): Reac
     ]);
   }, []);
 
+  const showToastAt = useCallback((text: string, position: "top-right" | "top-center") => {
+    const id = ++toastId;
+    const x = position === "top-right" ? window.innerWidth - 60 : window.innerWidth / 2;
+    setToasts((prev) => [
+      ...prev,
+      {
+        id,
+        text,
+        x,
+        y: 8,
+        below: true,
+      },
+    ]);
+  }, []);
+
+  // Register global toast function for extension messages
+  useEffect(() => {
+    globalShowToast = showToastAt;
+    return () => {
+      globalShowToast = null;
+    };
+  }, [showToastAt]);
+
   const dismissToast = useCallback((id: number) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   return (
-    <ToastContext.Provider value={{ showToast }}>
+    <ToastContext.Provider value={{ showToast, showToastAt }}>
       {children}
       <div className="toast-container">
         {toasts.map((msg) => (

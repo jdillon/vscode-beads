@@ -99,7 +99,8 @@ export type ExtensionMessage =
   | { type: "setLoading"; loading: boolean }
   | { type: "setError"; error: string | null }
   | { type: "setSettings"; settings: WebviewSettings }
-  | { type: "refresh" };
+  | { type: "refresh" }
+  | { type: "showToast"; text: string };
 
 // Messages from webview to extension
 export type WebviewMessage =

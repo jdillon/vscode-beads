@@ -111,7 +111,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       beadsPanelProvider.refresh();
       detailsProvider.refresh();
       outputChannel.appendLine("[Refresh] Complete");
-      vscode.window.setStatusBarMessage("$(check) Beads refreshed", 2000);
+      beadsPanelProvider.postMessage({ type: "showToast", text: "Refreshed" });
     }),
 
     vscode.commands.registerCommand("beads.createBead", async () => {
