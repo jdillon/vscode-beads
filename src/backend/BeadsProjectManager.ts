@@ -15,11 +15,14 @@ import * as crypto from "crypto";
 import { BeadsProject } from "./types";
 import { BeadsDaemonClient, MutationEvent } from "./BeadsDaemonClient";
 
+const ACTIVE_PROJECT_KEY = "beads.activeProjectId";
+
 export class BeadsProjectManager implements vscode.Disposable {
   private projects: BeadsProject[] = [];
   private activeProject: BeadsProject | null = null;
   private client: BeadsDaemonClient | null = null;
   private outputChannel: vscode.OutputChannel;
+  private context: vscode.ExtensionContext;
 
   private readonly _onProjectsChanged = new vscode.EventEmitter<BeadsProject[]>();
   public readonly onProjectsChanged = this._onProjectsChanged.event;
@@ -33,7 +36,8 @@ export class BeadsProjectManager implements vscode.Disposable {
   private readonly _onMutation = new vscode.EventEmitter<MutationEvent>();
   public readonly onMutation = this._onMutation.event;
 
-  constructor(outputChannel: vscode.OutputChannel) {
+  constructor(context: vscode.ExtensionContext, outputChannel: vscode.OutputChannel) {
+    this.context = context;
     this.outputChannel = outputChannel;
   }
 
@@ -43,9 +47,14 @@ export class BeadsProjectManager implements vscode.Disposable {
   async initialize(): Promise<void> {
     await this.discoverProjects();
 
-    // Auto-select the first project if available
+    // Restore previously selected project, or default to first
     if (this.projects.length > 0 && !this.activeProject) {
-      await this.setActiveProject(this.projects[0].id);
+      const savedProjectId = this.context.workspaceState.get<string>(ACTIVE_PROJECT_KEY);
+      const targetProject = savedProjectId
+        ? this.projects.find((p) => p.id === savedProjectId)
+        : null;
+
+      await this.setActiveProject(targetProject?.id || this.projects[0].id);
     }
   }
 
@@ -172,6 +181,9 @@ export class BeadsProjectManager implements vscode.Disposable {
     }
 
     this.activeProject = project;
+
+    // Save selection to workspace state
+    await this.context.workspaceState.update(ACTIVE_PROJECT_KEY, project.id);
 
     // Create new daemon client
     this.client = new BeadsDaemonClient(project.beadsDir, {
