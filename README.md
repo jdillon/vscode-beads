@@ -79,6 +79,10 @@ code --install-extension vscode-beads-0.1.0.vsix
 
 **Commands fail** - Check "Beads" output channel, verify `bd` in PATH
 
+## Credits
+
+Icon inspired by <a href="https://www.flaticon.com/free-icons/beads" title="Beads icons">Beads icons created by imaginationlol - Flaticon</a>
+
 ## License
 
 Apache License 2.0
