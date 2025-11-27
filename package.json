@@ -5,9 +5,15 @@
   "version": "0.1.0",
   "publisher": "planet57",
   "license": "Apache-2.0",
+  "files": [
+    "LICENSE",
+    "dist/**",
+    "resources/**",
+    "docs/images/**"
+  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/steveyegge/vscode-beads"
+    "url": "https://github.com/jdillon/vscode-beads"
   },
   "engines": {
     "vscode": "^1.85.0"

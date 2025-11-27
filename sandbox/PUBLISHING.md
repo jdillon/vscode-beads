@@ -11,8 +11,23 @@
 ### 1. Create Azure DevOps Organization
 
 1. Go to https://dev.azure.com
-2. Sign in with Microsoft account (create one if needed)
-3. Create an organization (any name works)
+2. Sign in with a Microsoft account
+   - Use existing Microsoft/Outlook/Hotmail/Xbox account, OR
+   - Click "Create one!" to make a new Microsoft account
+   - GitHub login also works (links to Microsoft account)
+3. After sign-in, you'll see "We need a few more details"
+   - Country/Region: Select yours
+   - Click "Continue"
+4. Create your organization:
+   - You'll see "Create an organization to continue"
+   - Organization name: anything works (e.g., `jdillon-personal`, `my-vscode-ext`)
+   - Host your projects in: pick region closest to you
+   - Click "Continue"
+5. It will prompt to create a project - you can skip/cancel or create a dummy one
+   - This project isn't used for marketplace publishing
+   - The organization itself is what you need
+
+**Verification**: You should now be at `https://dev.azure.com/YOUR-ORG-NAME`
 
 ### 2. Create Personal Access Token (PAT)
 
