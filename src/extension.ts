@@ -8,11 +8,13 @@
 
 import * as vscode from "vscode";
 import { BeadsProjectManager } from "./backend/BeadsProjectManager";
+import { DashboardViewProvider } from "./views/DashboardViewProvider";
 import { BeadsPanelViewProvider } from "./views/BeadsPanelViewProvider";
 import { BeadDetailsViewProvider } from "./views/BeadDetailsViewProvider";
 
 let outputChannel: vscode.OutputChannel;
 let projectManager: BeadsProjectManager;
+let dashboardProvider: DashboardViewProvider;
 let beadsPanelProvider: BeadsPanelViewProvider;
 let detailsProvider: BeadDetailsViewProvider;
 
@@ -25,6 +27,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   await projectManager.initialize();
 
   // Create view providers
+  dashboardProvider = new DashboardViewProvider(
+    context.extensionUri,
+    projectManager,
+    outputChannel
+  );
+
   beadsPanelProvider = new BeadsPanelViewProvider(
     context.extensionUri,
     projectManager,
@@ -39,6 +47,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // Register webview providers
   context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider("beadsDashboard", dashboardProvider, {
+      webviewOptions: { retainContextWhenHidden: true },
+    }),
     vscode.window.registerWebviewViewProvider("beadsPanel", beadsPanelProvider, {
       webviewOptions: { retainContextWhenHidden: true },
     }),

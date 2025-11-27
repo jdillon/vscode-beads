@@ -15,6 +15,7 @@ import {
   WebviewSettings,
   vscode,
 } from "./types";
+import { Dashboard } from "./dashboard/Dashboard";
 import { BeadsPanel } from "./beads-panel/BeadsPanel";
 import { BeadDetails } from "./details/BeadDetails";
 import { Loading } from "./common/Loading";
@@ -124,6 +125,18 @@ export function App(): React.ReactElement {
     }
 
     switch (state.viewType) {
+      case "beadsDashboard":
+        return (
+          <Dashboard
+            summary={state.summary}
+            beads={state.beads}
+            loading={state.loading}
+            onSelectBead={(beadId) =>
+              vscode.postMessage({ type: "openBeadDetails", beadId })
+            }
+          />
+        );
+
       case "beadsPanel":
         return (
           <BeadsPanel

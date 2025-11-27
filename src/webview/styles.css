@@ -550,7 +550,6 @@ textarea {
 }
 
 .beads-table {
-  width: 100%;
   border-collapse: collapse;
   font-size: 12px;
 }
@@ -660,12 +659,13 @@ textarea {
 
 .resize-handle {
   position: absolute;
-  right: 0;
+  right: -3px;
   top: 0;
   bottom: 0;
-  width: 4px;
+  width: 6px;
   cursor: col-resize;
   background: transparent;
+  z-index: 1;
 }
 
 .resize-handle:hover,

@@ -53,7 +53,7 @@ interface ColumnConfig {
 }
 
 const DEFAULT_COLUMNS: ColumnConfig[] = [
-  { id: "title", label: "Title", visible: true, width: 200, minWidth: 100, sortable: true },
+  { id: "title", label: "Title", visible: true, width: 200, minWidth: 50, sortable: true },
   { id: "status", label: "Status", visible: true, width: 80, minWidth: 60, sortable: true },
   { id: "priority", label: "Priority", visible: true, width: 70, minWidth: 50, sortable: true },
   { id: "type", label: "Type", visible: true, width: 70, minWidth: 50, sortable: true },
@@ -92,10 +92,15 @@ export function BeadsPanel({
     try {
       const saved = vscode.getState() as { columns?: ColumnConfig[] } | null;
       if (saved?.columns) {
-        // Merge: keep saved settings, add any new columns from defaults
+        // Merge: keep saved settings but update minWidth from defaults, add new columns
+        const defaultsMap = new Map(DEFAULT_COLUMNS.map((c) => [c.id, c]));
+        const merged = saved.columns.map((col) => {
+          const def = defaultsMap.get(col.id);
+          return def ? { ...col, minWidth: def.minWidth } : col;
+        });
         const savedIds = new Set(saved.columns.map((c) => c.id));
         const newColumns = DEFAULT_COLUMNS.filter((c) => !savedIds.has(c.id));
-        return [...saved.columns, ...newColumns];
+        return [...merged, ...newColumns];
       }
     } catch {}
     return DEFAULT_COLUMNS;
@@ -411,18 +416,17 @@ export function BeadsPanel({
               {visibleColumns.map((col, idx) => (
                 <th
                   key={col.id}
-                  style={{ width: col.id === "title" ? undefined : col.width }}
+                  style={{ minWidth: `${col.width}px`, width: `${col.width}px` }}
                   className={col.sortable ? "sortable" : ""}
                   onClick={() => col.sortable && handleSort(col.id)}
                 >
                   {col.label}
                   {col.sortable && <SortIndicator field={col.id} />}
-                  {idx < visibleColumns.length - 1 && (
-                    <span
-                      className="resize-handle"
-                      onMouseDown={(e) => handleResizeStart(e, col)}
-                    />
-                  )}
+                  <span
+                    className="resize-handle"
+                    onMouseDown={(e) => handleResizeStart(e, col)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
                 </th>
               ))}
               <th className="col-menu-th">
