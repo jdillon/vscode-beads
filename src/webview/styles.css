@@ -1624,3 +1624,31 @@ textarea {
 ::-webkit-scrollbar-thumb:active {
   background-color: var(--vscode-scrollbarSlider-activeBackground);
 }
+
+/* ==================== Toast Notifications ==================== */
+
+.toast-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.toast {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  padding: 4px 10px;
+  font-size: 11px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  border-radius: 4px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.toast.fading {
+  opacity: 0;
+}
