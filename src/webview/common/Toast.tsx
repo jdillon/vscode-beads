@@ -11,6 +11,7 @@ export interface ToastMessage {
   text: string;
   x: number;
   y: number;
+  below?: boolean;
 }
 
 interface ToastContextValue {
@@ -27,13 +28,16 @@ export function ToastProvider({ children }: { children: React.ReactNode }): Reac
   const showToast = useCallback((text: string, event: React.MouseEvent) => {
     const id = ++toastId;
     const rect = (event.target as HTMLElement).getBoundingClientRect();
+    // Show below if near top of viewport, otherwise above
+    const showBelow = rect.top < 40;
     setToasts((prev) => [
       ...prev,
       {
         id,
         text,
         x: rect.left + rect.width / 2,
-        y: rect.top - 8,
+        y: showBelow ? rect.bottom + 8 : rect.top - 8,
+        below: showBelow,
       },
     ]);
   }, []);
@@ -76,7 +80,7 @@ function ToastItem({
 
   return (
     <div
-      className={`toast ${visible ? "visible" : "fading"}`}
+      className={`toast ${visible ? "visible" : "fading"} ${message.below ? "below" : ""}`}
       style={{
         left: message.x,
         top: message.y,

@@ -1649,6 +1649,10 @@ textarea {
   transition: opacity 0.2s ease;
 }
 
+.toast.below {
+  transform: translate(-50%, 0);
+}
+
 .toast.fading {
   opacity: 0;
 }
