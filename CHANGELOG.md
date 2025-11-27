@@ -7,11 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2025-11-27
+
 ### Added
 
 - GitHub Actions CI workflow for PR/push validation (`vsbeads-vt6`)
 - GitHub Actions release workflow for marketplace publishing (`vsbeads-vt6`)
 - VSIX artifact upload on CI runs for manual testing (`vsbeads-vt6`)
+- Marketplace icon and README attribution
 
 ## [0.1.0] - 2025-11-27
 
