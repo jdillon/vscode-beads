@@ -176,10 +176,21 @@ export function DetailsView({
         )}
       </div>
 
-      {/* Status/Priority/Type chiclets */}
+      {/* Type/Status/Priority chiclets */}
       <div className="details-badges">
         {editMode ? (
           <>
+            <select
+              value={displayBead.type || "task"}
+              onChange={(e) => handleFieldChange("type", e.target.value)}
+              className="badge-select"
+            >
+              {["bug", "feature", "task", "epic", "chore"].map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
             <select
               value={displayBead.status}
               onChange={(e) =>
@@ -206,26 +217,15 @@ export function DetailsView({
                 </option>
               ))}
             </select>
-            <select
-              value={displayBead.type || "task"}
-              onChange={(e) => handleFieldChange("type", e.target.value)}
-              className="badge-select"
-            >
-              {["bug", "feature", "task", "epic", "chore"].map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
           </>
         ) : (
           <>
+            {displayBead.type && (
+              <span className={`type-chip type-${displayBead.type}`}>{displayBead.type}</span>
+            )}
             <StatusBadge status={displayBead.status} size="small" />
             {displayBead.priority !== undefined && (
               <PriorityBadge priority={displayBead.priority} size="small" />
-            )}
-            {displayBead.type && (
-              <span className={`type-chip type-${displayBead.type}`}>{displayBead.type}</span>
             )}
           </>
         )}
