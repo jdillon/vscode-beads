@@ -77,6 +77,8 @@ For development setup, see [docs/development.md](docs/development.md).
 
 ## Credits
 
+Built with 💜 using [Claude Code](https://claude.ai/code)
+
 Icon inspired by <a href="https://www.flaticon.com/free-icons/beads" title="Beads icons">Beads icons created by imaginationlol - Flaticon</a>
 
 ## License
