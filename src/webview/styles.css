@@ -382,9 +382,43 @@ textarea {
   flex-shrink: 0;
 }
 
-.search-input-compact {
+.search-input-wrapper {
+  position: relative;
   flex: 1;
   min-width: 80px;
+  display: flex;
+}
+
+.search-input-compact {
+  flex: 1;
+  min-width: 0;
+  padding-right: 22px;
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--vscode-input-foreground);
+  opacity: 0.6;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+}
+
+.search-clear-btn:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground);
 }
 
 .daemon-dot {
