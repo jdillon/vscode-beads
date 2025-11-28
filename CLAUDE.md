@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 bun install              # Install dependencies
 bun run compile          # Build extension + webview
+bun run compile:quiet    # Build (quiet output - use this to save context)
 bun run watch            # Watch mode (extension + webview in parallel)
 bun run lint             # ESLint on src/**/*.{ts,tsx}
 bun run test             # Jest tests (experimental VM modules)
@@ -14,6 +15,8 @@ bun run package          # Create VSIX package
 ```
 
 ## Development Workflow
+
+**Testing workflow with Chrome DevTools MCP**: After building, ask the user to reload code-server and test. Don't automate the reload/test cycle via browser tools - it wastes context.
 
 **Option 1: Extension Development Host (recommended for debugging)**
 1. Open this repo in VS Code

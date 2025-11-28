@@ -81,9 +81,22 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
     this.setError(null);
 
     try {
-      const issue = await client.show(this.currentBeadId);
+      // Fetch issue and comments in parallel
+      const [issue, comments] = await Promise.all([
+        client.show(this.currentBeadId),
+        client.listComments(this.currentBeadId).catch((err) => {
+          this.outputChannel.appendLine(`[Details] Failed to fetch comments: ${err}`);
+          return [];
+        }),
+      ]);
+      this.outputChannel.appendLine(`[Details] Loaded ${comments.length} comments for ${this.currentBeadId}`);
       if (issue) {
-        const bead = issueToWebviewBead(issue);
+        // Merge comments into issue data
+        const issueWithComments = {
+          ...issue,
+          comments: comments as Array<{ id: number; author: string; text: string; created_at: string }>,
+        };
+        const bead = issueToWebviewBead(issueWithComments);
         if (bead) {
           this.postMessage({ type: "setBead", bead });
         } else {

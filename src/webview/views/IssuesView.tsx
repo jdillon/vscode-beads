@@ -336,15 +336,26 @@ export function IssuesView({
             </option>
           ))}
         </select>
-        <input
-          type="text"
-          className="search-input-compact"
-          placeholder="Search..."
-          value={filters.search}
-          onChange={(e) =>
-            setFilters((prev) => ({ ...prev, search: e.target.value }))
-          }
-        />
+        <div className="search-input-wrapper">
+          <input
+            type="text"
+            className="search-input-compact"
+            placeholder="Search..."
+            value={filters.search}
+            onChange={(e) =>
+              setFilters((prev) => ({ ...prev, search: e.target.value }))
+            }
+          />
+          {filters.search && (
+            <button
+              className="search-clear-btn"
+              onClick={() => setFilters((prev) => ({ ...prev, search: "" }))}
+              title="Clear search"
+            >
+              ×
+            </button>
+          )}
+        </div>
         <button
           className={`filter-toggle ${showFilterRow ? "active" : ""}`}
           onClick={() => {
