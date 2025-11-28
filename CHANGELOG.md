@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Blocked, Closed, and Epics filter presets (`vsbeads-fb7`)
+
 ## [0.1.1] - 2025-11-27
 
 ### Added
