@@ -15,6 +15,9 @@ import {
   BeadPriority,
   STATUS_LABELS,
   PRIORITY_LABELS,
+  PRIORITY_COLORS,
+  PRIORITY_TEXT_COLORS,
+  STATUS_COLORS,
 } from "../types";
 import { StatusBadge } from "../common/StatusBadge";
 import { PriorityBadge } from "../common/PriorityBadge";
@@ -406,6 +409,27 @@ export function DetailsView({
               >
                 <span className="dep-id">{dep.id}</span>
                 {dep.title && <span className="dep-title">{dep.title}</span>}
+                <span className="dep-indicators">
+                  {dep.status && (
+                    <span
+                      className="dep-status"
+                      style={{ backgroundColor: STATUS_COLORS[dep.status] }}
+                    >
+                      {STATUS_LABELS[dep.status]}
+                    </span>
+                  )}
+                  {dep.priority !== undefined && (
+                    <span
+                      className="dep-priority"
+                      style={{
+                        backgroundColor: PRIORITY_COLORS[dep.priority],
+                        color: PRIORITY_TEXT_COLORS[dep.priority]
+                      }}
+                    >
+                      P{dep.priority}
+                    </span>
+                  )}
+                </span>
                 {editMode && (
                   <button
                     className="dep-remove"
@@ -447,6 +471,27 @@ export function DetailsView({
               >
                 <span className="dep-id">{dep.id}</span>
                 {dep.title && <span className="dep-title">{dep.title}</span>}
+                <span className="dep-indicators">
+                  {dep.status && (
+                    <span
+                      className="dep-status"
+                      style={{ backgroundColor: STATUS_COLORS[dep.status] }}
+                    >
+                      {STATUS_LABELS[dep.status]}
+                    </span>
+                  )}
+                  {dep.priority !== undefined && (
+                    <span
+                      className="dep-priority"
+                      style={{
+                        backgroundColor: PRIORITY_COLORS[dep.priority],
+                        color: PRIORITY_TEXT_COLORS[dep.priority]
+                      }}
+                    >
+                      P{dep.priority}
+                    </span>
+                  )}
+                </span>
               </div>
             ))}
           </div>

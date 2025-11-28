@@ -8,15 +8,6 @@
         "chrome-devtools-mcp@latest"
       ],
       "env": {}
-    },
-    "chrome-inspector": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "-y",
-        "chrome-inspector-mcp@latest"
-      ],
-      "env": {}
     }
   }
 }

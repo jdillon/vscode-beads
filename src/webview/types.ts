@@ -21,6 +21,8 @@ export interface BeadDependency {
   id: string;
   type?: string; // issue_type for coloring
   title?: string;
+  status?: BeadStatus;
+  priority?: BeadPriority;
 }
 
 export interface Bead {
