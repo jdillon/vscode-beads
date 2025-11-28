@@ -1514,47 +1514,65 @@ textarea {
   resize: vertical;
 }
 
-.labels-row,
-.deps-list {
+.labels-row {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-xs);
   align-items: center;
 }
 
-.dep-badge {
-  font-family: var(--vscode-editor-font-family);
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: var(--border-radius);
-  background: var(--vscode-sideBar-background);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.deps-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
 }
 
-.dep-badge.clickable {
+.dep-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 4px 8px;
+  border-radius: var(--border-radius);
+  background: var(--vscode-sideBar-background);
+}
+
+.dep-item.clickable {
   cursor: pointer;
 }
 
-.dep-badge.clickable:hover {
+.dep-item.clickable:hover {
   background: var(--vscode-list-hoverBackground);
 }
 
-/* Type-based coloring for dependency badges (matches .type-* chips) */
-.dep-badge.dep-type-bug {
+.dep-id {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 11px;
+  color: var(--vscode-textLink-foreground);
+  white-space: nowrap;
+}
+
+.dep-title {
+  font-size: 12px;
+  color: var(--vscode-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Type-based coloring for dependency items (matches .type-* chips) */
+.dep-item.dep-type-bug {
   border-left: 2px solid #dc2626;
 }
-.dep-badge.dep-type-feature {
+.dep-item.dep-type-feature {
   border-left: 2px solid #16a34a;
 }
-.dep-badge.dep-type-task {
+.dep-item.dep-type-task {
   border-left: 2px solid #eab308;
 }
-.dep-badge.dep-type-epic {
+.dep-item.dep-type-epic {
   border-left: 2px solid #9333ea;
 }
-.dep-badge.dep-type-chore {
+.dep-item.dep-type-chore {
   border-left: 2px solid #2563eb;
 }
 
