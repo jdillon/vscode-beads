@@ -67,9 +67,9 @@ export interface Bead {
   updatedAt?: string;
   closedAt?: string;
 
-  // Dependency relationships
-  dependsOn?: string[]; // IDs this bead depends on (blockers)
-  blocks?: string[]; // IDs this bead blocks
+  // Dependency relationships (with type for coloring)
+  dependsOn?: BeadDependency[]; // Issues this bead depends on
+  blocks?: BeadDependency[]; // Issues that depend on this bead
 
   // Comments
   comments?: BeadComment[];
@@ -85,6 +85,12 @@ export interface BeadComment {
   author: string;
   text: string;
   createdAt: string;
+}
+
+// Dependency reference with type info for coloring
+export interface BeadDependency {
+  id: string;
+  type?: string; // issue_type: bug, feature, task, epic, chore
 }
 
 // Represents a Beads project (database/workspace)
@@ -348,12 +354,8 @@ export function issueToWebviewBead(issue: {
     createdAt: issue.created_at,
     updatedAt: issue.updated_at,
     closedAt: issue.closed_at,
-    dependsOn: issue.dependencies
-      ?.filter((d) => d.dependency_type === "blocks")
-      .map((d) => d.id),
-    blocks: issue.dependents
-      ?.filter((d) => d.dependency_type === "blocks")
-      .map((d) => d.id),
+    dependsOn: issue.dependencies?.map((d) => ({ id: d.id, type: d.issue_type })),
+    blocks: issue.dependents?.map((d) => ({ id: d.id, type: d.issue_type })),
     comments: issue.comments?.map((c) => ({
       id: c.id,
       author: c.author,

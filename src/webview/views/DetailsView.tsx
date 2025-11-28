@@ -398,19 +398,19 @@ export function DetailsView({
         <div className="details-section">
           <h4>Depends On</h4>
           <div className="deps-list">
-            {(displayBead.dependsOn || []).map((depId) => (
+            {(displayBead.dependsOn || []).map((dep) => (
               <span
-                key={depId}
-                className={`dep-badge ${onSelectBead && !editMode ? "clickable" : ""}`}
-                onClick={() => !editMode && onSelectBead?.(depId)}
+                key={dep.id}
+                className={`dep-badge dep-type-${dep.type || "task"} ${onSelectBead && !editMode ? "clickable" : ""}`}
+                onClick={() => !editMode && onSelectBead?.(dep.id)}
               >
-                {depId}
+                {dep.id}
                 {editMode && (
                   <button
                     className="dep-remove"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onRemoveDependency(bead.id, depId);
+                      onRemoveDependency(bead.id, dep.id);
                     }}
                   >
                     ×
@@ -429,6 +429,24 @@ export function DetailsView({
                 />
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Dependents (blocks) - hide when empty, read-only */}
+      {displayBead.blocks && displayBead.blocks.length > 0 && (
+        <div className="details-section">
+          <h4>Blocks</h4>
+          <div className="deps-list">
+            {displayBead.blocks.map((dep) => (
+              <span
+                key={dep.id}
+                className={`dep-badge dep-type-${dep.type || "task"} ${onSelectBead ? "clickable" : ""}`}
+                onClick={() => onSelectBead?.(dep.id)}
+              >
+                {dep.id}
+              </span>
+            ))}
           </div>
         </div>
       )}
