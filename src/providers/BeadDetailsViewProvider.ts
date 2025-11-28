@@ -84,7 +84,12 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
       const issue = await client.show(this.currentBeadId);
       if (issue) {
         const bead = issueToWebviewBead(issue);
-        this.postMessage({ type: "setBead", bead });
+        if (bead) {
+          this.postMessage({ type: "setBead", bead });
+        } else {
+          this.setError("Invalid bead status");
+          this.postMessage({ type: "setBead", bead: null });
+        }
       } else {
         this.setError("Bead not found");
         this.postMessage({ type: "setBead", bead: null });

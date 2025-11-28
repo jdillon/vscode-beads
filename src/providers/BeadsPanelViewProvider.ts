@@ -46,7 +46,7 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
 
     try {
       const issues = await client.list();
-      const beads = issues.map(issueToWebviewBead);
+      const beads = issues.map(issueToWebviewBead).filter((b): b is Bead => b !== null);
       this.postMessage({ type: "setBeads", beads });
     } catch (err) {
       this.setError(`Error: ${err}`);

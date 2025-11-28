@@ -11,7 +11,7 @@
 import * as vscode from "vscode";
 import { BaseViewProvider } from "./BaseViewProvider";
 import { BeadsProjectManager } from "../backend/BeadsProjectManager";
-import { WebviewToExtensionMessage, issueToWebviewBead } from "../backend/types";
+import { WebviewToExtensionMessage, Bead, issueToWebviewBead } from "../backend/types";
 
 export class KanbanViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsKanban";
@@ -36,7 +36,7 @@ export class KanbanViewProvider extends BaseViewProvider {
 
     try {
       const issues = await client.list();
-      const beads = issues.map(issueToWebviewBead);
+      const beads = issues.map(issueToWebviewBead).filter((b): b is Bead => b !== null);
       this.postMessage({ type: "setBeads", beads });
     } catch (err) {
       this.setError(`Error: ${err}`);

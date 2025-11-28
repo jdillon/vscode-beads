@@ -6,12 +6,7 @@
 
 // Re-export types that are shared between extension and webview
 // These match beads canonical statuses: open, in_progress, blocked, closed
-export type BeadStatus =
-  | "open"
-  | "in_progress"
-  | "blocked"
-  | "closed"
-  | "unknown";
+export type BeadStatus = "open" | "in_progress" | "blocked" | "closed";
 
 export type BeadPriority = 0 | 1 | 2 | 3 | 4;
 
@@ -138,7 +133,6 @@ export const STATUS_LABELS: Record<BeadStatus, string> = {
   in_progress: "In Progress",
   blocked: "Blocked",
   closed: "Closed",
-  unknown: "Unknown",
 };
 
 export const PRIORITY_COLORS: Record<BeadPriority, string> = {
@@ -162,7 +156,6 @@ export const STATUS_COLORS: Record<BeadStatus, string> = {
   in_progress: "#3b82f6", // blue
   blocked: "#ef4444",   // red
   closed: "#6b7280",    // gray
-  unknown: "#9ca3af",
 };
 
 // VS Code API interface for webview

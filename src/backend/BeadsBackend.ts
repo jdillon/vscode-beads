@@ -456,13 +456,10 @@ export class BeadsBackend {
     const beads = beadsResult.data!;
 
     const byStatus: Record<BeadStatus, number> = {
-      backlog: 0,
-      ready: 0,
+      open: 0,
       in_progress: 0,
       blocked: 0,
-      done: 0,
       closed: 0,
-      unknown: 0,
     };
 
     const byPriority: Record<BeadPriority, number> = {
@@ -484,7 +481,7 @@ export class BeadsBackend {
       total: beads.length,
       byStatus,
       byPriority,
-      readyCount: byStatus.ready,
+      readyCount: byStatus.open,
       blockedCount: byStatus.blocked,
       inProgressCount: byStatus.in_progress,
     };

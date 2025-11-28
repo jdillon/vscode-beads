@@ -394,8 +394,8 @@ export function GraphView({
       />
       <div className="graph-legend">
         <span className="legend-item">
-          <span className="legend-dot" style={{ backgroundColor: STATUS_COLORS.ready }}></span>
-          Ready
+          <span className="legend-dot" style={{ backgroundColor: STATUS_COLORS.open }}></span>
+          Open
         </span>
         <span className="legend-item">
           <span className="legend-dot" style={{ backgroundColor: STATUS_COLORS.in_progress }}></span>

@@ -32,13 +32,10 @@ export class DashboardViewProvider extends BaseViewProvider {
         summary: {
           total: 0,
           byStatus: {
-            backlog: 0,
-            ready: 0,
+            open: 0,
             in_progress: 0,
             blocked: 0,
-            done: 0,
             closed: 0,
-            unknown: 0,
           },
           byPriority: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 },
           readyCount: 0,
@@ -56,17 +53,14 @@ export class DashboardViewProvider extends BaseViewProvider {
     try {
       // Get all issues and compute summary
       const issues = await client.list();
-      const beads = issues.map(issueToWebviewBead);
+      const beads = issues.map(issueToWebviewBead).filter((b): b is Bead => b !== null);
 
       // Compute summary
       const byStatus: Record<BeadStatus, number> = {
-        backlog: 0,
-        ready: 0,
+        open: 0,
         in_progress: 0,
         blocked: 0,
-        done: 0,
         closed: 0,
-        unknown: 0,
       };
 
       const byPriority: Record<BeadPriority, number> = {
@@ -88,7 +82,7 @@ export class DashboardViewProvider extends BaseViewProvider {
         total: beads.length,
         byStatus,
         byPriority,
-        readyCount: byStatus.ready,
+        readyCount: byStatus.open,
         blockedCount: byStatus.blocked,
         inProgressCount: byStatus.in_progress,
       };
