@@ -5,3 +5,7 @@ dist/
 *.log
 .DS_Store
 tmp/
+
+# Local dev artifacts (code-server, openvscode-server)
+.cache/
+.openvscode-server/
