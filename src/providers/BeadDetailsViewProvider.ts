@@ -89,12 +89,13 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
           return [];
         }),
       ]);
-      this.outputChannel.appendLine(`[Details] Loaded ${comments.length} comments for ${this.currentBeadId}`);
+      const commentsArray = comments || [];
+      this.outputChannel.appendLine(`[Details] Loaded ${commentsArray.length} comments for ${this.currentBeadId}`);
       if (issue) {
         // Merge comments into issue data
         const issueWithComments = {
           ...issue,
-          comments: comments as Array<{ id: number; author: string; text: string; created_at: string }>,
+          comments: commentsArray as Array<{ id: number; author: string; text: string; created_at: string }>,
         };
         const bead = issueToWebviewBead(issueWithComments);
         if (bead) {
