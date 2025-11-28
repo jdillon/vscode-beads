@@ -195,6 +195,9 @@ export function App(): React.ReactElement {
             onSelectBead={(beadId) =>
               vscode.postMessage({ type: "openBeadDetails", beadId })
             }
+            onCopyId={(beadId) =>
+              vscode.postMessage({ type: "copyBeadId", beadId })
+            }
           />
         );
 

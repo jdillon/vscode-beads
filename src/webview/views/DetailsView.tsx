@@ -32,6 +32,7 @@ interface DetailsViewProps {
   onAddComment?: (beadId: string, text: string) => void;
   onViewInGraph: (beadId: string) => void;
   onSelectBead?: (beadId: string) => void;
+  onCopyId?: (beadId: string) => void;
 }
 
 // Helper to render text content - markdown or plain
@@ -52,8 +53,10 @@ export function DetailsView({
   onAddComment,
   onViewInGraph,
   onSelectBead,
+  onCopyId,
 }: DetailsViewProps): React.ReactElement {
-  const { showToast } = useToast();
+  // Toast kept for potential future use; currently using VS Code status bar for copy feedback
+  const { showToast: _showToast } = useToast();
   const [editMode, setEditMode] = useState(false);
   const [editedBead, setEditedBead] = useState<Partial<Bead>>({});
   const [newLabel, setNewLabel] = useState("");
@@ -136,9 +139,13 @@ export function DetailsView({
       <div className="details-header">
         <span
           className="bead-id-badge clickable"
-          onClick={(e) => {
-            navigator.clipboard.writeText(bead.id);
-            showToast("Copied!", e);
+          onClick={() => {
+            if (onCopyId) {
+              onCopyId(bead.id);
+            } else {
+              // Fallback: copy directly without feedback
+              navigator.clipboard.writeText(bead.id);
+            }
           }}
           title="Click to copy ID"
         >

@@ -26,6 +26,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   projectManager = new BeadsProjectManager(context, outputChannel);
   await projectManager.initialize();
 
+  // Initialize context for conditional menu items
+  vscode.commands.executeCommand("setContext", "beads.hasSelectedBead", false);
+
   // Create view providers
   dashboardProvider = new DashboardViewProvider(
     context.extensionUri,
@@ -111,7 +114,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       beadsPanelProvider.refresh();
       detailsProvider.refresh();
       outputChannel.appendLine("[Refresh] Complete");
-      beadsPanelProvider.postMessage({ type: "showToast", text: "Refreshed" });
+      vscode.window.setStatusBarMessage("$(check) Beads: Refreshed", 2000);
     }),
 
     vscode.commands.registerCommand("beads.createBead", async () => {
@@ -173,6 +176,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.window.showInformationMessage("Beads daemon stopped");
       } else {
         vscode.window.showErrorMessage("Failed to stop Beads daemon");
+      }
+    }),
+
+    vscode.commands.registerCommand("beads.copyBeadId", async () => {
+      const beadId = detailsProvider.getCurrentBeadId();
+      if (beadId) {
+        await vscode.env.clipboard.writeText(beadId);
+        vscode.window.setStatusBarMessage(`$(check) Copied: ${beadId}`, 2000);
+      } else {
+        vscode.window.showWarningMessage("No bead selected");
       }
     })
   );
