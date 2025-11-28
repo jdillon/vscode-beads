@@ -22,6 +22,11 @@ export interface BeadComment {
   createdAt: string;
 }
 
+export interface BeadDependency {
+  id: string;
+  type?: string; // issue_type for coloring
+}
+
 export interface Bead {
   id: string;
   title: string;
@@ -39,8 +44,8 @@ export interface Bead {
   createdAt?: string;
   updatedAt?: string;
   closedAt?: string;
-  dependsOn?: string[];
-  blocks?: string[];
+  dependsOn?: BeadDependency[];
+  blocks?: BeadDependency[];
   comments?: BeadComment[];
   sortOrder?: number;
 }
