@@ -79,10 +79,23 @@ export interface BeadComment {
   createdAt: string;
 }
 
-// Dependency reference with type info for coloring
+// Dependency reference with summary info for display
 export interface BeadDependency {
   id: string;
   type?: string; // issue_type: bug, feature, task, epic, chore
+  title?: string;
+  status?: BeadStatus;
+  priority?: BeadPriority;
+}
+
+// Daemon API dependency format (before normalization)
+export interface DaemonBeadDependency {
+  id: string;
+  dependency_type: string; // relationship: blocks, related, parent-child, etc.
+  issue_type?: string;     // bead type: bug, feature, task, epic, chore
+  title?: string;
+  status?: string;
+  priority?: number;
 }
 
 // Represents a Beads project (database/workspace)
@@ -342,8 +355,8 @@ export function issueToWebviewBead(issue: {
   created_at: string;
   updated_at: string;
   closed_at?: string;
-  dependencies?: Array<{ id: string; dependency_type: string; issue_type?: string; title?: string }>;
-  dependents?: Array<{ id: string; dependency_type: string; issue_type?: string; title?: string }>;
+  dependencies?: DaemonBeadDependency[];
+  dependents?: DaemonBeadDependency[];
   comments?: Array<{ id: number; author: string; text: string; created_at: string }>;
 }): Bead | null {
   const status = normalizeStatus(issue.status);
@@ -367,8 +380,20 @@ export function issueToWebviewBead(issue: {
     createdAt: issue.created_at,
     updatedAt: issue.updated_at,
     closedAt: issue.closed_at,
-    dependsOn: issue.dependencies?.map((d) => ({ id: d.id, type: d.issue_type, title: d.title })),
-    blocks: issue.dependents?.map((d) => ({ id: d.id, type: d.issue_type, title: d.title })),
+    dependsOn: issue.dependencies?.map((d) => ({
+      id: d.id,
+      type: d.issue_type,
+      title: d.title,
+      status: d.status ? normalizeStatus(d.status) ?? undefined : undefined,
+      priority: d.priority !== undefined ? normalizePriority(d.priority) : undefined,
+    })),
+    blocks: issue.dependents?.map((d) => ({
+      id: d.id,
+      type: d.issue_type,
+      title: d.title,
+      status: d.status ? normalizeStatus(d.status) ?? undefined : undefined,
+      priority: d.priority !== undefined ? normalizePriority(d.priority) : undefined,
+    })),
     comments: issue.comments?.map((c) => ({
       id: c.id,
       author: c.author,

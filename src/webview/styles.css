@@ -1531,9 +1531,11 @@ textarea {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  padding: 4px 8px;
-  border-radius: var(--border-radius);
+  padding: 4px 4px 4px 10px;
+  border-radius: 3px;
   background: var(--vscode-sideBar-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-left: 3px solid var(--vscode-panel-border);
 }
 
 .dep-item.clickable {
@@ -1557,23 +1559,47 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
-/* Type-based coloring for dependency items (matches .type-* chips) */
+.dep-indicators {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.dep-status {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  color: #fff;
+  border-radius: var(--border-radius) 0 0 var(--border-radius);
+}
+
+.dep-priority {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 0 var(--border-radius) var(--border-radius) 0;
+}
+
+/* Type-based coloring for dependency items (matches filter chips) */
 .dep-item.dep-type-bug {
-  border-left: 2px solid #dc2626;
+  border-left-color: #dc2626;
 }
 .dep-item.dep-type-feature {
-  border-left: 2px solid #16a34a;
+  border-left-color: #16a34a;
 }
 .dep-item.dep-type-task {
-  border-left: 2px solid #eab308;
+  border-left-color: #eab308;
 }
 .dep-item.dep-type-epic {
-  border-left: 2px solid #9333ea;
+  border-left-color: #9333ea;
 }
 .dep-item.dep-type-chore {
-  border-left: 2px solid #2563eb;
+  border-left-color: #2563eb;
 }
 
 .dep-remove {

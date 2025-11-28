@@ -18,13 +18,17 @@ bun run package          # Create VSIX package
 
 **Testing workflow with Chrome DevTools MCP**: After building, ask the user to reload code-server and test. Don't automate the reload/test cycle via browser tools - it wastes context.
 
+**code-server for testing**: Use `--auth none` flag - no auth needed for local testing.
+
 **Option 1: Extension Development Host (recommended for debugging)**
+
 1. Open this repo in VS Code
 2. Run `bun run watch` in terminal
 3. Press `F5` to launch Extension Development Host
 4. `Cmd+R` (Mac) / `Ctrl+R` (Win/Linux) to reload after changes
 
 **Option 2: Symlink for local testing**
+
 ```bash
 # Link extension to VS Code extensions directory
 ln -s "$(pwd)" ~/.vscode/extensions/vscode-beads
@@ -35,6 +39,7 @@ rm ~/.vscode/extensions/vscode-beads
 ```
 
 **Option 3: Install VSIX locally**
+
 ```bash
 bun run package                              # Creates vscode-beads-0.1.0.vsix
 code --install-extension vscode-beads-0.1.0.vsix
@@ -69,7 +74,7 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 CLI status values are normalized: `in-progress`/`active` → `in_progress`, `completed` → `done`, etc.
 Priority is 0-4 where 0 = Critical (P0), 4 = None (P4).
 
-## Beads (Issue Tracking)
+## Beads
 
 Use beads MCP tools for ALL issue tracking. Do NOT use TodoWrite or markdown TODOs.
 
