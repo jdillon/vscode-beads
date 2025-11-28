@@ -20,6 +20,7 @@ export interface BeadComment {
 export interface BeadDependency {
   id: string;
   type?: string; // issue_type for coloring
+  title?: string;
 }
 
 export interface Bead {

@@ -399,12 +399,13 @@ export function DetailsView({
           <h4>Depends On</h4>
           <div className="deps-list">
             {(displayBead.dependsOn || []).map((dep) => (
-              <span
+              <div
                 key={dep.id}
-                className={`dep-badge dep-type-${dep.type || "task"} ${onSelectBead && !editMode ? "clickable" : ""}`}
+                className={`dep-item dep-type-${dep.type || "task"} ${onSelectBead && !editMode ? "clickable" : ""}`}
                 onClick={() => !editMode && onSelectBead?.(dep.id)}
               >
-                {dep.id}
+                <span className="dep-id">{dep.id}</span>
+                {dep.title && <span className="dep-title">{dep.title}</span>}
                 {editMode && (
                   <button
                     className="dep-remove"
@@ -416,7 +417,7 @@ export function DetailsView({
                     ×
                   </button>
                 )}
-              </span>
+              </div>
             ))}
             {editMode && (
               <div className="add-inline">
@@ -439,13 +440,14 @@ export function DetailsView({
           <h4>Blocks</h4>
           <div className="deps-list">
             {displayBead.blocks.map((dep) => (
-              <span
+              <div
                 key={dep.id}
-                className={`dep-badge dep-type-${dep.type || "task"} ${onSelectBead ? "clickable" : ""}`}
+                className={`dep-item dep-type-${dep.type || "task"} ${onSelectBead ? "clickable" : ""}`}
                 onClick={() => onSelectBead?.(dep.id)}
               >
-                {dep.id}
-              </span>
+                <span className="dep-id">{dep.id}</span>
+                {dep.title && <span className="dep-title">{dep.title}</span>}
+              </div>
             ))}
           </div>
         </div>

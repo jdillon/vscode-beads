@@ -342,8 +342,8 @@ export function issueToWebviewBead(issue: {
   created_at: string;
   updated_at: string;
   closed_at?: string;
-  dependencies?: Array<{ id: string; dependency_type: string; issue_type?: string }>;
-  dependents?: Array<{ id: string; dependency_type: string; issue_type?: string }>;
+  dependencies?: Array<{ id: string; dependency_type: string; issue_type?: string; title?: string }>;
+  dependents?: Array<{ id: string; dependency_type: string; issue_type?: string; title?: string }>;
   comments?: Array<{ id: number; author: string; text: string; created_at: string }>;
 }): Bead | null {
   const status = normalizeStatus(issue.status);
@@ -367,8 +367,8 @@ export function issueToWebviewBead(issue: {
     createdAt: issue.created_at,
     updatedAt: issue.updated_at,
     closedAt: issue.closed_at,
-    dependsOn: issue.dependencies?.map((d) => ({ id: d.id, type: d.issue_type })),
-    blocks: issue.dependents?.map((d) => ({ id: d.id, type: d.issue_type })),
+    dependsOn: issue.dependencies?.map((d) => ({ id: d.id, type: d.issue_type, title: d.title })),
+    blocks: issue.dependents?.map((d) => ({ id: d.id, type: d.issue_type, title: d.title })),
     comments: issue.comments?.map((c) => ({
       id: c.id,
       author: c.author,
