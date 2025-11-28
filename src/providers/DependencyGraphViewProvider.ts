@@ -38,7 +38,7 @@ export class DependencyGraphViewProvider extends BaseViewProvider {
 
     try {
       const issues = await client.list();
-      const beads = issues.map(issueToWebviewBead);
+      const beads = issues.map(issueToWebviewBead).filter((b): b is NonNullable<typeof b> => b !== null);
 
       // Build dependency graph from beads
       const nodes: GraphNode[] = [];

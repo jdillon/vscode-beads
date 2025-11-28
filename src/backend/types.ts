@@ -9,7 +9,7 @@
  * - "in_progress" / "in-progress" / "active" -> "in_progress"
  * - "blocked" -> "blocked"
  * - "closed" / "done" / "completed" / "cancelled" -> "closed"
- * - anything else -> "unknown"
+ * - anything else -> throws error
  *
  * Priority Mapping:
  * - Beads uses 0-4 where 0 is highest priority (P0/Critical)
@@ -18,12 +18,7 @@
 
 // Bead status values used in the UI
 // Matches beads canonical statuses: open, in_progress, blocked, closed
-export type BeadStatus =
-  | "open"
-  | "in_progress"
-  | "blocked"
-  | "closed"
-  | "unknown";
+export type BeadStatus = "open" | "in_progress" | "blocked" | "closed";
 
 // Priority levels (0 = highest/critical, 4 = lowest/none)
 export type BeadPriority = 0 | 1 | 2 | 3 | 4;
@@ -39,13 +34,10 @@ export const PRIORITY_LABELS: Record<BeadPriority, string> = {
 
 // Status display labels for the UI
 export const STATUS_LABELS: Record<BeadStatus, string> = {
-  backlog: "Backlog",
-  ready: "Ready",
+  open: "Open",
   in_progress: "In Progress",
   blocked: "Blocked",
-  done: "Done",
   closed: "Closed",
-  unknown: "Unknown",
 };
 
 // Core Bead interface representing a single issue
@@ -220,9 +212,16 @@ export interface BeadSort {
 /**
  * Normalizes a status string from Beads CLI to internal BeadStatus
  */
-export function normalizeStatus(status: string | undefined): BeadStatus {
+// Track warned statuses to avoid spam
+const warnedStatuses = new Set<string>();
+
+export function normalizeStatus(status: string | undefined): BeadStatus | null {
   if (!status) {
-    return "unknown";
+    if (!warnedStatuses.has("__missing__")) {
+      warnedStatuses.add("__missing__");
+      console.warn("[vscode-beads] Bead missing status field - skipping");
+    }
+    return null;
   }
   const normalized = status.toLowerCase().replace(/-/g, "_");
   switch (normalized) {
@@ -240,7 +239,11 @@ export function normalizeStatus(status: string | undefined): BeadStatus {
     case "canceled":
       return "closed";
     default:
-      return "unknown";
+      if (!warnedStatuses.has(status)) {
+        warnedStatuses.add(status);
+        console.warn(`[vscode-beads] Unknown bead status "${status}" - skipping`);
+      }
+      return null;
   }
 }
 
@@ -265,9 +268,14 @@ export function normalizePriority(
 }
 
 /**
- * Converts a raw bead object from CLI JSON to internal Bead type
+ * Converts a raw bead object from CLI JSON to internal Bead type.
+ * Returns null if status is invalid (bead will be skipped).
  */
-export function normalizeBead(raw: Record<string, unknown>): Bead {
+export function normalizeBead(raw: Record<string, unknown>): Bead | null {
+  const status = normalizeStatus(raw.status as string | undefined);
+  if (status === null) {
+    return null;
+  }
   return {
     id: String(raw.id || raw.ID || ""),
     title: String(raw.title || raw.Title || raw.summary || "Untitled"),
@@ -278,7 +286,7 @@ export function normalizeBead(raw: Record<string, unknown>): Bead {
         : undefined,
     type: raw.type ? String(raw.type) : raw.category ? String(raw.category) : undefined,
     priority: normalizePriority(raw.priority as number | string | undefined),
-    status: normalizeStatus(raw.status as string | undefined),
+    status,
     assignee: raw.assignee
       ? String(raw.assignee)
       : raw.assigned_to
@@ -314,7 +322,8 @@ export function normalizeBead(raw: Record<string, unknown>): Bead {
 }
 
 /**
- * Converts a daemon Issue to webview Bead format
+ * Converts a daemon Issue to webview Bead format.
+ * Returns null if status is invalid (bead will be skipped).
  */
 export function issueToWebviewBead(issue: {
   id: string;
@@ -333,10 +342,14 @@ export function issueToWebviewBead(issue: {
   created_at: string;
   updated_at: string;
   closed_at?: string;
-  dependencies?: Array<{ id: string; dependency_type: string }>;
-  dependents?: Array<{ id: string; dependency_type: string }>;
+  dependencies?: Array<{ id: string; dependency_type: string; issue_type?: string }>;
+  dependents?: Array<{ id: string; dependency_type: string; issue_type?: string }>;
   comments?: Array<{ id: number; author: string; text: string; created_at: string }>;
-}): Bead {
+}): Bead | null {
+  const status = normalizeStatus(issue.status);
+  if (status === null) {
+    return null;
+  }
   return {
     id: issue.id,
     title: issue.title,
@@ -346,7 +359,7 @@ export function issueToWebviewBead(issue: {
     notes: issue.notes,
     type: issue.issue_type,
     priority: normalizePriority(issue.priority),
-    status: normalizeStatus(issue.status),
+    status,
     assignee: issue.assignee,
     labels: issue.labels,
     estimatedMinutes: issue.estimated_minutes,
