@@ -101,6 +101,11 @@
         "command": "beads.stopDaemon",
         "title": "Beads: Stop Daemon",
         "icon": "$(debug-stop)"
+      },
+      {
+        "command": "beads.copyBeadId",
+        "title": "Beads: Copy Issue ID",
+        "icon": "$(copy)"
       }
     ],
     "menus": {
@@ -114,6 +119,11 @@
           "command": "beads.createBead",
           "when": "view == beadsPanel",
           "group": "navigation@2"
+        },
+        {
+          "command": "beads.copyBeadId",
+          "when": "view == beadsDetails && beads.hasSelectedBead",
+          "group": "navigation@1"
         }
       ]
     },

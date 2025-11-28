@@ -33,6 +33,9 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
     this.currentBeadId = beadId;
     this.currentProjectId = this.projectManager.getActiveProject()?.id || null;
 
+    // Update context for conditional menu items
+    vscode.commands.executeCommand("setContext", "beads.hasSelectedBead", true);
+
     // Auto-expand the details panel
     if (this._view) {
       this._view.show(true); // true = preserve focus
@@ -42,10 +45,18 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
   }
 
   /**
+   * Get the currently displayed bead ID
+   */
+  public getCurrentBeadId(): string | null {
+    return this.currentBeadId;
+  }
+
+  /**
    * Clear the current bead (e.g., when switching projects)
    */
   public clearBead(): void {
     this.currentBeadId = null;
+    vscode.commands.executeCommand("setContext", "beads.hasSelectedBead", false);
     this.postMessage({ type: "setBead", bead: null });
     this.setLoading(false);
   }
@@ -154,6 +165,13 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
 
       case "viewInGraph":
         vscode.commands.executeCommand("beadsGraph.focus");
+        break;
+
+      case "copyBeadId":
+        if (message.beadId) {
+          await vscode.env.clipboard.writeText(message.beadId);
+          vscode.window.setStatusBarMessage(`$(check) Copied: ${message.beadId}`, 2000);
+        }
         break;
     }
   }
