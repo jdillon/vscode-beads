@@ -26,7 +26,7 @@ Reference for the beads daemon Unix socket RPC API. See [steveyegge/beads](https
 | `dep_add` | Add dependency | `internal/rpc/server_labels_deps_comments.go` |
 | `dep_remove` | Remove dependency | `internal/rpc/server_labels_deps_comments.go` |
 | `dep_tree` | Dependency tree | `internal/rpc/server_labels_deps_comments.go` |
-| `comment_add` | Add comment | `internal/rpc/server_labels_deps_comments.go` |
+| `comment_add` | Add comment (append-only, no delete) | `internal/rpc/server_labels_deps_comments.go` |
 | `comment_list` | List comments | `internal/rpc/server_labels_deps_comments.go` |
 | `get_mutations` | Recent changes (polling) | `internal/rpc/server_core.go:175` |
 | `epic_status` | Epic completion status | `internal/rpc/server_issues_epics.go` |
@@ -35,7 +35,7 @@ Reference for the beads daemon Unix socket RPC API. See [steveyegge/beads](https
 
 ### `show` Response
 
-Returns full issue with **both dependencies and dependents**:
+Returns full issue with **both dependencies and dependents**. **Does NOT include comments** - use `comment_list` separately:
 
 ```go
 // internal/rpc/server_issues_epics.go:917-922
