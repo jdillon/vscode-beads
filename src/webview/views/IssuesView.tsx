@@ -77,6 +77,9 @@ const FILTER_PRESETS: FilterPreset[] = [
   { id: "all", label: "All", filters: { status: [], priority: [], type: [] } },
   { id: "not-closed", label: "Not Closed", filters: { status: ["open", "in_progress", "blocked"], priority: [], type: [] } },
   { id: "active", label: "Active", filters: { status: ["in_progress", "blocked"], priority: [], type: [] } },
+  { id: "blocked", label: "Blocked", filters: { status: ["blocked"], priority: [], type: [] } },
+  { id: "closed", label: "Closed", filters: { status: ["closed"], priority: [], type: [] } },
+  { id: "epics", label: "Epics", filters: { status: [], priority: [], type: ["epic"] } },
 ];
 
 export function IssuesView({
