@@ -10,6 +10,9 @@ export type BeadStatus = "open" | "in_progress" | "blocked" | "closed";
 
 export type BeadPriority = 0 | 1 | 2 | 3 | 4;
 
+// Dependency relationship types
+export type DependencyType = "blocks" | "parent-child" | "related" | "discovered-from";
+
 export interface BeadComment {
   id: number;
   author: string;
@@ -20,6 +23,7 @@ export interface BeadComment {
 export interface BeadDependency {
   id: string;
   type?: string; // issue_type for coloring
+  dependencyType?: DependencyType; // relationship type: blocks, parent-child, etc.
   title?: string;
   status?: BeadStatus;
   priority?: BeadPriority;

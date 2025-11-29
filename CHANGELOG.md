@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Release workflow now bumps minor version instead of patch (`vsbeads-6qz`)
+- Dependencies now grouped by relationship type: Parent/Children, Blocked By/Blocks, Discovered From/Spawned, Related (`vsbeads-bci`)
 
 ## [0.1.2] - 2025-11-28
 

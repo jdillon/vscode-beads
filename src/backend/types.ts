@@ -79,10 +79,14 @@ export interface BeadComment {
   createdAt: string;
 }
 
+// Dependency relationship types
+export type DependencyType = "blocks" | "parent-child" | "related" | "discovered-from";
+
 // Dependency reference with summary info for display
 export interface BeadDependency {
   id: string;
   type?: string; // issue_type: bug, feature, task, epic, chore
+  dependencyType?: DependencyType; // relationship type: blocks, parent-child, etc.
   title?: string;
   status?: BeadStatus;
   priority?: BeadPriority;
@@ -385,6 +389,7 @@ export function issueToWebviewBead(issue: {
     dependsOn: issue.dependencies?.map((d) => ({
       id: d.id,
       type: d.issue_type,
+      dependencyType: d.dependency_type as DependencyType | undefined,
       title: d.title,
       status: d.status ? normalizeStatus(d.status) ?? undefined : undefined,
       priority: d.priority !== undefined ? normalizePriority(d.priority) : undefined,
@@ -392,6 +397,7 @@ export function issueToWebviewBead(issue: {
     blocks: issue.dependents?.map((d) => ({
       id: d.id,
       type: d.issue_type,
+      dependencyType: d.dependency_type as DependencyType | undefined,
       title: d.title,
       status: d.status ? normalizeStatus(d.status) ?? undefined : undefined,
       priority: d.priority !== undefined ? normalizePriority(d.priority) : undefined,
