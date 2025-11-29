@@ -165,7 +165,7 @@ export function App(): React.ReactElement {
         if (!state.selectedBead && !state.loading) {
           return (
             <div className="empty-state compact">
-              <p>Select an issue from the list</p>
+              <p>Select an issue to view details</p>
             </div>
           );
         }
