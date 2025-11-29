@@ -381,7 +381,8 @@ export class BeadsDaemonClient extends EventEmitter {
    * List issues with optional filters
    */
   async list(args: ListArgs = {}): Promise<Issue[]> {
-    return this.execute<Issue[]>(Op.List, args);
+    const result = await this.execute<Issue[]>(Op.List, args);
+    return result ?? [];
   }
 
   /**
@@ -395,7 +396,8 @@ export class BeadsDaemonClient extends EventEmitter {
    * Get ready (unblocked) issues
    */
   async ready(args: ReadyArgs = {}): Promise<Issue[]> {
-    return this.execute<Issue[]>(Op.Ready, args);
+    const result = await this.execute<Issue[]>(Op.Ready, args);
+    return result ?? [];
   }
 
   /**
@@ -465,14 +467,16 @@ export class BeadsDaemonClient extends EventEmitter {
    * Get comments for an issue
    */
   async listComments(id: string): Promise<unknown[]> {
-    return this.execute(Op.CommentList, { id });
+    const result = await this.execute<unknown[]>(Op.CommentList, { id });
+    return result ?? [];
   }
 
   /**
    * Get recent mutations since a timestamp
    */
   async getMutations(since: number = 0): Promise<MutationEvent[]> {
-    return this.execute<MutationEvent[]>(Op.GetMutations, { since });
+    const result = await this.execute<MutationEvent[]>(Op.GetMutations, { since });
+    return result ?? [];
   }
 
   /**
@@ -490,6 +494,9 @@ export class BeadsDaemonClient extends EventEmitter {
     this.mutationInterval = setInterval(async () => {
       try {
         const mutations = await this.getMutations(0);
+        if (!mutations) {
+          return; // Guard against null/undefined response
+        }
         // Filter to only new mutations since last check
         // Convert ISO timestamps to Date for proper comparison
         const newMutations = mutations.filter((m) => {
