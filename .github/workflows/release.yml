@@ -20,9 +20,9 @@ jobs:
           VERSION=$(jq -r .version package.json)
           echo "current=${VERSION}" >> $GITHUB_OUTPUT
 
-          # Calculate next patch version
+          # Calculate next minor version (bump minor, reset patch to 0)
           IFS='.' read -r major minor patch <<< "$VERSION"
-          NEXT="${major}.${minor}.$((patch + 1))"
+          NEXT="${major}.$((minor + 1)).0"
           echo "next=${NEXT}" >> $GITHUB_OUTPUT
 
       - name: Setup Bun
