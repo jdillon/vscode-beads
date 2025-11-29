@@ -13,11 +13,43 @@ import {
   BeadStatus,
   BeadPriority,
   BeadDependency,
+  DependencyType,
   STATUS_LABELS,
   PRIORITY_COLORS,
   PRIORITY_TEXT_COLORS,
   STATUS_COLORS,
 } from "../types";
+
+// Labels for dependency sections based on array (direction) and type
+const DEPENDENCY_LABELS: Record<"dependsOn" | "blocks", Record<DependencyType, string>> = {
+  dependsOn: {
+    "blocks": "Blocked By",
+    "parent-child": "Parent",
+    "discovered-from": "Discovered From",
+    "related": "Related To",
+  },
+  blocks: {
+    "blocks": "Blocks",
+    "parent-child": "Children",
+    "discovered-from": "Spawned",
+    "related": "Related From",
+  },
+};
+
+// Group dependencies by their relationship type
+function groupDependenciesByType(deps: BeadDependency[]): Record<DependencyType, BeadDependency[]> {
+  const groups: Record<DependencyType, BeadDependency[]> = {
+    "blocks": [],
+    "parent-child": [],
+    "discovered-from": [],
+    "related": [],
+  };
+  for (const dep of deps) {
+    const depType = dep.dependencyType || "blocks"; // fallback to blocks if unknown
+    groups[depType].push(dep);
+  }
+  return groups;
+}
 
 // Sort order for dependency status: blocked first, closed last
 const STATUS_SORT_ORDER: Record<BeadStatus, number> = {
@@ -420,107 +452,112 @@ export function DetailsView({
         </div>
       )}
 
-      {/* Dependencies - hide when empty in view mode */}
-      {(editMode || (displayBead.dependsOn && displayBead.dependsOn.length > 0)) && (
-        <div className="details-section">
-          <h4>Depends On</h4>
-          <div className="deps-list">
-            {sortDependencies(displayBead.dependsOn || []).map((dep) => (
-              <div
-                key={dep.id}
-                className={`dep-item dep-type-${dep.type || "task"} ${onSelectBead && !editMode ? "clickable" : ""}`}
-                onClick={() => !editMode && onSelectBead?.(dep.id)}
-              >
-                <span className="dep-id">{dep.id}</span>
-                {dep.title && <span className="dep-title">{dep.title}</span>}
-                <span className="dep-indicators">
-                  {dep.status && (
-                    <span
-                      className="dep-status"
-                      style={{ backgroundColor: STATUS_COLORS[dep.status] }}
-                    >
-                      {STATUS_LABELS[dep.status]}
-                    </span>
-                  )}
-                  {dep.priority !== undefined && (
-                    <span
-                      className="dep-priority"
-                      style={{
-                        backgroundColor: PRIORITY_COLORS[dep.priority],
-                        color: PRIORITY_TEXT_COLORS[dep.priority]
-                      }}
-                    >
-                      P{dep.priority}
-                    </span>
-                  )}
+      {/* Dependencies grouped by relationship type */}
+      {(() => {
+        const dependsOnGroups = groupDependenciesByType(displayBead.dependsOn || []);
+        const blocksGroups = groupDependenciesByType(displayBead.blocks || []);
+        const hasDependsOn = (displayBead.dependsOn?.length || 0) > 0;
+        const hasBlocks = (displayBead.blocks?.length || 0) > 0;
+
+        // Define rendering order: hierarchy first, then workflow, then provenance, then related
+        const typeOrder: DependencyType[] = ["parent-child", "blocks", "discovered-from", "related"];
+
+        // Helper to render a dependency item
+        const renderDepItem = (dep: BeadDependency, direction: "dependsOn" | "blocks", allowRemove: boolean) => (
+          <div
+            key={dep.id}
+            className={`dep-item dep-type-${dep.type || "task"} ${onSelectBead && !editMode ? "clickable" : ""}`}
+            onClick={() => !editMode && onSelectBead?.(dep.id)}
+          >
+            <span className="dep-id">{dep.id}</span>
+            {dep.title && <span className="dep-title">{dep.title}</span>}
+            <span className="dep-indicators">
+              {dep.status && (
+                <span
+                  className="dep-status"
+                  style={{ backgroundColor: STATUS_COLORS[dep.status] }}
+                >
+                  {STATUS_LABELS[dep.status]}
                 </span>
-                {editMode && (
-                  <button
-                    className="dep-remove"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRemoveDependency(bead.id, dep.id);
-                    }}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
-            {editMode && (
-              <div className="add-inline">
-                <input
-                  type="text"
-                  value={newDependency}
-                  onChange={(e) => setNewDependency(e.target.value)}
-                  placeholder="+ dependency"
-                  onKeyDown={(e) => e.key === "Enter" && handleAddDependency()}
-                />
-              </div>
+              )}
+              {dep.priority !== undefined && (
+                <span
+                  className="dep-priority"
+                  style={{
+                    backgroundColor: PRIORITY_COLORS[dep.priority],
+                    color: PRIORITY_TEXT_COLORS[dep.priority]
+                  }}
+                >
+                  P{dep.priority}
+                </span>
+              )}
+            </span>
+            {allowRemove && editMode && (
+              <button
+                className="dep-remove"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveDependency(bead.id, dep.id);
+                }}
+              >
+                ×
+              </button>
             )}
           </div>
-        </div>
-      )}
+        );
 
-      {/* Dependents (blocks) - hide when empty, read-only */}
-      {displayBead.blocks && displayBead.blocks.length > 0 && (
-        <div className="details-section">
-          <h4>Blocks</h4>
-          <div className="deps-list">
-            {sortDependencies(displayBead.blocks).map((dep) => (
-              <div
-                key={dep.id}
-                className={`dep-item dep-type-${dep.type || "task"} ${onSelectBead ? "clickable" : ""}`}
-                onClick={() => onSelectBead?.(dep.id)}
-              >
-                <span className="dep-id">{dep.id}</span>
-                {dep.title && <span className="dep-title">{dep.title}</span>}
-                <span className="dep-indicators">
-                  {dep.status && (
-                    <span
-                      className="dep-status"
-                      style={{ backgroundColor: STATUS_COLORS[dep.status] }}
-                    >
-                      {STATUS_LABELS[dep.status]}
-                    </span>
-                  )}
-                  {dep.priority !== undefined && (
-                    <span
-                      className="dep-priority"
-                      style={{
-                        backgroundColor: PRIORITY_COLORS[dep.priority],
-                        color: PRIORITY_TEXT_COLORS[dep.priority]
-                      }}
-                    >
-                      P{dep.priority}
-                    </span>
-                  )}
-                </span>
+        if (!editMode && !hasDependsOn && !hasBlocks) {
+          return null;
+        }
+
+        return (
+          <>
+            {/* Render dependsOn groups (outgoing edges) */}
+            {typeOrder.map((depType) => {
+              const deps = dependsOnGroups[depType];
+              if (deps.length === 0) return null;
+              return (
+                <div key={`dependsOn-${depType}`} className="details-section">
+                  <h4>{DEPENDENCY_LABELS.dependsOn[depType]}</h4>
+                  <div className="deps-list">
+                    {sortDependencies(deps).map((dep) => renderDepItem(dep, "dependsOn", true))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Render blocks groups (incoming edges) */}
+            {typeOrder.map((depType) => {
+              const deps = blocksGroups[depType];
+              if (deps.length === 0) return null;
+              return (
+                <div key={`blocks-${depType}`} className="details-section">
+                  <h4>{DEPENDENCY_LABELS.blocks[depType]}</h4>
+                  <div className="deps-list">
+                    {sortDependencies(deps).map((dep) => renderDepItem(dep, "blocks", false))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Add dependency input in edit mode */}
+            {editMode && (
+              <div className="details-section">
+                <h4>Add Dependency</h4>
+                <div className="add-inline">
+                  <input
+                    type="text"
+                    value={newDependency}
+                    onChange={(e) => setNewDependency(e.target.value)}
+                    placeholder="+ dependency (blocks by default)"
+                    onKeyDown={(e) => e.key === "Enter" && handleAddDependency()}
+                  />
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            )}
+          </>
+        );
+      })()}
 
       {/* Comments */}
       <div className="details-section">
