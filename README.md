@@ -13,6 +13,10 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 - **Multi-Project**: Auto-detects `.beads` directories, switch between projects
 - **Daemon Management**: Auto-start option, status monitoring
 
+## Development
+
+See [docs/development.md](docs/development.md) for build commands, architecture, and beads setup.
+
 ## Requirements
 
 - VS Code 1.85.0+
@@ -22,8 +26,6 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 ## Installation
 
 Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=planet57.vscode-beads) or search "Beads" in VS Code Extensions.
-
-For development setup, see [docs/development.md](docs/development.md).
 
 ## Usage
 
