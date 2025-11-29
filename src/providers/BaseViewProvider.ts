@@ -173,17 +173,9 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
 
   /**
    * Sets an error message in the webview
-   * Normalizes error strings to avoid "Error: Error: ..." duplication
    */
   protected setError(error: string | null): void {
-    let normalized = error;
-    if (normalized) {
-      // Strip all leading "Error: " prefixes to avoid duplication
-      while (normalized.toLowerCase().startsWith("error: ")) {
-        normalized = normalized.slice(7);
-      }
-    }
-    this.postMessage({ type: "setError", error: normalized });
+    this.postMessage({ type: "setError", error });
   }
 
   /**
