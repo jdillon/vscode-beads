@@ -23,8 +23,12 @@ beads.left.meta.json
 beads.right.jsonl
 beads.right.meta.json
 
-# Keep JSONL exports and config (source of truth for git)
-!beads.jsonl
-!issues.jsonl
+# Protected branch mode: issue data goes to beads-metadata branch via worktree
+# Main branch only keeps config files, not issue data
+beads.jsonl
+issues.jsonl
+deletions.jsonl
+
+# Keep config files on main
 !metadata.json
 !config.json

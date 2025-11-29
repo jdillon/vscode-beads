@@ -80,7 +80,9 @@ Use beads MCP tools for ALL issue tracking. Do NOT use TodoWrite or markdown TOD
 
 **Do NOT close issues prematurely.** Wait for explicit user verification that the work is complete before closing. Build succeeding is not enough - the user must confirm the feature works as expected.
 
-**Commit format**: Include `Resolves: platform-xxx` or `Related: platform-xxx` in commit messages.
+**Protected branch workflow**: Issue data commits to `beads-metadata` branch via worktree, not main. Daemon runs with `--auto-commit`. Code PRs stay clean of beads changes.
+
+**Commit format**: Include `Resolves: vsbeads-xxx` or `Related: vsbeads-xxx` in commit messages.
 See `bd onboard` for more information.
 
 ## CHANGELOG
