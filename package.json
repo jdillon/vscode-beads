@@ -2,7 +2,7 @@
   "name": "vscode-beads",
   "displayName": "Beads",
   "description": "VS Code extension for managing Beads issues",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "planet57",
   "license": "Apache-2.0",
   "icon": "resources/icon.png",
