@@ -141,6 +141,13 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
         await this.projectManager.stopDaemon();
         break;
 
+      case "copyBeadId":
+        if (message.beadId) {
+          await vscode.env.clipboard.writeText(message.beadId);
+          vscode.window.setStatusBarMessage(`$(check) Copied: ${message.beadId}`, 2000);
+        }
+        break;
+
       default:
         await this.handleCustomMessage(message);
     }
