@@ -550,7 +550,7 @@ export function IssuesView({
             {filteredBeads.length === 0 ? (
               <tr>
                 <td colSpan={visibleColumns.length + 1} className="empty-row">
-                  {loading ? "Loading..." : "No beads found"}
+                  {loading ? "Loading..." : "No issues matching filter"}
                 </td>
               </tr>
             ) : (

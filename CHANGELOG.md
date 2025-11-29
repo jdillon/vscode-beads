@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Auto-generated label colors from label name with contrast-aware text (`vsbeads-gfr`)
 - Click-to-copy bead ID in issues list rows (`vsbeads-fyn`)
 - Blocked, Closed, and Epics filter presets (`vsbeads-fb7`)
 - Copy ID button in Details panel title bar (`vsbeads-jru`)
