@@ -237,9 +237,13 @@ export class BeadsDaemonClient extends EventEmitter {
   private cwd: string;
   private expectedDb?: string;
   private timeout: number;
-  private mutationInterval?: NodeJS.Timeout;
+  private mutationTimeout?: NodeJS.Timeout;
   private lastMutationTime: number = 0;
   private connected: boolean = false;
+  private watchingMutations: boolean = false;
+  private currentBackoff: number = 1000;
+  private readonly baseInterval: number = 1000;
+  private readonly maxBackoff: number = 30000;
 
   constructor(beadsDir: string, options: ClientOptions = {}) {
     super();
@@ -300,7 +304,7 @@ export class BeadsDaemonClient extends EventEmitter {
       }, this.timeout);
 
       socket.on("connect", () => {
-        this.connected = true;
+        // Note: Don't set this.connected here - it's managed by pollMutations()
         const request: RpcRequest = {
           operation,
           args,
@@ -339,7 +343,7 @@ export class BeadsDaemonClient extends EventEmitter {
       socket.on("error", (err) => {
         clearTimeout(timeoutId);
         cleanup();
-        this.connected = false;
+        // Note: Don't set this.connected here - it's managed by pollMutations()
         reject(new Error(`Socket error: ${err.message}`));
       });
 
@@ -381,7 +385,8 @@ export class BeadsDaemonClient extends EventEmitter {
    * List issues with optional filters
    */
   async list(args: ListArgs = {}): Promise<Issue[]> {
-    return this.execute<Issue[]>(Op.List, args);
+    const result = await this.execute<Issue[]>(Op.List, args);
+    return result ?? [];
   }
 
   /**
@@ -395,7 +400,8 @@ export class BeadsDaemonClient extends EventEmitter {
    * Get ready (unblocked) issues
    */
   async ready(args: ReadyArgs = {}): Promise<Issue[]> {
-    return this.execute<Issue[]>(Op.Ready, args);
+    const result = await this.execute<Issue[]>(Op.Ready, args);
+    return result ?? [];
   }
 
   /**
@@ -465,58 +471,104 @@ export class BeadsDaemonClient extends EventEmitter {
    * Get comments for an issue
    */
   async listComments(id: string): Promise<unknown[]> {
-    return this.execute(Op.CommentList, { id });
+    const result = await this.execute<unknown[]>(Op.CommentList, { id });
+    return result ?? [];
   }
 
   /**
    * Get recent mutations since a timestamp
    */
   async getMutations(since: number = 0): Promise<MutationEvent[]> {
-    return this.execute<MutationEvent[]>(Op.GetMutations, { since });
+    const result = await this.execute<MutationEvent[]>(Op.GetMutations, { since });
+    return result ?? [];
   }
 
   /**
    * Start watching for mutations
    * Emits 'mutation' events when changes are detected
+   * Uses exponential backoff on errors (up to 30s)
    */
   startMutationWatch(intervalMs: number = 1000): void {
-    if (this.mutationInterval) {
+    if (this.watchingMutations) {
       return; // Already watching
     }
 
-    // Store as Unix timestamp (ms) for reliable comparison across timezones
+    this.watchingMutations = true;
+    this.connected = true; // Assume connected since caller verified daemon is up
+    this.currentBackoff = intervalMs;
     this.lastMutationTime = Date.now();
 
-    this.mutationInterval = setInterval(async () => {
-      try {
-        const mutations = await this.getMutations(0);
-        // Filter to only new mutations since last check
-        // Convert ISO timestamps to Date for proper comparison
-        const newMutations = mutations.filter((m) => {
-          const mutationTime = new Date(m.Timestamp).getTime();
-          return mutationTime > this.lastMutationTime;
-        });
-        if (newMutations.length > 0) {
-          // Update timestamp to the latest mutation
-          const latestMutation = newMutations[newMutations.length - 1];
-          this.lastMutationTime = new Date(latestMutation.Timestamp).getTime();
-          for (const mutation of newMutations) {
-            this.emit("mutation", mutation);
-          }
-        }
-      } catch (err) {
-        this.emit("error", err);
+    this.scheduleMutationPoll();
+  }
+
+  /**
+   * Schedule the next mutation poll with current backoff
+   */
+  private scheduleMutationPoll(): void {
+    if (!this.watchingMutations) {
+      return;
+    }
+
+    this.mutationTimeout = setTimeout(async () => {
+      await this.pollMutations();
+      this.scheduleMutationPoll();
+    }, this.currentBackoff);
+  }
+
+  /**
+   * Poll for mutations once
+   */
+  private async pollMutations(): Promise<void> {
+    try {
+      const mutations = await this.getMutations(0);
+      if (!mutations) {
+        return;
       }
-    }, intervalMs);
+
+      // Success - reset backoff and mark connected
+      const wasDisconnected = !this.connected;
+      this.connected = true;
+      this.currentBackoff = this.baseInterval;
+
+      if (wasDisconnected) {
+        this.emit("reconnected");
+      }
+
+      // Filter to only new mutations since last check
+      const newMutations = mutations.filter((m) => {
+        const mutationTime = new Date(m.Timestamp).getTime();
+        return mutationTime > this.lastMutationTime;
+      });
+
+      if (newMutations.length > 0) {
+        const latestMutation = newMutations[newMutations.length - 1];
+        this.lastMutationTime = new Date(latestMutation.Timestamp).getTime();
+        for (const mutation of newMutations) {
+          this.emit("mutation", mutation);
+        }
+      }
+    } catch (err) {
+      // Error - increase backoff and mark disconnected
+      const wasConnected = this.connected;
+      this.connected = false;
+
+      if (wasConnected) {
+        this.emit("disconnected", err);
+      }
+
+      // Exponential backoff: double interval up to max
+      this.currentBackoff = Math.min(this.currentBackoff * 2, this.maxBackoff);
+    }
   }
 
   /**
    * Stop watching for mutations
    */
   stopMutationWatch(): void {
-    if (this.mutationInterval) {
-      clearInterval(this.mutationInterval);
-      this.mutationInterval = undefined;
+    this.watchingMutations = false;
+    if (this.mutationTimeout) {
+      clearTimeout(this.mutationTimeout);
+      this.mutationTimeout = undefined;
     }
   }
 

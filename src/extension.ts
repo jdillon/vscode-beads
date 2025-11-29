@@ -20,7 +20,15 @@ let detailsProvider: BeadDetailsViewProvider;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   outputChannel = vscode.window.createOutputChannel("Beads");
-  outputChannel.appendLine("Beads extension activating...");
+
+  // Log activation with version and timestamp for debugging
+  const ext = context.extension;
+  const version = ext.packageJSON.version || "unknown";
+  const isDev = ext.extensionPath.includes("-dev") || !ext.extensionPath.includes(".vscode");
+  const timestamp = new Date().toISOString();
+  outputChannel.appendLine(
+    `Beads extension activating... v${version}${isDev ? " (dev)" : ""} @ ${timestamp}`
+  );
 
   // Initialize the project manager
   projectManager = new BeadsProjectManager(context, outputChannel);

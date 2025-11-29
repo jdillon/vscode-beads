@@ -213,13 +213,28 @@ export class BeadsProjectManager implements vscode.Disposable {
           this._onDataChanged.fire();
         });
 
-        this.client.on("error", (err: Error) => {
+        this.client.on("disconnected", (err: Error) => {
           this.outputChannel.appendLine(
-            `[ProjectManager] Mutation watch error: ${err.message}`
+            `[ProjectManager] Daemon disconnected: ${err.message}`
           );
+          if (this.activeProject) {
+            this.activeProject.daemonStatus = "stopped";
+            this._onActiveProjectChanged.fire(this.activeProject);
+          }
         });
 
-        // Poll for mutations every second
+        this.client.on("reconnected", () => {
+          this.outputChannel.appendLine(
+            `[ProjectManager] Daemon reconnected`
+          );
+          if (this.activeProject) {
+            this.activeProject.daemonStatus = "running";
+            this._onActiveProjectChanged.fire(this.activeProject);
+            this._onDataChanged.fire();
+          }
+        });
+
+        // Poll for mutations every second (with exponential backoff on errors)
         this.client.startMutationWatch(1000);
       } catch (err) {
         this.outputChannel.appendLine(
@@ -271,7 +286,7 @@ export class BeadsProjectManager implements vscode.Disposable {
     // Start daemon via CLI (one-time spawn)
     const { spawn } = await import("child_process");
     return new Promise((resolve) => {
-      const proc = spawn("bd", ["daemon", "start"], {
+      const proc = spawn("bd", ["daemon", "--start"], {
         cwd: this.activeProject!.rootPath,
         shell: true,
         detached: true,
@@ -317,7 +332,7 @@ export class BeadsProjectManager implements vscode.Disposable {
     // Stop daemon via CLI
     const { spawn } = await import("child_process");
     return new Promise((resolve) => {
-      const proc = spawn("bd", ["daemon", "stop"], {
+      const proc = spawn("bd", ["daemon", "--stop"], {
         cwd: this.activeProject!.rootPath,
         shell: true,
       });
