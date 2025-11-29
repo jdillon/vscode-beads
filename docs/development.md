@@ -1,5 +1,15 @@
 # Development
 
+## Beads Setup (Issue Tracking)
+
+After cloning, initialize beads with the protected branch workflow:
+
+```bash
+bd init --branch beads-metadata
+```
+
+This sets up the worktree-based sync to `beads-metadata` branch. The extension handles daemon lifecycle automatically.
+
 ## Build Commands
 
 ```bash
@@ -32,16 +42,6 @@ rm ~/.vscode/extensions/vscode-beads
 bun run package
 code --install-extension vscode-beads-*.vsix
 ```
-
-## Beads Setup (Issue Tracking)
-
-After cloning, initialize beads with the protected branch workflow:
-
-```bash
-bd init --branch beads-metadata
-```
-
-This sets up the worktree-based sync to `beads-metadata` branch. The extension handles daemon lifecycle automatically.
 
 ## Architecture
 
