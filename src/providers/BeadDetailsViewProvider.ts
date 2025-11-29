@@ -109,7 +109,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
         this.postMessage({ type: "setBead", bead: null });
       }
     } catch (err) {
-      this.setError(`Error: ${err}`);
+      this.setError(String(err));
       this.postMessage({ type: "setBead", bead: null });
     } finally {
       this.setLoading(false);

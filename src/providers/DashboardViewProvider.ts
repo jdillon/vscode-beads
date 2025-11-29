@@ -97,7 +97,7 @@ export class DashboardViewProvider extends BaseViewProvider {
       const importantBeads = [...openBeads, ...blockedBeads, ...inProgressBeads];
       this.postMessage({ type: "setBeads", beads: importantBeads });
     } catch (err) {
-      this.setError(`Error: ${err}`);
+      this.setError(String(err));
     } finally {
       this.setLoading(false);
     }

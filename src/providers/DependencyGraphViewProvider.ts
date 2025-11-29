@@ -95,7 +95,7 @@ export class DependencyGraphViewProvider extends BaseViewProvider {
 
       this.postMessage({ type: "setGraph", graph });
     } catch (err) {
-      this.setError(`Error: ${err}`);
+      this.setError(String(err));
       this.postMessage({ type: "setGraph", graph: { nodes: [], edges: [] } });
     } finally {
       this.setLoading(false);

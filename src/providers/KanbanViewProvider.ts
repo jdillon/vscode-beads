@@ -39,7 +39,7 @@ export class KanbanViewProvider extends BaseViewProvider {
       const beads = issues.map(issueToWebviewBead).filter((b): b is Bead => b !== null);
       this.postMessage({ type: "setBeads", beads });
     } catch (err) {
-      this.setError(`Error: ${err}`);
+      this.setError(String(err));
       this.postMessage({ type: "setBeads", beads: [] });
     } finally {
       this.setLoading(false);
