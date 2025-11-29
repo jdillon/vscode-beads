@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Auto-generated label colors from label name with contrast-aware text (`vsbeads-gfr`)
 
+### Changed
+
+- Release workflow now bumps minor version instead of patch (`vsbeads-6qz`)
+
 ## [0.1.2] - 2025-11-28
 
 ### Added
