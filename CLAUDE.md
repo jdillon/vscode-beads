@@ -85,6 +85,8 @@ Use beads MCP tools for ALL issue tracking. Do NOT use TodoWrite or markdown TOD
 **Commit format**: Include `Resolves: vsbeads-xxx` or `Related: vsbeads-xxx` in commit messages.
 See `bd onboard` for more information.
 
+**Hooks maintenance**: After updating `bd`, run `bd hooks install --force` to get latest hook templates.
+
 ## CHANGELOG
 
 Maintain `CHANGELOG.md` using [Keep a Changelog](https://keepachangelog.com/) format.
