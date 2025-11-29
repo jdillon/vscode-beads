@@ -326,11 +326,13 @@ export function normalizeBead(raw: Record<string, unknown>): Bead | null {
         ? String(raw.closedAt)
         : undefined,
     dependsOn: Array.isArray(raw.depends_on)
-      ? raw.depends_on.map(String)
+      ? raw.depends_on.map((id) => ({ id: String(id) }))
       : Array.isArray(raw.dependsOn)
-        ? raw.dependsOn.map(String)
+        ? raw.dependsOn.map((id) => ({ id: String(id) }))
         : undefined,
-    blocks: Array.isArray(raw.blocks) ? raw.blocks.map(String) : undefined,
+    blocks: Array.isArray(raw.blocks)
+      ? raw.blocks.map((id) => ({ id: String(id) }))
+      : undefined,
   };
 }
 

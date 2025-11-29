@@ -10,12 +10,10 @@
 import React, { useState, useCallback, useEffect } from "react";
 import {
   Bead,
-  BeadComment,
   BeadStatus,
   BeadPriority,
   BeadDependency,
   STATUS_LABELS,
-  PRIORITY_LABELS,
   PRIORITY_COLORS,
   PRIORITY_TEXT_COLORS,
   STATUS_COLORS,
@@ -78,12 +76,14 @@ export function DetailsView({
   onAddDependency,
   onRemoveDependency,
   onAddComment,
-  onViewInGraph,
+  onViewInGraph: _onViewInGraph,
   onSelectBead,
   onCopyId,
 }: DetailsViewProps): React.ReactElement {
-  // Toast kept for potential future use; currently using VS Code status bar for copy feedback
+  // Toast and onViewInGraph kept for potential future use
   const { showToast: _showToast } = useToast();
+  void _onViewInGraph;
+  void _showToast;
   const [editMode, setEditMode] = useState(false);
   const [editedBead, setEditedBead] = useState<Partial<Bead>>({});
   const [newLabel, setNewLabel] = useState("");
