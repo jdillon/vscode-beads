@@ -105,6 +105,7 @@ export function IssuesView({
   const [filterMenuOpen, setFilterMenuOpen] = useState<string | null>(null);
   const [columnMenuOpen, setColumnMenuOpen] = useState(false);
   const [resizing, setResizing] = useState<{ id: SortField; startX: number; startWidth: number } | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Load column settings from webview state, merging with defaults for new columns
   const [columns, setColumns] = useState<ColumnConfig[]>(() => {
@@ -315,6 +316,14 @@ export function IssuesView({
     if (sortField !== field) return null;
     return <span className="sort-indicator">{sortDirection === "asc" ? "▲" : "▼"}</span>;
   };
+
+  const handleCopyId = useCallback((beadId: string) => {
+    // Post to extension for clipboard + status bar message
+    vscode.postMessage({ type: "copyBeadId", beadId });
+    // Local visual feedback
+    setCopiedId(beadId);
+    setTimeout(() => setCopiedId(null), 1500);
+  }, []);
 
   return (
     <div className="beads-panel">
@@ -556,7 +565,13 @@ export function IssuesView({
                     <td key={col.id} className={`${col.id}-cell`}>
                       {col.id === "title" && (
                         <>
-                          <span className="bead-id">{bead.id}</span>
+                          <span
+                            className={`bead-id ${copiedId === bead.id ? "copied" : ""}`}
+                            onClick={() => handleCopyId(bead.id)}
+                            title={copiedId === bead.id ? "Copied!" : "Click to copy"}
+                          >
+                            {bead.id}
+                          </span>
                           <span className="bead-title">{bead.title}</span>
                         </>
                       )}

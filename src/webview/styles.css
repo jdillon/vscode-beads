@@ -668,6 +668,16 @@ textarea {
   font-size: 10px;
   color: var(--vscode-descriptionForeground);
   font-family: var(--vscode-editor-font-family);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.bead-id:hover {
+  color: var(--vscode-textLink-foreground);
+}
+
+.bead-id.copied {
+  color: var(--vscode-testing-iconPassed, #89d185);
 }
 
 .bead-title {
