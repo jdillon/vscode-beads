@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Copy ID button in Details panel title bar (`vsbeads-jru`)
 - "Blocks" section in Details showing dependent issues with type-colored badges (`vsbeads-jue`)
 - Status and priority badges in dependency/dependent lists (`vsbeads-c04`)
+- Sort dependency lists by status then priority (blocked→in_progress→open→closed, then P0→P4)
 - `compile:quiet` script for reduced build output
 
 ## [0.1.1] - 2025-11-27

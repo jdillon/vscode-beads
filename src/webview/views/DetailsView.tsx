@@ -13,12 +13,36 @@ import {
   BeadComment,
   BeadStatus,
   BeadPriority,
+  BeadDependency,
   STATUS_LABELS,
   PRIORITY_LABELS,
   PRIORITY_COLORS,
   PRIORITY_TEXT_COLORS,
   STATUS_COLORS,
 } from "../types";
+
+// Sort order for dependency status: blocked first, closed last
+const STATUS_SORT_ORDER: Record<BeadStatus, number> = {
+  blocked: 0,
+  in_progress: 1,
+  open: 2,
+  closed: 3,
+};
+
+function sortDependencies(deps: BeadDependency[]): BeadDependency[] {
+  return [...deps].sort((a, b) => {
+    // Primary: status (blocked first, closed last)
+    const aStatusOrder = a.status ? STATUS_SORT_ORDER[a.status] : 4;
+    const bStatusOrder = b.status ? STATUS_SORT_ORDER[b.status] : 4;
+    if (aStatusOrder !== bStatusOrder) {
+      return aStatusOrder - bStatusOrder;
+    }
+    // Secondary: priority (P0 first, P4 last)
+    const aPriority = a.priority ?? 4;
+    const bPriority = b.priority ?? 4;
+    return aPriority - bPriority;
+  });
+}
 import { StatusBadge } from "../common/StatusBadge";
 import { PriorityBadge } from "../common/PriorityBadge";
 import { LabelBadge } from "../common/LabelBadge";
@@ -401,7 +425,7 @@ export function DetailsView({
         <div className="details-section">
           <h4>Depends On</h4>
           <div className="deps-list">
-            {(displayBead.dependsOn || []).map((dep) => (
+            {sortDependencies(displayBead.dependsOn || []).map((dep) => (
               <div
                 key={dep.id}
                 className={`dep-item dep-type-${dep.type || "task"} ${onSelectBead && !editMode ? "clickable" : ""}`}
@@ -463,7 +487,7 @@ export function DetailsView({
         <div className="details-section">
           <h4>Blocks</h4>
           <div className="deps-list">
-            {displayBead.blocks.map((dep) => (
+            {sortDependencies(displayBead.blocks).map((dep) => (
               <div
                 key={dep.id}
                 className={`dep-item dep-type-${dep.type || "task"} ${onSelectBead ? "clickable" : ""}`}
