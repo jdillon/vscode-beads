@@ -129,3 +129,9 @@ bd daemon --start --auto-commit
 ```bash
 bd hooks install --force
 ```
+
+**Update hooks after upgrading bd:**
+```bash
+bd hooks install --force
+```
+Run this after upgrading `bd` to ensure hooks match the latest version.
