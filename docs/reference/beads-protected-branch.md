@@ -23,36 +23,58 @@ The protected branch workflow keeps beads issue data on a separate branch (`bead
 
 ```bash
 git checkout main
-bd init --branch beads-metadata && bd hooks install
+bd init --branch beads-metadata
+bd sync                        # creates branch and worktree
+bd hooks install
+bd daemon --start --auto-commit
 ```
 
-This:
-1. Creates `.beads/` directory with SQLite database
-2. Configures sync to `beads-metadata` branch
-3. Sets up git worktree at `.git/beads-worktrees/beads-metadata`
-4. Installs git hooks for auto-sync
+> **Note:** `bd init --branch` only sets config. Run `bd sync` to create the actual branch and worktree.
 
-> **Note:** The canonical JSONL filename is `issues.jsonl` (not `beads.jsonl`). If you see references to `beads.jsonl`, update them to `issues.jsonl`.
+After setup, update `.beads/.gitignore` - see Step 3 in Migration section for the correct ignore patterns.
 
 ## Migration (Existing Project)
 
 If you have an existing beads setup committing to main:
 
-### Step 1: Stop daemon and backup
+### Step 1: Prepare
+
 ```bash
+git checkout main              # must be on main
 bd daemon --stop
 mkdir -p tmp
-cp .beads/*.jsonl tmp/  # backup for sanity
+cp .beads/*.jsonl tmp/         # backup for safety
+cp .beads/config.yaml tmp/     # preserve custom config (prefix, settings)
 ```
 
-### Step 2: Update .beads/.gitignore
+> **Important:** Review `config.yaml` for customizations like `issue-prefix`. After reinit, you may need to reapply these settings. The fresh init auto-detects prefix from directory name, which may differ from your original.
 
-The existing `.gitignore` likely has whitelist entries (`!issues.jsonl`, `!beads.jsonl`) to track JSONL files. Change these to ignore entries instead:
+### Step 2: Remove old .beads and reinitialize
 
-**Remove these lines (if present):**
+The `--force` flag doesn't work with existing databases. You must remove `.beads/` entirely:
+
+```bash
+rm -rf .beads
+bd init --branch beads-metadata
 ```
-!beads.jsonl
+
+This will:
+- Create fresh `.beads/` with SQLite database
+- Import existing issues from git history automatically
+- Set sync branch config to `beads-metadata`
+
+> **Note:** Your issues are preserved in git history and will be reimported. The tmp/ backup is just extra safety.
+
+### Step 3: Fix .gitignore for protected branch mode
+
+The fresh init creates a `.gitignore` with whitelist entries (`!issues.jsonl`) for normal mode. For protected branch mode, we need to ignore JSONL files on main.
+
+Edit `.beads/.gitignore` - find and replace:
+
+**Remove these lines:**
+```
 !issues.jsonl
+!beads.jsonl
 ```
 
 **Add these lines:**
@@ -67,30 +89,55 @@ deletions.jsonl
 !config.json
 ```
 
-### Step 3: Remove tracked files from main
-
-Untrack the JSONL files so they're no longer committed to main:
+### Step 4: Untrack JSONL from main and commit
 
 ```bash
-git rm --cached .beads/issues.jsonl .beads/deletions.jsonl 2>/dev/null
-git rm --cached .beads/beads.jsonl 2>/dev/null  # legacy filename
+git rm --cached .beads/issues.jsonl 2>/dev/null
+git rm --cached .beads/beads.jsonl 2>/dev/null   # legacy filename
 git add .beads/.gitignore
 git commit -m "chore: migrate to protected branch workflow for beads"
 ```
 
-### Step 4: Reinitialize with branch
-
-**Important:** You must be on `main` branch when running this command.
+### Step 5: Create branch and worktree
 
 ```bash
-git checkout main
-bd init --branch beads-metadata --force
-bd hooks install --force
+bd sync
 ```
 
-### Step 5: Start daemon with auto-commit
+This creates the `beads-metadata` branch and sets up the worktree at `.git/beads-worktrees/beads-metadata`.
+
+### Step 6: Install hooks and start daemon
+
 ```bash
+bd hooks install --force
 bd daemon --start --auto-commit
+```
+
+## Verification
+
+After setup or migration, verify everything is working:
+
+```bash
+# Check worktree exists
+git worktree list
+# Should show:
+# /path/to/project                                      abc1234 [main]
+# /path/to/project/.git/beads-worktrees/beads-metadata  def5678 [beads-metadata]
+
+# Check branch exists
+git branch | grep beads-metadata
+
+# Check daemon running with auto-commit
+bd daemon --status
+
+# Check issues are intact
+bd stats
+
+# Check JSONL not tracked on main
+git ls-files .beads/ | grep jsonl      # should return nothing
+
+# Check prefix preserved (compare with tmp/config.yaml if needed)
+bd config get issue-prefix
 ```
 
 ## How It Works
@@ -101,7 +148,7 @@ main branch                    beads-metadata branch
 ├── package.json               │   ├── issues.jsonl
 ├── .beads/                    │   └── deletions.jsonl
 │   ├── beads.db (local)       └── (auto-committed by daemon)
-│   └── config.toml
+│   └── config.yaml
 └── (your code)
 
          ↑                              ↑
@@ -115,24 +162,6 @@ The daemon:
 - Auto-commits to `beads-metadata` branch
 - Syncs with remote on `bd sync`
 
-## Verification
-
-Check worktree setup:
-```bash
-git worktree list
-```
-
-Should show:
-```
-/path/to/project                         abc1234 [main]
-/path/to/project/.git/beads-worktrees/beads-metadata  def5678 [beads-metadata]
-```
-
-Check daemon status:
-```bash
-bd daemon --status
-```
-
 ## Sync Commands
 
 ```bash
@@ -143,9 +172,18 @@ bd sync --dry-run    # Preview what would sync
 
 ## Troubleshooting
 
-**Worktree missing:**
+**Worktree missing after init:**
 ```bash
-bd init --branch beads-metadata --force
+bd sync   # creates branch and worktree
+```
+
+**"Database exists" error with --force:**
+```bash
+# --force doesn't override this. Remove and reinit:
+cp .beads/*.jsonl tmp/   # backup
+rm -rf .beads
+bd init --branch beads-metadata
+bd sync
 ```
 
 **Daemon not auto-committing:**
@@ -159,8 +197,10 @@ bd daemon --start --auto-commit
 bd hooks install --force
 ```
 
+**JSONL still being committed to main:**
+Check `.beads/.gitignore` has ignore entries (not whitelist `!` entries) for JSONL files, and run `git rm --cached .beads/issues.jsonl`.
+
 **Update hooks after upgrading bd:**
 ```bash
 bd hooks install --force
 ```
-Run this after upgrading `bd` to ensure hooks match the latest version.
