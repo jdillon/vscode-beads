@@ -2,6 +2,10 @@
 
 Reference for the beads daemon Unix socket RPC API. See [steveyegge/beads](https://github.com/steveyegge/beads) for the canonical implementation.
 
+**Source files:**
+- [internal/types/types.go](https://github.com/steveyegge/beads/blob/main/internal/types/types.go) - Core types (Issue, Dependency, Comment)
+- [internal/rpc/protocol.go](https://github.com/steveyegge/beads/blob/main/internal/rpc/protocol.go) - RPC request/response types
+
 ## Connection
 
 - **Socket**: `.beads/bd.sock` (Unix domain socket)
@@ -30,6 +34,58 @@ Reference for the beads daemon Unix socket RPC API. See [steveyegge/beads](https
 | `comment_list` | List comments | `internal/rpc/server_labels_deps_comments.go` |
 | `get_mutations` | Recent changes (polling) | `internal/rpc/server_core.go:175` |
 | `epic_status` | Epic completion status | `internal/rpc/server_issues_epics.go` |
+
+## Core Types
+
+### Issue
+
+[Source](https://github.com/steveyegge/beads/blob/main/internal/types/types.go#L28)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Issue ID (e.g., `vsbeads-abc`) |
+| `title` | string | Issue title |
+| `description` | string | Full description (markdown) |
+| `design` | string? | Design notes |
+| `acceptance_criteria` | string? | Acceptance criteria |
+| `notes` | string? | Additional notes |
+| `status` | Status | `open`, `in_progress`, `blocked`, `closed` |
+| `priority` | int | 0-4 (0=critical, 4=backlog) |
+| `issue_type` | IssueType | `bug`, `feature`, `task`, `epic`, `chore` |
+| `assignee` | string? | Assigned user |
+| `estimated_minutes` | int? | Time estimate |
+| `created_at` | timestamp | Creation time |
+| `updated_at` | timestamp | Last update time |
+| `closed_at` | timestamp? | When closed |
+| `close_reason` | string? | Reason for closing |
+| `external_ref` | string? | Freeform reference (e.g., `gh-9`, `jira-ABC`, URL, file path) |
+| `labels` | string[] | Labels (populated on export/import) |
+| `dependencies` | Dependency[] | Dependencies (populated on export/import) |
+| `comments` | Comment[] | Comments (populated on export/import) |
+
+### Dependency
+
+[Source](https://github.com/steveyegge/beads/blob/main/internal/types/types.go#L62)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `issue_id` | string | Source issue |
+| `depends_on_id` | string | Target issue |
+| `type` | DependencyType | `blocks`, `related`, `parent-child`, `discovered-from` |
+| `created_at` | timestamp | When created |
+| `created_by` | string | Who created |
+
+### Comment
+
+[Source](https://github.com/steveyegge/beads/blob/main/internal/types/types.go#L71)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | int | Comment ID |
+| `issue_id` | string | Parent issue |
+| `author` | string | Comment author |
+| `text` | string | Comment text (markdown) |
+| `created_at` | timestamp | When created |
 
 ## Key Response Structures
 

@@ -86,7 +86,7 @@ deletions.jsonl
 
 # Keep config files on main
 !metadata.json
-!config.json
+!config.yaml
 ```
 
 ### Step 4: Untrack JSONL from main and commit
