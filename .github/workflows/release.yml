@@ -1,7 +1,9 @@
 name: Release
 
 on:
-  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
@@ -11,19 +13,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: main
 
-      - name: Get current version
+      - name: Extract version from tag
         id: version
         run: |
-          VERSION=$(jq -r .version package.json)
-          echo "current=${VERSION}" >> $GITHUB_OUTPUT
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
-          # Calculate next minor version (bump minor, reset patch to 0)
-          IFS='.' read -r major minor patch <<< "$VERSION"
-          NEXT="${major}.$((minor + 1)).0"
-          echo "next=${NEXT}" >> $GITHUB_OUTPUT
+      - name: Validate version matches package.json
+        run: |
+          PKG_VERSION=$(jq -r .version package.json)
+          if [ "$PKG_VERSION" != "${{ steps.version.outputs.version }}" ]; then
+            echo "::error::Tag version (${{ steps.version.outputs.version }}) does not match package.json version ($PKG_VERSION)"
+            exit 1
+          fi
+
+      - name: Validate changelog has release entry
+        run: |
+          if ! grep -q "## \[${{ steps.version.outputs.version }}\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md missing entry for version ${{ steps.version.outputs.version }}"
+            exit 1
+          fi
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -45,25 +57,12 @@ jobs:
       - name: Publish to Marketplace
         run: npx @vscode/vsce publish -p ${{ secrets.VSCE_PAT }} --no-dependencies
 
-      - name: Create and push tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "v${{ steps.version.outputs.current }}"
-          git push origin "v${{ steps.version.outputs.current }}"
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.current }}
+          tag_name: ${{ steps.version.outputs.tag }}
           files: "*.vsix"
-          generate_release_notes: true
+          generate_release_notes: false
+          body: |
+            See [CHANGELOG.md](https://github.com/jdillon/vscode-beads/blob/main/CHANGELOG.md) for release notes.
           draft: false
-
-      - name: Bump version for next development cycle
-        run: |
-          jq '.version = "${{ steps.version.outputs.next }}"' package.json > package.json.tmp
-          mv package.json.tmp package.json
-          git add package.json
-          git commit -m "chore: bump version to ${{ steps.version.outputs.next }}"
-          git push

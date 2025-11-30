@@ -10,11 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Auto-generated label colors from label name with contrast-aware text (`vsbeads-gfr`)
+- Version and timestamp logging on extension activation
 
 ### Changed
 
 - Release workflow now bumps minor version instead of patch (`vsbeads-6qz`)
 - Dependencies now grouped by relationship type: Parent/Children, Blocked By/Blocks, Discovered From/Spawned, Related (`vsbeads-bci`)
+
+### Fixed
+
+- Daemon client resilience with exponential backoff (1s → 30s) on polling errors (`vsbeads-5nm`)
+- CLI syntax for daemon commands: `start/stop` → `--start/--stop`
+- Null/undefined API response handling to prevent "Cannot read properties of null" errors
 
 ## [0.1.2] - 2025-11-28
 
