@@ -5,84 +5,77 @@ allowed-tools: Bash(git:*), Bash(jq:*), Read, Edit
 model: sonnet
 ---
 
-Prepare a release for the vscode-beads extension. This command:
-1. Computes the default version based on branch
-2. Audits changelog for missing entries
-3. Finalizes changelog and bumps version
-4. Commits, tags, and pushes to trigger the release workflow
+Prepare a release for the vscode-beads extension.
 
 ## Instructions
 
 ### Step 1: Gather release context
 
-Run these commands to understand the current state:
+Run these commands:
 
 ```bash
-# Get current branch
 git branch --show-current
-
-# Get current version from package.json
 jq -r .version package.json
-
-# Get latest tag
 git describe --tags --abbrev=0 2>/dev/null || echo "no tags yet"
-
-# Get commits since last tag (for changelog audit)
 git log $(git describe --tags --abbrev=0 2>/dev/null || echo "HEAD~20")..HEAD --oneline --no-merges
 ```
 
-### Step 2: Compute default version
+### Step 2: Validate branch
 
-Based on branch:
-- `main` or other branches: bump minor version (e.g., 0.1.3 → 0.2.0)
-- `release-v*` branch: bump patch version (e.g., 0.2.0 → 0.2.1)
+Releases MUST be from `main` or `release-v*` branch.
 
-If user provided a version argument ($ARGUMENTS), use that instead.
+- If on `main`: proceed (minor version bump)
+- If on `release-v*`: proceed (patch version bump)
+- If on ANY OTHER branch: **STOP** and tell user to merge to main first. Do NOT continue.
 
-Present the computed version and ask user to confirm or provide override.
+### Step 3: Compute version
 
-### Step 3: Audit changelog
+Compute default version:
+- `main` branch → bump minor, reset patch (e.g., 0.1.3 → 0.2.0)
+- `release-v*` branch → bump patch only (e.g., 0.2.0 → 0.2.1)
 
-Compare commits since last tag against CHANGELOG.md `[Unreleased]` section.
+If user provided version argument ($ARGUMENTS), use that instead.
 
-Flag commits that might need changelog entries:
-- `feat:` commits → should be in "### Added" or "### Changed"
-- `fix:` commits → should be in "### Fixed"
-- Important `chore:` or `refactor:` that affect users
+**STOP HERE.** Present the version and ask user to confirm or provide override. Wait for explicit confirmation before continuing.
 
-Skip (don't flag):
-- `docs:`, `ci:`, `test:` commits
-- Minor `chore:` commits (deps, formatting)
-- Commits already referenced in changelog (check for bead IDs)
+### Step 4: Audit changelog for user-facing changes
 
-If gaps found, show them and ask user to update changelog first. Do NOT proceed until changelog is complete.
+Read CHANGELOG.md `[Unreleased]` section. Compare commits since last tag.
 
-### Step 4: Validate and execute release
+**Only flag commits that affect END USERS of the extension:**
+- `feat:` that add/change extension UI, commands, or settings
+- `fix:` that fix bugs users could encounter
 
-Once changelog is confirmed complete:
+**Always skip (never flag):**
+- `docs:`, `ci:`, `test:`, `bd:`, `bd sync:` commits
+- `chore:` commits (deps, formatting, tooling, project config)
+- `feat:` or `fix:` in `.claude/`, `.github/`, `scripts/`, `docs/` (project tooling, not extension)
+- Commits already referenced in changelog (matching bead ID like `vsbeads-xxx`)
 
-1. **Validate `[Unreleased]` has content** - fail if empty
+If user-facing changes are missing from changelog, list them and **STOP**. Ask user to update changelog. Do NOT proceed.
 
-2. **Update CHANGELOG.md**:
-   - Replace `## [Unreleased]` with `## [X.Y.Z] - YYYY-MM-DD`
-   - Add new empty `## [Unreleased]` section at top
+If no gaps found, confirm changelog looks complete and proceed.
 
-3. **Update package.json version**
+### Step 5: Execute release
 
-4. **Commit**: `chore: release vX.Y.Z`
+Only proceed after user confirmed version AND changelog is complete.
 
-5. **Create tag**: `vX.Y.Z`
+1. Validate `[Unreleased]` has content (fail if empty)
 
-6. **Push branch and tag**:
+2. Update CHANGELOG.md:
+   - Add `## [Unreleased]` with empty subsections at top
+   - Change old `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD`
+
+3. Update package.json version field
+
+4. Commit: `chore: release vX.Y.Z`
+
+5. Create tag: `vX.Y.Z`
+
+6. Push branch and tag:
    ```bash
    git push origin <branch>
    git push origin vX.Y.Z
    ```
 
-7. **Report success** with link to GitHub Actions to monitor the release workflow.
-
-## Important
-
-- Never proceed with empty changelog
-- Always confirm version with user before executing
-- The GitHub workflow triggers on tag push and handles publishing
+7. Report success with link: https://github.com/jdillon/vscode-beads/actions
