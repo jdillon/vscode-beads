@@ -43,6 +43,18 @@ bun run package
 code --install-extension vscode-beads-*.vsix
 ```
 
+## Releasing
+
+Use the `/project-release` slash command in Claude Code:
+
+1. Run `/project-release` from `main` branch
+2. Confirm the computed version (minor bump by default)
+3. Command audits changelog for missing user-facing changes
+4. If complete, it updates CHANGELOG.md, bumps package.json, commits, tags, and pushes
+5. Tag push triggers GitHub Actions to publish to VS Code Marketplace
+
+For hotfixes, create a `release-v*` branch and run `/project-release` (patch bump).
+
 ## Architecture
 
 See [CLAUDE.md](../CLAUDE.md) for architecture details, data flow, and code conventions.
