@@ -1326,6 +1326,86 @@ textarea {
   min-width: 60px;
 }
 
+.badge-select {
+  border: 1px solid var(--vscode-panel-border);
+  border-left: 3px solid var(--chip-accent-color, var(--vscode-panel-border));
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+}
+
+/* ColoredSelect component */
+.colored-select {
+  position: relative;
+  display: inline-block;
+}
+
+.colored-select-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: transparent;
+  border: 1px solid var(--vscode-panel-border);
+  border-left: 3px solid var(--chip-accent-color, var(--vscode-panel-border));
+  border-radius: var(--border-radius);
+  cursor: pointer;
+}
+
+.colored-select-trigger:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.colored-select-arrow {
+  font-size: 8px;
+  opacity: 0.6;
+}
+
+.colored-select-label {
+  font-size: 11px;
+  color: var(--vscode-foreground);
+}
+
+.colored-select-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 500;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.colored-select-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  min-width: 100%;
+  margin-top: 2px;
+  padding: 4px 0;
+  background: var(--vscode-dropdown-background);
+  border: 1px solid var(--vscode-dropdown-border);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.colored-select-option {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.colored-select-option:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.colored-select-option.selected {
+  background: var(--vscode-list-activeSelectionBackground);
+}
+
 .badge-input {
   width: 80px;
 }

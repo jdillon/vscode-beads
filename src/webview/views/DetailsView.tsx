@@ -14,10 +14,13 @@ import {
   BeadPriority,
   BeadDependency,
   DependencyType,
+  BeadType,
   STATUS_LABELS,
   PRIORITY_COLORS,
   PRIORITY_TEXT_COLORS,
   STATUS_COLORS,
+  TYPE_COLORS,
+  TYPE_LABELS,
 } from "../types";
 
 // Labels for dependency sections based on array (direction) and type
@@ -78,6 +81,27 @@ import { PriorityBadge } from "../common/PriorityBadge";
 import { LabelBadge } from "../common/LabelBadge";
 import { Markdown } from "../common/Markdown";
 import { useToast } from "../common/Toast";
+import { ColoredSelect, ColoredSelectOption } from "../common/ColoredSelect";
+
+// Build options for ColoredSelect dropdowns
+const TYPE_OPTIONS: ColoredSelectOption<BeadType>[] = (Object.keys(TYPE_LABELS) as BeadType[]).map((t) => ({
+  value: t,
+  label: TYPE_LABELS[t],
+  color: TYPE_COLORS[t],
+}));
+
+const STATUS_OPTIONS: ColoredSelectOption<BeadStatus>[] = (Object.keys(STATUS_LABELS) as BeadStatus[]).map((s) => ({
+  value: s,
+  label: STATUS_LABELS[s],
+  color: STATUS_COLORS[s],
+}));
+
+const PRIORITY_OPTIONS: ColoredSelectOption<BeadPriority>[] = ([0, 1, 2, 3, 4] as BeadPriority[]).map((p) => ({
+  value: p,
+  label: `P${p}`,
+  color: PRIORITY_COLORS[p],
+  textColor: p === 2 ? "#1a1a1a" : "#ffffff", // dark text on yellow
+}));
 
 interface DetailsViewProps {
   bead: Bead | null;
@@ -246,43 +270,21 @@ export function DetailsView({
       <div className="details-badges">
         {editMode ? (
           <>
-            <select
-              value={displayBead.type || "task"}
-              onChange={(e) => handleFieldChange("type", e.target.value)}
-              className="badge-select"
-            >
-              {["bug", "feature", "task", "epic", "chore"].map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-            <select
+            <ColoredSelect
+              value={(displayBead.type || "task") as BeadType}
+              options={TYPE_OPTIONS}
+              onChange={(v) => handleFieldChange("type", v)}
+            />
+            <ColoredSelect
               value={displayBead.status}
-              onChange={(e) =>
-                handleFieldChange("status", e.target.value as BeadStatus)
-              }
-              className="badge-select"
-            >
-              {(Object.keys(STATUS_LABELS) as BeadStatus[]).map((status) => (
-                <option key={status} value={status}>
-                  {STATUS_LABELS[status]}
-                </option>
-              ))}
-            </select>
-            <select
+              options={STATUS_OPTIONS}
+              onChange={(v) => handleFieldChange("status", v)}
+            />
+            <ColoredSelect
               value={displayBead.priority ?? 4}
-              onChange={(e) =>
-                handleFieldChange("priority", parseInt(e.target.value) as BeadPriority)
-              }
-              className="badge-select"
-            >
-              {([0, 1, 2, 3, 4] as BeadPriority[]).map((priority) => (
-                <option key={priority} value={priority}>
-                  P{priority}
-                </option>
-              ))}
-            </select>
+              options={PRIORITY_OPTIONS}
+              onChange={(v) => handleFieldChange("priority", v)}
+            />
           </>
         ) : (
           <>
