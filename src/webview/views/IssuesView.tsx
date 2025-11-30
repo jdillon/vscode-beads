@@ -494,8 +494,9 @@ export function IssuesView({
       )}
 
       {/* Table */}
-      <div className={`beads-table-container ${resizing ? "resizing" : ""}`}>
-        <table className="beads-table">
+      <div className="beads-table-wrapper">
+        <div className={`beads-table-container ${resizing ? "resizing" : ""}`}>
+          <table className="beads-table">
           <thead>
             <tr>
               {visibleColumns.map((col, idx) => (
@@ -614,8 +615,9 @@ export function IssuesView({
               ))
             )}
           </tbody>
-        </table>
-        {/* Filtered count overlay - only shows when filtering */}
+          </table>
+        </div>
+        {/* Filtered count overlay - outside scrollable container */}
         {(hasActiveFilters || filters.search) && filteredBeads.length !== beads.length && (
           <div className="filter-count-overlay">
             {filteredBeads.length} of {beads.length}

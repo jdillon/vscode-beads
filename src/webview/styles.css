@@ -897,9 +897,13 @@ textarea {
   padding: 0 !important;
 }
 
-/* Filter count overlay */
-.beads-table-container {
+/* Table wrapper - positions overlay relative to visible area */
+.beads-table-wrapper {
   position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .filter-count-overlay {
@@ -913,6 +917,8 @@ textarea {
   border: 1px solid var(--vscode-panel-border);
   border-radius: 10px;
   opacity: 0.9;
+  pointer-events: none;
+  z-index: 10;
 }
 
 .panel-footer {
