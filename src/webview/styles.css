@@ -190,7 +190,19 @@ textarea {
 
 /* ==================== Status & Priority Badges ==================== */
 
-.status-badge,
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: var(--badge-radius-pill);
+  font-size: var(--badge-font-md);
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
+  height: var(--badge-height-md);
+}
+
 .priority-badge {
   display: inline-flex;
   align-items: center;
@@ -202,6 +214,7 @@ textarea {
   color: white;
   white-space: nowrap;
   height: var(--badge-height-md);
+  font-variant: small-caps;
 }
 
 /* Small badges - used in list view and detail panel */

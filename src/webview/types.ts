@@ -128,18 +128,18 @@ export type WebviewMessage =
 
 // Human-readable labels
 export const PRIORITY_LABELS: Record<BeadPriority, string> = {
-  0: "Critical",
-  1: "High",
-  2: "Medium",
-  3: "Low",
-  4: "None",
+  0: "critical",
+  1: "high",
+  2: "medium",
+  3: "low",
+  4: "none",
 };
 
 export const STATUS_LABELS: Record<BeadStatus, string> = {
-  open: "Open",
-  in_progress: "In Progress",
-  blocked: "Blocked",
-  closed: "Closed",
+  open: "open",
+  in_progress: "in progress",
+  blocked: "blocked",
+  closed: "closed",
 };
 
 export const PRIORITY_COLORS: Record<BeadPriority, string> = {
