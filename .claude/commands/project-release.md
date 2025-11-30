@@ -1,7 +1,7 @@
 ---
 description: Prepare and tag a new release
 argument-hint: [version]
-allowed-tools: Bash(git:*), Bash(jq:*), Read, Edit
+allowed-tools: Bash(git:*), Bash(jq:*), Read, Edit, AskUserQuestion
 model: sonnet
 ---
 
@@ -36,7 +36,7 @@ Compute default version:
 
 If user provided version argument ($ARGUMENTS), use that instead.
 
-**STOP HERE.** Present the version and ask user to confirm or provide override. Wait for explicit confirmation before continuing.
+Use AskUserQuestion tool to confirm version. Offer the computed version as default, with option to override.
 
 ### Step 4: Audit changelog for user-facing changes
 
