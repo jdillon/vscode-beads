@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-11-29
+
 ### Added
 
 - Auto-generated label colors from label name with contrast-aware text (`vsbeads-gfr`)
@@ -14,7 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Release workflow now bumps minor version instead of patch (`vsbeads-6qz`)
 - Dependencies now grouped by relationship type: Parent/Children, Blocked By/Blocks, Discovered From/Spawned, Related (`vsbeads-bci`)
 
 ### Fixed
