@@ -78,6 +78,8 @@ Priority is 0-4 where 0 = Critical (P0), 4 = None (P4).
 
 Use beads MCP tools for ALL issue tracking. Do NOT use TodoWrite or markdown TODOs.
 
+**When creating beads**: Add a category label (e.g., `ui`, `backend`, `daemon`, `docs`, `dx`).
+
 **Do NOT close issues prematurely.** Wait for explicit user verification that the work is complete before closing. Build succeeding is not enough - the user must confirm the feature works as expected.
 
 **Protected branch workflow**: Issue data commits to `beads-metadata` branch via worktree, not main. Daemon runs with `--auto-commit`. Code PRs stay clean of beads changes.
