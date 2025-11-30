@@ -515,7 +515,7 @@ export function DetailsView({
                     color: PRIORITY_TEXT_COLORS[dep.priority]
                   }}
                 >
-                  P{dep.priority}
+                  p{dep.priority}
                 </span>
               )}
             </span>

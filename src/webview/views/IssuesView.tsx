@@ -19,12 +19,15 @@ import {
   STATUS_COLORS,
   PRIORITY_LABELS,
   PRIORITY_COLORS,
+  TYPE_LABELS,
+  TYPE_COLORS,
   vscode,
 } from "../types";
 import { StatusBadge } from "../common/StatusBadge";
 import { PriorityBadge } from "../common/PriorityBadge";
 import { TypeBadge } from "../common/TypeBadge";
 import { LabelBadge } from "../common/LabelBadge";
+import { FilterChip } from "../common/FilterChip";
 
 interface IssuesViewProps {
   beads: Bead[];
@@ -400,30 +403,28 @@ export function IssuesView({
 
           {/* Active filter chips */}
           {filters.status.map((status) => (
-            <span
+            <FilterChip
               key={`status-${status}`}
-              className="filter-chip"
-              style={{ "--chip-accent-color": STATUS_COLORS[status] } as React.CSSProperties}
-            >
-              {STATUS_LABELS[status]}
-              <button onClick={() => removeStatusFilter(status)}>×</button>
-            </span>
+              label={STATUS_LABELS[status]}
+              accentColor={STATUS_COLORS[status]}
+              onRemove={() => removeStatusFilter(status)}
+            />
           ))}
           {filters.priority.map((priority) => (
-            <span
+            <FilterChip
               key={`priority-${priority}`}
-              className="filter-chip"
-              style={{ "--chip-accent-color": PRIORITY_COLORS[priority] } as React.CSSProperties}
-            >
-              P{priority}
-              <button onClick={() => removePriorityFilter(priority)}>×</button>
-            </span>
+              label={`p${priority}`}
+              accentColor={PRIORITY_COLORS[priority]}
+              onRemove={() => removePriorityFilter(priority)}
+            />
           ))}
           {filters.type.map((type) => (
-            <span key={`type-${type}`} className="filter-chip">
-              {type}
-              <button onClick={() => removeTypeFilter(type)}>×</button>
-            </span>
+            <FilterChip
+              key={`type-${type}`}
+              label={TYPE_LABELS[type as BeadType] || type}
+              accentColor={TYPE_COLORS[type as BeadType]}
+              onRemove={() => removeTypeFilter(type)}
+            />
           ))}
 
           {/* Add filter dropdown */}

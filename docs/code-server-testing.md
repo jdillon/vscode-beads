@@ -54,11 +54,32 @@ cert: false
 
 ## Workflow
 
+### Recommended: Background Watch Mode
+
+Run `bun run watch` as a background task - esbuild auto-rebuilds on file save. Only reload the browser window to pick up changes.
+
+```bash
+# Start watch in background (agent manages this)
+bun run watch &
+
+# After code changes: just reload browser window
+# Cmd+Shift+P → "Developer: Reload Window" (or Cmd+R)
+```
+
+**Benefits:**
+- Saves context (no repeated `bun run compile:quiet` calls)
+- Fast iteration - changes rebuild in ~50ms
+- Only need full rebuild (`bun run compile`) if watch gets confused
+
+### Manual Build (fallback)
+
 1. Start code-server: `code-server --auth none .`
 2. Open http://127.0.0.1:8080
 3. Make changes, run `bun run compile:quiet`
 4. Reload window in browser (Cmd+Shift+P → Developer: Reload Window)
 5. Test changes
+
+Use manual builds when watch mode isn't running or after major changes (new files, config changes).
 
 ## Extensions Directory
 

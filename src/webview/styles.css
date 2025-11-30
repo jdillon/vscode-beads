@@ -189,6 +189,12 @@ textarea {
 }
 
 /* ==================== Status & Priority Badges ==================== */
+/*
+ * Keep font-variant in sync with:
+ * - .dep-status, .dep-priority (dependency list inline badges)
+ * - .filter-chip, .colored-select-label (filter UI)
+ * - .type-badge, .label-badge (other badge types)
+ */
 
 .status-badge {
   display: inline-flex;
@@ -201,6 +207,7 @@ textarea {
   color: white;
   white-space: nowrap;
   height: var(--badge-height-md);
+  font-variant: small-caps;
 }
 
 .priority-badge {
@@ -250,6 +257,7 @@ textarea {
   font-weight: 500;
   white-space: nowrap;
   height: var(--badge-height-sm);
+  font-variant: small-caps;
   /* bg/color set dynamically via getLabelColorStyle() */
 }
 
@@ -278,6 +286,7 @@ textarea {
   font-weight: 500;
   white-space: nowrap;
   height: var(--badge-height-sm);
+  font-variant: small-caps;
 }
 
 .type-badge-large {
@@ -577,6 +586,7 @@ textarea {
   border: 1px solid var(--vscode-panel-border);
   border-left: 3px solid var(--chip-accent-color, var(--vscode-panel-border));
   border-radius: 3px;
+  font-variant: small-caps;
 }
 
 .filter-chip button {
@@ -1444,6 +1454,7 @@ textarea {
 .colored-select-label {
   font-size: 11px;
   color: var(--vscode-foreground);
+  font-variant: small-caps;
 }
 
 .colored-select-badge {
@@ -1741,12 +1752,18 @@ textarea {
   margin-left: auto;
 }
 
+/*
+ * Dependency item badges - inline "joined pill" variant
+ * Keep font-variant in sync with: .status-badge, .priority-badge (styles.css)
+ * See also: StatusBadge.tsx, PriorityBadge.tsx
+ */
 .dep-status {
   font-size: 10px;
   font-weight: 500;
   padding: 2px 6px;
   color: #fff;
   border-radius: var(--border-radius) 0 0 var(--border-radius);
+  font-variant: small-caps;
 }
 
 .dep-priority {
@@ -1754,6 +1771,7 @@ textarea {
   font-weight: 600;
   padding: 2px 6px;
   border-radius: 0 var(--border-radius) var(--border-radius) 0;
+  font-variant: small-caps;
 }
 
 /* Type-based coloring for dependency items (matches filter chips) */
