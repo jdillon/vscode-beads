@@ -19,7 +19,10 @@ The protected branch workflow keeps beads issue data on a separate branch (`bead
 
 ## Setup (New Project)
 
+**Important:** You must be on `main` branch when running this command.
+
 ```bash
+git checkout main
 bd init --branch beads-metadata && bd hooks install
 ```
 
@@ -54,7 +57,11 @@ git commit -m "chore: migrate to protected branch workflow for beads"
 ```
 
 ### Step 4: Reinitialize with branch
+
+**Important:** You must be on `main` branch when running this command.
+
 ```bash
+git checkout main
 bd init --branch beads-metadata --force
 bd hooks install --force
 ```
