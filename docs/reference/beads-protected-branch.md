@@ -32,6 +32,8 @@ This:
 3. Sets up git worktree at `.git/beads-worktrees/beads-metadata`
 4. Installs git hooks for auto-sync
 
+> **Note:** The canonical JSONL filename is `issues.jsonl` (not `beads.jsonl`). If you see references to `beads.jsonl`, update them to `issues.jsonl`.
+
 ## Migration (Existing Project)
 
 If you have an existing beads setup committing to main:
