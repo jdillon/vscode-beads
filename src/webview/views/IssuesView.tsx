@@ -14,6 +14,7 @@ import {
   BeadsProject,
   BeadStatus,
   BeadPriority,
+  BeadType,
   STATUS_LABELS,
   STATUS_COLORS,
   PRIORITY_LABELS,
@@ -22,6 +23,7 @@ import {
 } from "../types";
 import { StatusBadge } from "../common/StatusBadge";
 import { PriorityBadge } from "../common/PriorityBadge";
+import { TypeBadge } from "../common/TypeBadge";
 import { LabelBadge } from "../common/LabelBadge";
 
 interface IssuesViewProps {
@@ -473,7 +475,7 @@ export function IssuesView({
                   .filter((t) => !filters.type.includes(t))
                   .map((type) => (
                     <button key={type} onClick={() => addTypeFilter(type)}>
-                      <span className={`type-chip type-${type}`}>{type}</span>
+                      <TypeBadge type={type as BeadType} size="small" />
                     </button>
                   ))}
                 <button className="back-btn" onClick={() => setFilterMenuOpen("main")}>← Back</button>
@@ -582,7 +584,7 @@ export function IssuesView({
                         <PriorityBadge priority={bead.priority} size="small" />
                       )}
                       {col.id === "type" && bead.type && (
-                        <span className={`type-chip type-${bead.type}`}>{bead.type}</span>
+                        <TypeBadge type={bead.type as BeadType} size="small" />
                       )}
                       {col.id === "labels" && (
                         <>

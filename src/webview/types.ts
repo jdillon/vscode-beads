@@ -168,11 +168,11 @@ export const STATUS_COLORS: Record<BeadStatus, string> = {
 export type BeadType = "bug" | "feature" | "task" | "epic" | "chore";
 
 export const TYPE_LABELS: Record<BeadType, string> = {
-  bug: "Bug",
-  feature: "Feature",
-  task: "Task",
-  epic: "Epic",
-  chore: "Chore",
+  bug: "bug",
+  feature: "feature",
+  task: "task",
+  epic: "epic",
+  chore: "chore",
 };
 
 export const TYPE_COLORS: Record<BeadType, string> = {

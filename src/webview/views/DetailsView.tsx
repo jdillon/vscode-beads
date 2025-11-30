@@ -76,9 +76,10 @@ function sortDependencies(deps: BeadDependency[]): BeadDependency[] {
     return aPriority - bPriority;
   });
 }
+import { LabelBadge } from "../common/LabelBadge";
 import { StatusBadge } from "../common/StatusBadge";
 import { PriorityBadge } from "../common/PriorityBadge";
-import { LabelBadge } from "../common/LabelBadge";
+import { TypeBadge } from "../common/TypeBadge";
 import { Markdown } from "../common/Markdown";
 import { useToast } from "../common/Toast";
 import { ColoredSelect, ColoredSelectOption } from "../common/ColoredSelect";
@@ -159,6 +160,16 @@ export function DetailsView({
       setEditedBead({});
     }
   }, [bead, editedBead, onUpdateBead]);
+
+  // Inline update - saves immediately without entering edit mode
+  const handleInlineUpdate = useCallback(
+    (field: keyof Bead, value: unknown) => {
+      if (bead) {
+        onUpdateBead(bead.id, { [field]: value });
+      }
+    },
+    [bead, onUpdateBead]
+  );
 
   const handleCancel = useCallback(() => {
     setEditMode(false);
@@ -288,13 +299,27 @@ export function DetailsView({
           </>
         ) : (
           <>
-            {displayBead.type && (
-              <span className={`type-chip type-${displayBead.type}`}>{displayBead.type}</span>
-            )}
-            <StatusBadge status={displayBead.status} size="small" />
-            {displayBead.priority !== undefined && (
-              <PriorityBadge priority={displayBead.priority} size="small" />
-            )}
+            <ColoredSelect
+              value={(displayBead.type || "task") as BeadType}
+              options={TYPE_OPTIONS}
+              onChange={(v) => handleInlineUpdate("type", v)}
+              renderTrigger={() => <TypeBadge type={(displayBead.type || "task") as BeadType} size="small" />}
+              renderOption={(opt) => <TypeBadge type={opt.value as BeadType} size="small" />}
+            />
+            <ColoredSelect
+              value={displayBead.status}
+              options={STATUS_OPTIONS}
+              onChange={(v) => handleInlineUpdate("status", v)}
+              renderTrigger={() => <StatusBadge status={displayBead.status} size="small" />}
+              renderOption={(opt) => <StatusBadge status={opt.value as BeadStatus} size="small" />}
+            />
+            <ColoredSelect
+              value={displayBead.priority ?? 4}
+              options={PRIORITY_OPTIONS}
+              onChange={(v) => handleInlineUpdate("priority", v)}
+              renderTrigger={() => <PriorityBadge priority={displayBead.priority ?? 4} size="small" />}
+              renderOption={(opt) => <PriorityBadge priority={opt.value as BeadPriority} size="small" />}
+            />
           </>
         )}
       </div>

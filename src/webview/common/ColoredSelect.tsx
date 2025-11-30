@@ -5,7 +5,7 @@
  * Replaces native <select> for type/status/priority fields.
  */
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, ReactNode } from "react";
 
 export interface ColoredSelectOption<T extends string | number> {
   value: T;
@@ -19,6 +19,12 @@ interface ColoredSelectProps<T extends string | number> {
   options: ColoredSelectOption<T>[];
   onChange: (value: T) => void;
   className?: string;
+  /** "filter-chip" shows text with colored border, "badge" shows full colored badge */
+  variant?: "filter-chip" | "badge";
+  /** Custom render for trigger - use this to render actual badge components */
+  renderTrigger?: (option: ColoredSelectOption<T>) => ReactNode;
+  /** Custom render for menu options */
+  renderOption?: (option: ColoredSelectOption<T>) => ReactNode;
 }
 
 export function ColoredSelect<T extends string | number>({
@@ -26,6 +32,9 @@ export function ColoredSelect<T extends string | number>({
   options,
   onChange,
   className = "",
+  variant = "filter-chip",
+  renderTrigger,
+  renderOption,
 }: ColoredSelectProps<T>): React.ReactElement {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -65,18 +74,53 @@ export function ColoredSelect<T extends string | number>({
     setIsOpen(false);
   };
 
+  // Default trigger rendering
+  const defaultTrigger = () => {
+    if (variant === "badge") {
+      return (
+        <span
+          className="colored-select-badge"
+          style={{
+            backgroundColor: selectedOption.color,
+            color: selectedOption.textColor || "#ffffff",
+          }}
+        >
+          {selectedOption.label}
+        </span>
+      );
+    }
+    return (
+      <>
+        <span className="colored-select-label">{selectedOption.label}</span>
+        <span className="colored-select-arrow">{isOpen ? "▲" : "▼"}</span>
+      </>
+    );
+  };
+
+  // Default option rendering
+  const defaultOption = (option: ColoredSelectOption<T>) => (
+    <span
+      className="colored-select-badge"
+      style={{
+        backgroundColor: option.color,
+        color: option.textColor || "#ffffff",
+      }}
+    >
+      {option.label}
+    </span>
+  );
+
   return (
     <div className={`colored-select ${className}`} ref={wrapperRef}>
       <button
         type="button"
-        className="colored-select-trigger"
+        className={`colored-select-trigger ${renderTrigger || variant === "badge" ? "colored-select-trigger-custom" : ""}`}
         onClick={() => setIsOpen(!isOpen)}
-        style={{
+        style={!renderTrigger && variant === "filter-chip" ? {
           "--chip-accent-color": selectedOption.color,
-        } as React.CSSProperties}
+        } as React.CSSProperties : undefined}
       >
-        <span className="colored-select-label">{selectedOption.label}</span>
-        <span className="colored-select-arrow">{isOpen ? "▲" : "▼"}</span>
+        {renderTrigger ? renderTrigger(selectedOption) : defaultTrigger()}
       </button>
 
       {isOpen && (
@@ -88,15 +132,7 @@ export function ColoredSelect<T extends string | number>({
               className={`colored-select-option ${option.value === value ? "selected" : ""}`}
               onClick={() => handleSelect(option.value)}
             >
-              <span
-                className="colored-select-badge"
-                style={{
-                  backgroundColor: option.color,
-                  color: option.textColor || "#ffffff",
-                }}
-              >
-                {option.label}
-              </span>
+              {renderOption ? renderOption(option) : defaultOption(option)}
             </button>
           ))}
         </div>
