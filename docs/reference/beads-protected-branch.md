@@ -38,23 +38,43 @@ This:
 
 If you have an existing beads setup committing to main:
 
-### Step 1: Stop daemon
+### Step 1: Stop daemon and backup
 ```bash
 bd daemon --stop
+mkdir -p tmp
+cp .beads/*.jsonl tmp/  # backup for sanity
 ```
 
 ### Step 2: Update .beads/.gitignore
 
-Add to `.beads/.gitignore`:
+The existing `.gitignore` likely has whitelist entries (`!issues.jsonl`, `!beads.jsonl`) to track JSONL files. Change these to ignore entries instead:
+
+**Remove these lines (if present):**
 ```
-# Issue data (synced to beads-metadata branch)
+!beads.jsonl
+!issues.jsonl
+```
+
+**Add these lines:**
+```
+# Protected branch mode: issue data goes to beads-metadata branch via worktree
+beads.jsonl
 issues.jsonl
 deletions.jsonl
+
+# Keep config files on main
+!metadata.json
+!config.json
 ```
 
 ### Step 3: Remove tracked files from main
+
+Untrack the JSONL files so they're no longer committed to main:
+
 ```bash
-git rm --cached .beads/issues.jsonl .beads/deletions.jsonl
+git rm --cached .beads/issues.jsonl .beads/deletions.jsonl 2>/dev/null
+git rm --cached .beads/beads.jsonl 2>/dev/null  # legacy filename
+git add .beads/.gitignore
 git commit -m "chore: migrate to protected branch workflow for beads"
 ```
 
