@@ -10,7 +10,6 @@ import {
   Bead,
   BeadsProject,
   BeadsSummary,
-  DependencyGraph,
   ExtensionMessage,
   WebviewSettings,
   vscode,
@@ -30,7 +29,6 @@ interface AppState {
   selectedBead: Bead | null;
   selectedBeadId: string | null;
   summary: BeadsSummary | null;
-  graph: DependencyGraph | null;
   loading: boolean;
   error: string | null;
   settings: WebviewSettings;
@@ -44,7 +42,6 @@ const initialState: AppState = {
   selectedBead: null,
   selectedBeadId: null,
   summary: null,
-  graph: null,
   loading: true,
   error: null,
   settings: { renderMarkdown: true },
@@ -78,9 +75,6 @@ export function App(): React.ReactElement {
         break;
       case "setSummary":
         setState((prev) => ({ ...prev, summary: message.summary }));
-        break;
-      case "setGraph":
-        setState((prev) => ({ ...prev, graph: message.graph }));
         break;
       case "setLoading":
         setState((prev) => ({ ...prev, loading: message.loading }));

@@ -143,27 +143,6 @@ export interface BeadsSummary {
   inProgressCount: number;
 }
 
-// Dependency graph node
-export interface GraphNode {
-  id: string;
-  title: string;
-  status: BeadStatus;
-  priority?: BeadPriority;
-}
-
-// Dependency graph edge
-export interface GraphEdge {
-  source: string; // Bead ID
-  target: string; // Bead ID this depends on
-  type: "depends_on" | "blocks";
-}
-
-// Full dependency graph structure
-export interface DependencyGraph {
-  nodes: GraphNode[];
-  edges: GraphEdge[];
-}
-
 // Settings that can be passed to webview
 export interface WebviewSettings {
   renderMarkdown: boolean;

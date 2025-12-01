@@ -21,9 +21,6 @@ import {
   BeadPriority,
   CommandResult,
   DaemonInfo,
-  DependencyGraph,
-  GraphNode,
-  GraphEdge,
   normalizeBead,
   normalizeStatus,
   BeadFilters,
@@ -394,53 +391,6 @@ export class BeadsBackend {
    */
   async getDependencyTree(beadId: string): Promise<CommandResult<string>> {
     return this.runCommand(["dep", "tree", beadId]);
-  }
-
-  /**
-   * Gets the full dependency graph
-   * This builds the graph from the list of all beads and their dependencies
-   */
-  async getDependencyGraph(): Promise<CommandResult<DependencyGraph>> {
-    const beadsResult = await this.listBeads();
-
-    if (!beadsResult.success) {
-      return beadsResult as CommandResult<DependencyGraph>;
-    }
-
-    const beads = beadsResult.data!;
-    const nodes: GraphNode[] = [];
-    const edges: GraphEdge[] = [];
-
-    for (const bead of beads) {
-      nodes.push({
-        id: bead.id,
-        title: bead.title,
-        status: bead.status,
-        priority: bead.priority,
-      });
-
-      if (bead.dependsOn) {
-        for (const depId of bead.dependsOn) {
-          edges.push({
-            source: bead.id,
-            target: depId,
-            type: "depends_on",
-          });
-        }
-      }
-
-      if (bead.blocks) {
-        for (const blockedId of bead.blocks) {
-          edges.push({
-            source: bead.id,
-            target: blockedId,
-            type: "blocks",
-          });
-        }
-      }
-    }
-
-    return { success: true, data: { nodes, edges } };
   }
 
   /**

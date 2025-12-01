@@ -5,17 +5,28 @@
 ## Quick Start
 
 ```bash
-# Start code-server (no auth for local dev)
+# 1. Start watch mode (background) - auto-rebuilds on save
+bun run watch &
+
+# 2. Start code-server (no auth for local dev)
 code-server --auth none .
 
-# Open browser via Chrome DevTools MCP
+# 3. Open browser via Chrome DevTools MCP
 mcp__chrome-devtools__new_page url=http://127.0.0.1:8080/
 
-# Build extension
-bun run compile:quiet
-
-# Reload in browser: Cmd+Shift+P → "Developer: Reload Window"
+# 4. After code changes: just reload browser window
+# Cmd+Shift+P → "Developer: Reload Window"
 ```
+
+### Agent Protocol
+
+When testing with code-server, agents should:
+
+1. **Start watch mode first** (background task) - keeps it running for the session
+2. **Start code-server** (background task)
+3. **Open browser** via Chrome DevTools MCP
+4. **After edits**: just reload the browser window - no manual compile needed
+5. **Check watch output** if changes aren't appearing (may need restart after new files)
 
 ## Setup
 

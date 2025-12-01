@@ -511,13 +511,21 @@ export function IssuesView({
       {/* Table */}
       <div className="beads-table-wrapper">
         <div className={`beads-table-container ${resizing ? "resizing" : ""}`}>
-          <table className="beads-table">
+          <table
+            className="beads-table"
+            style={{ minWidth: `${visibleColumns.reduce((sum, c) => sum + c.width, 0) + 24}px` }}
+          >
+          <colgroup>
+            {visibleColumns.map((col) => (
+              <col key={col.id} style={{ width: `${col.width}px` }} />
+            ))}
+            <col style={{ width: '24px' }} />
+          </colgroup>
           <thead>
             <tr>
-              {visibleColumns.map((col, idx) => (
+              {visibleColumns.map((col) => (
                 <th
                   key={col.id}
-                  style={{ minWidth: `${col.width}px`, width: `${col.width}px` }}
                   className={col.sortable ? "sortable" : ""}
                   onClick={() => col.sortable && handleSort(col.id)}
                 >
@@ -605,12 +613,9 @@ export function IssuesView({
                       )}
                       {col.id === "labels" && (
                         <>
-                          {bead.labels?.slice(0, 2).map((label) => (
+                          {bead.labels?.map((label) => (
                             <LabelBadge key={label} label={label} />
                           ))}
-                          {bead.labels && bead.labels.length > 2 && (
-                            <span className="more-labels">+{bead.labels.length - 2}</span>
-                          )}
                         </>
                       )}
                       {col.id === "createdAt" && (
