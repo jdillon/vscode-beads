@@ -147,6 +147,7 @@ export function IssuesView({
   const showFilterRow = filterBarOpen || hasActiveFilters;
   const visibleColumns = columns.filter((c) => c.visible);
   const filterMenuRef = useRef<HTMLDivElement>(null);
+  const columnMenuRef = useRef<HTMLTableCellElement>(null);
 
   // Click outside to close filter menu
   useEffect(() => {
@@ -161,6 +162,20 @@ export function IssuesView({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [filterMenuOpen]);
+
+  // Click outside to close column menu
+  useEffect(() => {
+    if (!columnMenuOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (columnMenuRef.current && !columnMenuRef.current.contains(e.target as Node)) {
+        setColumnMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [columnMenuOpen]);
 
   // Handle column resize
   const handleResizeStart = useCallback((e: React.MouseEvent, col: ColumnConfig) => {
@@ -538,7 +553,7 @@ export function IssuesView({
                   />
                 </th>
               ))}
-              <th className="col-menu-th">
+              <th className="col-menu-th" ref={columnMenuRef}>
                 <button
                   className="col-menu-btn"
                   onClick={() => setColumnMenuOpen(!columnMenuOpen)}
