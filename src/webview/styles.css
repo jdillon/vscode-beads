@@ -1164,6 +1164,12 @@ textarea {
   color: var(--vscode-button-foreground);
 }
 
+.btn:disabled,
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .btn-sm {
   padding: 3px 8px;
 }

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Column resize now works properly in Issues list (`vsbeads-oqb`)
+- Table fills container width while respecting column minimums (`vsbeads-385`)
+- Labels column shows all labels with ellipsis overflow (`vsbeads-8et`)
+- Badge cells clip cleanly without ellipsis on overflow
+- Column menu closes on click outside (`vsbeads-1nq`)
+- Removing labels via X button now persists on save (`vsbeads-7g6`)
+- Save button disabled when no pending changes
+
+### Changed
+
+- Removed unused Kanban and Graph view code
+
 ## [0.3.0] - 2025-11-30
 
 ### Added

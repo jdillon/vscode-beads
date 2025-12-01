@@ -147,17 +147,25 @@ export function DetailsView({
   const [newDependency, setNewDependency] = useState("");
   const [newComment, setNewComment] = useState("");
 
-  // Reset edit state when bead changes
+  // Reset edit state when bead ID changes
   useEffect(() => {
     setEditMode(false);
     setEditedBead({});
   }, [bead?.id]);
 
+  // Clear pending edits when bead data updates (e.g., after save + mutation)
+  useEffect(() => {
+    if (!editMode && Object.keys(editedBead).length > 0) {
+      setEditedBead({});
+    }
+  }, [bead?.updatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSave = useCallback(() => {
     if (bead && Object.keys(editedBead).length > 0) {
       onUpdateBead(bead.id, editedBead);
       setEditMode(false);
-      setEditedBead({});
+      // Don't clear editedBead here - keep showing edited values until
+      // mutation event updates the bead prop, which triggers the useEffect below
     }
   }, [bead, editedBead, onUpdateBead]);
 
@@ -248,7 +256,11 @@ export function DetailsView({
         <div className="header-actions">
           {editMode ? (
             <>
-              <button className="btn btn-primary btn-sm" onClick={handleSave}>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleSave}
+                disabled={Object.keys(editedBead).length === 0}
+              >
                 Save
               </button>
               <button className="btn btn-sm" onClick={handleCancel}>
@@ -576,7 +588,7 @@ export function DetailsView({
                     type="text"
                     value={newDependency}
                     onChange={(e) => setNewDependency(e.target.value)}
-                    placeholder="+ dependency (blocks by default)"
+                    placeholder="+ issue ID"
                     onKeyDown={(e) => e.key === "Enter" && handleAddDependency()}
                   />
                 </div>

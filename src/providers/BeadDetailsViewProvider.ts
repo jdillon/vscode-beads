@@ -131,10 +131,17 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
         );
 
         try {
-          await client.update({
+          // Map webview field names to daemon API field names
+          const { labels, ...rest } = message.updates;
+          const updateArgs: Record<string, unknown> = {
             id: message.beadId,
-            ...message.updates,
-          });
+            ...rest,
+          };
+          // Daemon uses set_labels instead of labels
+          if (labels !== undefined) {
+            updateArgs.set_labels = labels;
+          }
+          await client.update(updateArgs as Parameters<typeof client.update>[0]);
           // Data will refresh via mutation events
         } catch (err) {
           vscode.window.showErrorMessage(`Failed to update bead: ${err}`);
