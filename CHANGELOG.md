@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Colored dropdowns for type/status/priority in edit mode (`vsbeads-fwp`)
+- TypeBadge and FilterChip components (`vsbeads-fwp`)
+- Inline editing from Details view with auto-save (`vsbeads-fwp`)
+
+### Changed
+
+- Badge text normalized to lowercase with small-caps (`vsbeads-fwp`)
+- Badge sizing unified with CSS variables (`vsbeads-fwp`)
+
+### Fixed
+
+- Filter count overlay stays fixed when scrolling (`vsbeads-eeg`)
+- Filter menu: added submenu indicators and click-outside dismiss (`vsbeads-3zm`)
+
 ## [0.2.0] - 2025-11-29
 
 ### Added
