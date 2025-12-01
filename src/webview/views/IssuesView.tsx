@@ -8,7 +8,7 @@
  * - Row interactions
  */
 
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   Bead,
   BeadsProject,
@@ -146,6 +146,21 @@ export function IssuesView({
   const hasActiveFilters = filters.status.length > 0 || filters.priority.length > 0 || filters.type.length > 0;
   const showFilterRow = filterBarOpen || hasActiveFilters;
   const visibleColumns = columns.filter((c) => c.visible);
+  const filterMenuRef = useRef<HTMLDivElement>(null);
+
+  // Click outside to close filter menu
+  useEffect(() => {
+    if (!filterMenuOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (filterMenuRef.current && !filterMenuRef.current.contains(e.target as Node)) {
+        setFilterMenuOpen(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [filterMenuOpen]);
 
   // Handle column resize
   const handleResizeStart = useCallback((e: React.MouseEvent, col: ColumnConfig) => {
@@ -428,7 +443,7 @@ export function IssuesView({
           ))}
 
           {/* Add filter dropdown */}
-          <div className="filter-add-wrapper">
+          <div className="filter-add-wrapper" ref={filterMenuRef}>
             <button
               className="filter-add-btn"
               onClick={() => setFilterMenuOpen(filterMenuOpen === "main" ? null : "main")}
@@ -438,9 +453,9 @@ export function IssuesView({
 
             {filterMenuOpen === "main" && (
               <div className="filter-menu">
-                <button onClick={() => setFilterMenuOpen("status")}>Status</button>
-                <button onClick={() => setFilterMenuOpen("priority")}>Priority</button>
-                <button onClick={() => setFilterMenuOpen("type")}>Type</button>
+                <button onClick={() => setFilterMenuOpen("status")}>Status <span className="menu-chevron">›</span></button>
+                <button onClick={() => setFilterMenuOpen("priority")}>Priority <span className="menu-chevron">›</span></button>
+                <button onClick={() => setFilterMenuOpen("type")}>Type <span className="menu-chevron">›</span></button>
               </div>
             )}
 

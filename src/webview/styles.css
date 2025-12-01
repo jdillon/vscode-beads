@@ -207,6 +207,7 @@ textarea {
   color: white;
   white-space: nowrap;
   height: var(--badge-height-md);
+  line-height: 1;
   font-variant: small-caps;
 }
 
@@ -221,6 +222,7 @@ textarea {
   color: white;
   white-space: nowrap;
   height: var(--badge-height-md);
+  line-height: 1;
   font-variant: small-caps;
 }
 
@@ -280,13 +282,16 @@ textarea {
 .type-badge {
   display: inline-flex;
   align-items: center;
-  padding: 1px 6px;
+  justify-content: center;
+  padding: 0 6px;
   border-radius: var(--badge-radius-rect);
   font-size: var(--badge-font-sm);
   font-weight: 500;
   white-space: nowrap;
   height: var(--badge-height-sm);
+  line-height: var(--badge-height-sm);
   font-variant: small-caps;
+  box-sizing: border-box;
 }
 
 .type-badge-large {
@@ -643,13 +648,21 @@ textarea {
 }
 
 .filter-menu button {
-  display: block;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   width: 100%;
   padding: 6px 12px;
   font-size: 12px;
   text-align: left;
   background: transparent;
   color: var(--vscode-dropdown-foreground);
+}
+
+.menu-chevron {
+  opacity: 0.6;
+  font-size: 14px;
+  margin-left: auto;
 }
 
 .filter-menu button:hover {
