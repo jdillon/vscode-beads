@@ -128,18 +128,18 @@ export type WebviewMessage =
 
 // Human-readable labels
 export const PRIORITY_LABELS: Record<BeadPriority, string> = {
-  0: "Critical",
-  1: "High",
-  2: "Medium",
-  3: "Low",
-  4: "None",
+  0: "critical",
+  1: "high",
+  2: "medium",
+  3: "low",
+  4: "none",
 };
 
 export const STATUS_LABELS: Record<BeadStatus, string> = {
-  open: "Open",
-  in_progress: "In Progress",
-  blocked: "Blocked",
-  closed: "Closed",
+  open: "open",
+  in_progress: "in progress",
+  blocked: "blocked",
+  closed: "closed",
 };
 
 export const PRIORITY_COLORS: Record<BeadPriority, string> = {
@@ -163,6 +163,32 @@ export const STATUS_COLORS: Record<BeadStatus, string> = {
   in_progress: "#3b82f6", // blue
   blocked: "#ef4444",   // red
   closed: "#6b7280",    // gray
+};
+
+export type BeadType = "bug" | "feature" | "task" | "epic" | "chore";
+
+export const TYPE_LABELS: Record<BeadType, string> = {
+  bug: "bug",
+  feature: "feature",
+  task: "task",
+  epic: "epic",
+  chore: "chore",
+};
+
+export const TYPE_COLORS: Record<BeadType, string> = {
+  bug: "#dc2626",      // red
+  feature: "#16a34a",  // green
+  task: "#eab308",     // yellow
+  epic: "#9333ea",     // purple
+  chore: "#2563eb",    // blue
+};
+
+export const TYPE_TEXT_COLORS: Record<BeadType, string> = {
+  bug: "#ffffff",
+  feature: "#ffffff",
+  task: "#1a1a1a",     // dark on yellow
+  epic: "#ffffff",
+  chore: "#ffffff",
 };
 
 // VS Code API interface for webview

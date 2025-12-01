@@ -18,7 +18,7 @@ bun run package          # Create VSIX package
 
 **Testing workflow with Chrome DevTools MCP**: After building, ask the user to reload code-server and test. Don't automate the reload/test cycle via browser tools - it wastes context.
 
-**code-server for testing**: Use `--auth none` flag - no auth needed for local testing.
+**code-server for testing**: See `docs/code-server-testing.md` - living document for agent reference. Keep it updated with working config and lessons learned.
 
 **Option 1: Extension Development Host (recommended for debugging)**
 
@@ -62,6 +62,7 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 - Status/priority normalization in `src/backend/types.ts` - CLI returns various formats, extension normalizes to internal types
 - Webview↔Extension communication via typed messages (`ExtensionToWebviewMessage`, `WebviewToExtensionMessage`)
 - Single webview bundle at `dist/webview/main.js` serves all 5 views; view type determines which component renders
+- **Prefer components over ad-hoc markup**: Extract reusable UI elements into `src/webview/common/` components (e.g., `StatusBadge`, `FilterChip`) rather than inline spans with class names
 
 ### Build System
 

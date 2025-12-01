@@ -17,6 +17,16 @@
   --border-radius-lg: 8px;
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
+
+  /* Badge sizes - consistent heights across all badge types */
+  --badge-height-sm: 18px;
+  --badge-height-md: 20px;
+  --badge-height-lg: 24px;
+  --badge-font-sm: 10px;
+  --badge-font-md: 11px;
+  --badge-font-lg: 13px;
+  --badge-radius-pill: 10px;
+  --badge-radius-rect: 3px;
 }
 
 * {
@@ -179,30 +189,64 @@ textarea {
 }
 
 /* ==================== Status & Priority Badges ==================== */
+/*
+ * Keep font-variant in sync with:
+ * - .dep-status, .dep-priority (dependency list inline badges)
+ * - .filter-chip, .colored-select-label (filter UI)
+ * - .type-badge, .label-badge (other badge types)
+ */
 
-.status-badge,
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: var(--badge-radius-pill);
+  font-size: var(--badge-font-md);
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
+  height: var(--badge-height-md);
+  line-height: 1;
+  font-variant: small-caps;
+}
+
 .priority-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 11px;
+  border-radius: var(--badge-radius-pill);
+  font-size: var(--badge-font-md);
   font-weight: 500;
   color: white;
   white-space: nowrap;
+  height: var(--badge-height-md);
+  line-height: 1;
+  font-variant: small-caps;
 }
 
+/* Small badges - used in list view and detail panel */
 .status-badge-small,
 .priority-badge-small {
-  font-size: 10px;
+  font-size: var(--badge-font-sm);
   padding: 1px 6px;
+  height: var(--badge-height-sm);
+  border-radius: var(--badge-radius-pill);
+}
+
+.type-badge-small {
+  font-size: var(--badge-font-sm);
+  padding: 1px 6px;
+  height: var(--badge-height-sm);
+  border-radius: var(--badge-radius-rect);
 }
 
 .status-badge-large,
 .priority-badge-large {
-  font-size: 13px;
+  font-size: var(--badge-font-lg);
   padding: 4px 12px;
+  height: var(--badge-height-lg);
 }
 
 .label-badge {
@@ -210,13 +254,53 @@ textarea {
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 11px;
-  background-color: var(--vscode-badge-background);
-  color: var(--vscode-badge-foreground);
+  border-radius: var(--badge-radius-pill);
+  font-size: var(--badge-font-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  height: var(--badge-height-sm);
+  font-variant: small-caps;
+  /* bg/color set dynamically via getLabelColorStyle() */
 }
 
-/* Type chips with colors */
+.label-badge-small {
+  font-size: var(--badge-font-sm);
+  height: var(--badge-height-sm);
+}
+
+.label-badge-medium {
+  font-size: var(--badge-font-md);
+  height: var(--badge-height-md);
+}
+
+.label-badge-large {
+  font-size: var(--badge-font-lg);
+  height: var(--badge-height-lg);
+}
+
+/* Type badge - shared component (rounded rect, not pill) */
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  border-radius: var(--badge-radius-rect);
+  font-size: var(--badge-font-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  height: var(--badge-height-sm);
+  line-height: var(--badge-height-sm);
+  font-variant: small-caps;
+  box-sizing: border-box;
+}
+
+.type-badge-large {
+  font-size: var(--badge-font-lg);
+  padding: 3px 10px;
+  height: var(--badge-height-lg);
+}
+
+/* Legacy type-chip class - alias to type-badge for backwards compat */
 .type-chip {
   display: inline-flex;
   align-items: center;
@@ -507,6 +591,7 @@ textarea {
   border: 1px solid var(--vscode-panel-border);
   border-left: 3px solid var(--chip-accent-color, var(--vscode-panel-border));
   border-radius: 3px;
+  font-variant: small-caps;
 }
 
 .filter-chip button {
@@ -563,13 +648,21 @@ textarea {
 }
 
 .filter-menu button {
-  display: block;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   width: 100%;
   padding: 6px 12px;
   font-size: 12px;
   text-align: left;
   background: transparent;
   color: var(--vscode-dropdown-foreground);
+}
+
+.menu-chevron {
+  opacity: 0.6;
+  font-size: 14px;
+  margin-left: auto;
 }
 
 .filter-menu button:hover {
@@ -817,9 +910,13 @@ textarea {
   padding: 0 !important;
 }
 
-/* Filter count overlay */
-.beads-table-container {
+/* Table wrapper - positions overlay relative to visible area */
+.beads-table-wrapper {
   position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .filter-count-overlay {
@@ -833,6 +930,8 @@ textarea {
   border: 1px solid var(--vscode-panel-border);
   border-radius: 10px;
   opacity: 0.9;
+  pointer-events: none;
+  z-index: 10;
 }
 
 .panel-footer {
@@ -1326,6 +1425,98 @@ textarea {
   min-width: 60px;
 }
 
+.badge-select {
+  border: 1px solid var(--vscode-panel-border);
+  border-left: 3px solid var(--chip-accent-color, var(--vscode-panel-border));
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+}
+
+/* ColoredSelect component */
+.colored-select {
+  position: relative;
+  display: inline-block;
+}
+
+.colored-select-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: transparent;
+  border: 1px solid var(--vscode-panel-border);
+  border-left: 3px solid var(--chip-accent-color, var(--vscode-panel-border));
+  border-radius: var(--border-radius);
+  cursor: pointer;
+}
+
+.colored-select-trigger:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.colored-select-trigger-custom {
+  border: none;
+  padding: 0;
+  background: transparent;
+}
+
+.colored-select-trigger-custom:hover {
+  background: transparent;
+  opacity: 0.85;
+}
+
+.colored-select-arrow {
+  font-size: 8px;
+  opacity: 0.6;
+}
+
+.colored-select-label {
+  font-size: 11px;
+  color: var(--vscode-foreground);
+  font-variant: small-caps;
+}
+
+.colored-select-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 500;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.colored-select-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  min-width: 100%;
+  margin-top: 2px;
+  padding: 4px 0;
+  background: var(--vscode-dropdown-background);
+  border: 1px solid var(--vscode-dropdown-border);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.colored-select-option {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.colored-select-option:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.colored-select-option.selected {
+  background: var(--vscode-list-activeSelectionBackground);
+}
+
 .badge-input {
   width: 80px;
 }
@@ -1580,12 +1771,18 @@ textarea {
   margin-left: auto;
 }
 
+/*
+ * Dependency item badges - inline "joined pill" variant
+ * Keep font-variant in sync with: .status-badge, .priority-badge (styles.css)
+ * See also: StatusBadge.tsx, PriorityBadge.tsx
+ */
 .dep-status {
   font-size: 10px;
   font-weight: 500;
   padding: 2px 6px;
   color: #fff;
   border-radius: var(--border-radius) 0 0 var(--border-radius);
+  font-variant: small-caps;
 }
 
 .dep-priority {
@@ -1593,6 +1790,7 @@ textarea {
   font-weight: 600;
   padding: 2px 6px;
   border-radius: 0 var(--border-radius) var(--border-radius) 0;
+  font-variant: small-caps;
 }
 
 /* Type-based coloring for dependency items (matches filter chips) */

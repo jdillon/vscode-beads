@@ -8,21 +8,26 @@
  * - Row interactions
  */
 
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   Bead,
   BeadsProject,
   BeadStatus,
   BeadPriority,
+  BeadType,
   STATUS_LABELS,
   STATUS_COLORS,
   PRIORITY_LABELS,
   PRIORITY_COLORS,
+  TYPE_LABELS,
+  TYPE_COLORS,
   vscode,
 } from "../types";
 import { StatusBadge } from "../common/StatusBadge";
 import { PriorityBadge } from "../common/PriorityBadge";
+import { TypeBadge } from "../common/TypeBadge";
 import { LabelBadge } from "../common/LabelBadge";
+import { FilterChip } from "../common/FilterChip";
 
 interface IssuesViewProps {
   beads: Bead[];
@@ -141,6 +146,21 @@ export function IssuesView({
   const hasActiveFilters = filters.status.length > 0 || filters.priority.length > 0 || filters.type.length > 0;
   const showFilterRow = filterBarOpen || hasActiveFilters;
   const visibleColumns = columns.filter((c) => c.visible);
+  const filterMenuRef = useRef<HTMLDivElement>(null);
+
+  // Click outside to close filter menu
+  useEffect(() => {
+    if (!filterMenuOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (filterMenuRef.current && !filterMenuRef.current.contains(e.target as Node)) {
+        setFilterMenuOpen(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [filterMenuOpen]);
 
   // Handle column resize
   const handleResizeStart = useCallback((e: React.MouseEvent, col: ColumnConfig) => {
@@ -398,34 +418,32 @@ export function IssuesView({
 
           {/* Active filter chips */}
           {filters.status.map((status) => (
-            <span
+            <FilterChip
               key={`status-${status}`}
-              className="filter-chip"
-              style={{ "--chip-accent-color": STATUS_COLORS[status] } as React.CSSProperties}
-            >
-              {STATUS_LABELS[status]}
-              <button onClick={() => removeStatusFilter(status)}>×</button>
-            </span>
+              label={STATUS_LABELS[status]}
+              accentColor={STATUS_COLORS[status]}
+              onRemove={() => removeStatusFilter(status)}
+            />
           ))}
           {filters.priority.map((priority) => (
-            <span
+            <FilterChip
               key={`priority-${priority}`}
-              className="filter-chip"
-              style={{ "--chip-accent-color": PRIORITY_COLORS[priority] } as React.CSSProperties}
-            >
-              P{priority}
-              <button onClick={() => removePriorityFilter(priority)}>×</button>
-            </span>
+              label={`p${priority}`}
+              accentColor={PRIORITY_COLORS[priority]}
+              onRemove={() => removePriorityFilter(priority)}
+            />
           ))}
           {filters.type.map((type) => (
-            <span key={`type-${type}`} className="filter-chip">
-              {type}
-              <button onClick={() => removeTypeFilter(type)}>×</button>
-            </span>
+            <FilterChip
+              key={`type-${type}`}
+              label={TYPE_LABELS[type as BeadType] || type}
+              accentColor={TYPE_COLORS[type as BeadType]}
+              onRemove={() => removeTypeFilter(type)}
+            />
           ))}
 
           {/* Add filter dropdown */}
-          <div className="filter-add-wrapper">
+          <div className="filter-add-wrapper" ref={filterMenuRef}>
             <button
               className="filter-add-btn"
               onClick={() => setFilterMenuOpen(filterMenuOpen === "main" ? null : "main")}
@@ -435,9 +453,9 @@ export function IssuesView({
 
             {filterMenuOpen === "main" && (
               <div className="filter-menu">
-                <button onClick={() => setFilterMenuOpen("status")}>Status</button>
-                <button onClick={() => setFilterMenuOpen("priority")}>Priority</button>
-                <button onClick={() => setFilterMenuOpen("type")}>Type</button>
+                <button onClick={() => setFilterMenuOpen("status")}>Status <span className="menu-chevron">›</span></button>
+                <button onClick={() => setFilterMenuOpen("priority")}>Priority <span className="menu-chevron">›</span></button>
+                <button onClick={() => setFilterMenuOpen("type")}>Type <span className="menu-chevron">›</span></button>
               </div>
             )}
 
@@ -473,7 +491,7 @@ export function IssuesView({
                   .filter((t) => !filters.type.includes(t))
                   .map((type) => (
                     <button key={type} onClick={() => addTypeFilter(type)}>
-                      <span className={`type-chip type-${type}`}>{type}</span>
+                      <TypeBadge type={type as BeadType} size="small" />
                     </button>
                   ))}
                 <button className="back-btn" onClick={() => setFilterMenuOpen("main")}>← Back</button>
@@ -491,8 +509,9 @@ export function IssuesView({
       )}
 
       {/* Table */}
-      <div className={`beads-table-container ${resizing ? "resizing" : ""}`}>
-        <table className="beads-table">
+      <div className="beads-table-wrapper">
+        <div className={`beads-table-container ${resizing ? "resizing" : ""}`}>
+          <table className="beads-table">
           <thead>
             <tr>
               {visibleColumns.map((col, idx) => (
@@ -582,7 +601,7 @@ export function IssuesView({
                         <PriorityBadge priority={bead.priority} size="small" />
                       )}
                       {col.id === "type" && bead.type && (
-                        <span className={`type-chip type-${bead.type}`}>{bead.type}</span>
+                        <TypeBadge type={bead.type as BeadType} size="small" />
                       )}
                       {col.id === "labels" && (
                         <>
@@ -611,8 +630,9 @@ export function IssuesView({
               ))
             )}
           </tbody>
-        </table>
-        {/* Filtered count overlay - only shows when filtering */}
+          </table>
+        </div>
+        {/* Filtered count overlay - outside scrollable container */}
         {(hasActiveFilters || filters.search) && filteredBeads.length !== beads.length && (
           <div className="filter-count-overlay">
             {filteredBeads.length} of {beads.length}

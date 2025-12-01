@@ -26,7 +26,7 @@ export function PriorityBadge({
       style={{ backgroundColor: bgColor, color: textColor }}
       title={`Priority: ${label}`}
     >
-      P{priority}
+      p{priority}
     </span>
   );
 }
