@@ -6,7 +6,7 @@
 
 ```bash
 # Start code-server (no auth for local dev)
-code-server --auth none /Users/jason/ws/jdillon/vscode-beads
+code-server --auth none .
 
 # Open browser via Chrome DevTools MCP
 mcp__chrome-devtools__new_page url=http://127.0.0.1:8080/
@@ -24,11 +24,11 @@ bun run compile:quiet
 Extension installed via symlink to pick up changes on reload:
 
 ```bash
-# Location
-~/.local/share/code-server/extensions/planet57.vscode-beads-dev -> /Users/jason/ws/jdillon/vscode-beads
+# Location (from project root)
+~/.local/share/code-server/extensions/planet57.vscode-beads-dev -> $(pwd)
 
-# Create symlink (already done)
-ln -s /Users/jason/ws/jdillon/vscode-beads ~/.local/share/code-server/extensions/planet57.vscode-beads-dev
+# Create symlink
+ln -s "$(pwd)" ~/.local/share/code-server/extensions/planet57.vscode-beads-dev
 ```
 
 ### Config
