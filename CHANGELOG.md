@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-11-30
+
 ### Added
 
 - Colored dropdowns for type/status/priority in edit mode (`vsbeads-fwp`)
