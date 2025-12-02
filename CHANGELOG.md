@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Fixed
+
+### Changed
+
+## [0.4.0] - 2025-12-01
+
+### Added
+
 - Assignee and Estimate columns (hidden by default) (`vsbeads-kz0`)
 - Comments render with markdown support (`vsbeads-rtk`)
 
