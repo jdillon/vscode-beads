@@ -21,6 +21,7 @@ import {
   STATUS_COLORS,
   TYPE_COLORS,
   TYPE_LABELS,
+  sortLabels,
 } from "../types";
 
 // Labels for dependency sections based on array (direction) and type
@@ -377,7 +378,7 @@ export function DetailsView({
         <div className="details-section">
           <h4>Labels</h4>
           <div className="labels-row">
-            {(displayBead.labels || []).map((label) => (
+            {sortLabels(displayBead.labels).map((label) => (
               <LabelBadge
                 key={label}
                 label={label}
