@@ -566,7 +566,15 @@ textarea {
   min-height: 28px;
 }
 
-.filter-preset-select {
+/* Preset dropdown */
+.preset-dropdown {
+  position: relative;
+}
+
+.preset-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   padding: 2px 6px;
   font-size: 11px;
   background: var(--vscode-dropdown-background);
@@ -576,9 +584,50 @@ textarea {
   cursor: pointer;
 }
 
-.filter-preset-select:focus {
-  outline: 1px solid var(--vscode-focusBorder);
+.preset-dropdown-btn:hover {
+  background: var(--vscode-list-hoverBackground);
 }
+
+.dropdown-chevron {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.preset-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  margin-top: 2px;
+  min-width: 100px;
+  background: var(--vscode-menu-background);
+  border: 1px solid var(--vscode-menu-border);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.preset-option {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 12px;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--vscode-menu-foreground);
+  cursor: pointer;
+}
+
+.preset-option:hover {
+  background: var(--vscode-menu-selectionBackground);
+}
+
+.preset-option.active {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
 
 .filter-chip {
   display: inline-flex;

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Assignee and Estimate columns (hidden by default) (`vsbeads-kz0`)
+
 ### Fixed
 
 - Column resize now works properly in Issues list (`vsbeads-oqb`)
@@ -16,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Column menu closes on click outside (`vsbeads-1nq`)
 - Removing labels via X button now persists on save (`vsbeads-7g6`)
 - Save button disabled when no pending changes
+- Menus close when clicking outside VS Code webview
+- Filter preset selector now uses styled dropdown (`vsbeads-cp3`)
 
 ### Changed
 
