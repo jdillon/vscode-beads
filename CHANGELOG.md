@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Save button disabled when no pending changes
 - Menus close when clicking outside VS Code webview
 - Filter preset selector now uses styled dropdown (`vsbeads-cp3`)
+- Sort labels alphabetically (case-insensitive) in Issues and Details views (`vsbeads-qtl`)
 
 ### Changed
 
