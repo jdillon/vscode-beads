@@ -21,6 +21,7 @@ import {
   PRIORITY_COLORS,
   TYPE_LABELS,
   TYPE_COLORS,
+  sortLabels,
   vscode,
 } from "../types";
 import { StatusBadge } from "../common/StatusBadge";
@@ -679,7 +680,7 @@ export function IssuesView({
                       )}
                       {col.id === "labels" && (
                         <>
-                          {bead.labels?.map((label) => (
+                          {sortLabels(bead.labels).map((label) => (
                             <LabelBadge key={label} label={label} />
                           ))}
                         </>

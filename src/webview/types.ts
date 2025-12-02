@@ -172,6 +172,12 @@ export const TYPE_TEXT_COLORS: Record<BeadType, string> = {
   chore: "#ffffff",
 };
 
+/** Sort labels alphabetically (case-insensitive) */
+export function sortLabels(labels: string[] | undefined): string[] {
+  if (!labels) return [];
+  return [...labels].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+}
+
 // VS Code API interface for webview
 declare global {
   interface Window {
