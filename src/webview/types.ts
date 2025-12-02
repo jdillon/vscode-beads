@@ -71,24 +71,6 @@ export interface BeadsSummary {
   inProgressCount: number;
 }
 
-export interface GraphNode {
-  id: string;
-  title: string;
-  status: BeadStatus;
-  priority?: BeadPriority;
-}
-
-export interface GraphEdge {
-  source: string;
-  target: string;
-  type: "depends_on" | "blocks";
-}
-
-export interface DependencyGraph {
-  nodes: GraphNode[];
-  edges: GraphEdge[];
-}
-
 export interface WebviewSettings {
   renderMarkdown: boolean;
 }
@@ -101,7 +83,6 @@ export type ExtensionMessage =
   | { type: "setBead"; bead: Bead | null }
   | { type: "setSelectedBeadId"; beadId: string | null }
   | { type: "setSummary"; summary: BeadsSummary }
-  | { type: "setGraph"; graph: DependencyGraph }
   | { type: "setProjects"; projects: BeadsProject[] }
   | { type: "setLoading"; loading: boolean }
   | { type: "setError"; error: string | null }

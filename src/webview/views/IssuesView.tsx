@@ -40,7 +40,7 @@ interface IssuesViewProps {
   onUpdateBead: (beadId: string, updates: Partial<Bead>) => void;
 }
 
-type SortField = "title" | "status" | "priority" | "type" | "labels" | "createdAt" | "updatedAt";
+type SortField = "title" | "status" | "priority" | "type" | "labels" | "assignee" | "estimate" | "createdAt" | "updatedAt";
 type SortDirection = "asc" | "desc";
 
 interface Filters {
@@ -65,6 +65,8 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { id: "status", label: "Status", visible: true, width: 80, minWidth: 60, sortable: true },
   { id: "priority", label: "Priority", visible: true, width: 70, minWidth: 50, sortable: true },
   { id: "labels", label: "Labels", visible: false, width: 100, minWidth: 60, sortable: false },
+  { id: "assignee", label: "Assignee", visible: false, width: 80, minWidth: 50, sortable: true },
+  { id: "estimate", label: "Estimate", visible: false, width: 70, minWidth: 50, sortable: true },
   { id: "updatedAt", label: "Updated", visible: true, width: 80, minWidth: 60, sortable: true },
   { id: "createdAt", label: "Created", visible: true, width: 80, minWidth: 60, sortable: true },
 ];
@@ -108,6 +110,7 @@ export function IssuesView({
   const [activePreset, setActivePreset] = useState<string | null>("not-closed");
   const [filterBarOpen, setFilterBarOpen] = useState(true); // Start open to show default filter
   const [filterMenuOpen, setFilterMenuOpen] = useState<string | null>(null);
+  const [presetMenuOpen, setPresetMenuOpen] = useState(false);
   const [columnMenuOpen, setColumnMenuOpen] = useState(false);
   const [resizing, setResizing] = useState<{ id: SortField; startX: number; startWidth: number } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -147,6 +150,8 @@ export function IssuesView({
   const showFilterRow = filterBarOpen || hasActiveFilters;
   const visibleColumns = columns.filter((c) => c.visible);
   const filterMenuRef = useRef<HTMLDivElement>(null);
+  const columnMenuRef = useRef<HTMLTableCellElement>(null);
+  const presetMenuRef = useRef<HTMLDivElement>(null);
 
   // Click outside to close filter menu
   useEffect(() => {
@@ -161,6 +166,46 @@ export function IssuesView({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [filterMenuOpen]);
+
+  // Click outside to close column menu
+  useEffect(() => {
+    if (!columnMenuOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (columnMenuRef.current && !columnMenuRef.current.contains(e.target as Node)) {
+        setColumnMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [columnMenuOpen]);
+
+  // Click outside to close preset menu
+  useEffect(() => {
+    if (!presetMenuOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (presetMenuRef.current && !presetMenuRef.current.contains(e.target as Node)) {
+        setPresetMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [presetMenuOpen]);
+
+  // Close menus when webview loses focus (click outside VS Code webview)
+  useEffect(() => {
+    const handleBlur = () => {
+      setColumnMenuOpen(false);
+      setFilterMenuOpen(null);
+      setPresetMenuOpen(false);
+    };
+
+    window.addEventListener("blur", handleBlur);
+    return () => window.removeEventListener("blur", handleBlur);
+  }, []);
 
   // Handle column resize
   const handleResizeStart = useCallback((e: React.MouseEvent, col: ColumnConfig) => {
@@ -244,6 +289,12 @@ export function IssuesView({
           break;
         case "type":
           comparison = (a.type || "").localeCompare(b.type || "");
+          break;
+        case "assignee":
+          comparison = (a.assignee || "").localeCompare(b.assignee || "");
+          break;
+        case "estimate":
+          comparison = (a.estimatedMinutes ?? 0) - (b.estimatedMinutes ?? 0);
           break;
         case "createdAt":
           comparison = (a.createdAt || "").localeCompare(b.createdAt || "");
@@ -403,18 +454,33 @@ export function IssuesView({
       {showFilterRow && (
         <div className="filter-bar">
           {/* Preset dropdown */}
-          <select
-            className="filter-preset-select"
-            value={activePreset || ""}
-            onChange={(e) => applyPreset(e.target.value)}
-          >
-            {!activePreset && <option value="" disabled>Custom</option>}
-            {FILTER_PRESETS.map((preset) => (
-              <option key={preset.id} value={preset.id}>
-                {preset.label}
-              </option>
-            ))}
-          </select>
+          <div className="preset-dropdown" ref={presetMenuRef}>
+            <button
+              className="preset-dropdown-btn"
+              onClick={() => setPresetMenuOpen(!presetMenuOpen)}
+            >
+              {activePreset
+                ? FILTER_PRESETS.find((p) => p.id === activePreset)?.label
+                : "Custom"}
+              <span className="dropdown-chevron">▾</span>
+            </button>
+            {presetMenuOpen && (
+              <div className="preset-dropdown-menu">
+                {FILTER_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    className={`preset-option ${activePreset === preset.id ? "active" : ""}`}
+                    onClick={() => {
+                      applyPreset(preset.id);
+                      setPresetMenuOpen(false);
+                    }}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Active filter chips */}
           {filters.status.map((status) => (
@@ -511,13 +577,21 @@ export function IssuesView({
       {/* Table */}
       <div className="beads-table-wrapper">
         <div className={`beads-table-container ${resizing ? "resizing" : ""}`}>
-          <table className="beads-table">
+          <table
+            className="beads-table"
+            style={{ minWidth: `${visibleColumns.reduce((sum, c) => sum + c.width, 0) + 24}px` }}
+          >
+          <colgroup>
+            {visibleColumns.map((col) => (
+              <col key={col.id} style={{ width: `${col.width}px` }} />
+            ))}
+            <col style={{ width: '24px' }} />
+          </colgroup>
           <thead>
             <tr>
-              {visibleColumns.map((col, idx) => (
+              {visibleColumns.map((col) => (
                 <th
                   key={col.id}
-                  style={{ minWidth: `${col.width}px`, width: `${col.width}px` }}
                   className={col.sortable ? "sortable" : ""}
                   onClick={() => col.sortable && handleSort(col.id)}
                 >
@@ -530,7 +604,7 @@ export function IssuesView({
                   />
                 </th>
               ))}
-              <th className="col-menu-th">
+              <th className="col-menu-th" ref={columnMenuRef}>
                 <button
                   className="col-menu-btn"
                   onClick={() => setColumnMenuOpen(!columnMenuOpen)}
@@ -605,13 +679,16 @@ export function IssuesView({
                       )}
                       {col.id === "labels" && (
                         <>
-                          {bead.labels?.slice(0, 2).map((label) => (
+                          {bead.labels?.map((label) => (
                             <LabelBadge key={label} label={label} />
                           ))}
-                          {bead.labels && bead.labels.length > 2 && (
-                            <span className="more-labels">+{bead.labels.length - 2}</span>
-                          )}
                         </>
+                      )}
+                      {col.id === "assignee" && (bead.assignee || "-")}
+                      {col.id === "estimate" && (
+                        bead.estimatedMinutes
+                          ? `${bead.estimatedMinutes}m`
+                          : "-"
                       )}
                       {col.id === "createdAt" && (
                         bead.createdAt
