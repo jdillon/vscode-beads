@@ -158,7 +158,7 @@ export function DetailsView({
     if (!editMode && Object.keys(editedBead).length > 0) {
       setEditedBead({});
     }
-  }, [bead?.updatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [bead?.updatedAt]);
 
   const handleSave = useCallback(() => {
     if (bead && Object.keys(editedBead).length > 0) {
