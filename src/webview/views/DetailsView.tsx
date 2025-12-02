@@ -610,7 +610,9 @@ export function DetailsView({
                   {new Date(comment.createdAt).toLocaleDateString()}
                 </span>
               </div>
-              <div className="comment-text">{comment.text}</div>
+              <div className="comment-text">
+                <TextContent content={comment.text} renderMarkdown={renderMarkdown} />
+              </div>
             </div>
           ))}
           {(displayBead.comments || []).length === 0 && (
