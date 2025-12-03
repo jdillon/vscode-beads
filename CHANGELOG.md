@@ -12,11 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Project selector in Dashboard view for consistency (`vsbeads-xbq`)
 - "Start Daemon" button on socket connection errors (`vsbeads-xbq`)
 - Custom project dropdown with daemon status indicators per project (`vsbeads-d8u`)
+- Status bar item showing daemon health with click-to-manage menu (`vsbeads-ly2`)
+- Daemon restart command and zombie daemon detection (`vsbeads-ly2`)
+- Prompt to init uninitialized projects with terminal helper (`vsbeads-ly2`)
 
 ### Fixed
 
 - UI no longer blocked when daemon not running - project switching always available (`vsbeads-xbq`)
 - Improved daemon start logging - shows command, cwd, and errors (`vsbeads-868`)
+- Project dropdown now updates status indicators on daemon connect/disconnect (`vsbeads-ly2`)
 
 ### Changed
 
