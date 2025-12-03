@@ -18,7 +18,6 @@ import { DashboardView } from "./views/DashboardView";
 import { IssuesView } from "./views/IssuesView";
 import { DetailsView } from "./views/DetailsView";
 import { Loading } from "./common/Loading";
-import { ErrorMessage } from "./common/ErrorMessage";
 import { ToastProvider, triggerToast } from "./common/Toast";
 
 interface AppState {
@@ -113,15 +112,6 @@ export function App(): React.ReactElement {
       return <Loading />;
     }
 
-    if (state.error && !state.loading) {
-      return (
-        <ErrorMessage
-          message={state.error}
-          onRetry={() => vscode.postMessage({ type: "refresh" })}
-        />
-      );
-    }
-
     switch (state.viewType) {
       case "beadsDashboard":
         return (
@@ -129,8 +119,20 @@ export function App(): React.ReactElement {
             summary={state.summary}
             beads={state.beads}
             loading={state.loading}
+            error={state.error}
+            projects={state.projects}
+            activeProject={state.project}
+            onSelectProject={(projectId) =>
+              vscode.postMessage({ type: "selectProject", projectId })
+            }
             onSelectBead={(beadId) =>
               vscode.postMessage({ type: "openBeadDetails", beadId })
+            }
+            onStartDaemon={() =>
+              vscode.postMessage({ type: "startDaemon" })
+            }
+            onRetry={() =>
+              vscode.postMessage({ type: "refresh" })
             }
           />
         );
@@ -140,6 +142,7 @@ export function App(): React.ReactElement {
           <IssuesView
             beads={state.beads}
             loading={state.loading}
+            error={state.error}
             selectedBeadId={state.selectedBeadId}
             projects={state.projects}
             activeProject={state.project}
@@ -151,6 +154,12 @@ export function App(): React.ReactElement {
             }
             onUpdateBead={(beadId, updates) =>
               vscode.postMessage({ type: "updateBead", beadId, updates })
+            }
+            onStartDaemon={() =>
+              vscode.postMessage({ type: "startDaemon" })
+            }
+            onRetry={() =>
+              vscode.postMessage({ type: "refresh" })
             }
           />
         );

@@ -3,9 +3,11 @@
  *
  * Custom dropdown that displays colored badges/chips for each option.
  * Replaces native <select> for type/status/priority fields.
+ * Built on generic Dropdown for consistent behavior.
  */
 
-import React, { useState, useRef, useEffect, ReactNode } from "react";
+import React, { useState, ReactNode } from "react";
+import { ChevronIcon } from "./ChevronIcon";
 
 export interface ColoredSelectOption<T extends string | number> {
   value: T;
@@ -25,6 +27,8 @@ interface ColoredSelectProps<T extends string | number> {
   renderTrigger?: (option: ColoredSelectOption<T>) => ReactNode;
   /** Custom render for menu options */
   renderOption?: (option: ColoredSelectOption<T>) => ReactNode;
+  /** Show chevron dropdown indicator (default: true) */
+  showChevron?: boolean;
 }
 
 export function ColoredSelect<T extends string | number>({
@@ -35,39 +39,11 @@ export function ColoredSelect<T extends string | number>({
   variant = "filter-chip",
   renderTrigger,
   renderOption,
+  showChevron = true,
 }: ColoredSelectProps<T>): React.ReactElement {
   const [isOpen, setIsOpen] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = options.find((o) => o.value === value) || options[0];
-
-  // Close on click outside
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen]);
-
-  // Close on escape
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
 
   const handleSelect = (optionValue: T) => {
     onChange(optionValue);
@@ -92,7 +68,7 @@ export function ColoredSelect<T extends string | number>({
     return (
       <>
         <span className="colored-select-label">{selectedOption.label}</span>
-        <span className="colored-select-arrow">{isOpen ? "▲" : "▼"}</span>
+        {showChevron && <ChevronIcon open={isOpen} size={10} />}
       </>
     );
   };
@@ -110,32 +86,47 @@ export function ColoredSelect<T extends string | number>({
     </span>
   );
 
+  // Use custom trigger if provided, otherwise check variant
+  const hasCustomTrigger = renderTrigger || variant === "badge";
+
   return (
-    <div className={`colored-select ${className}`} ref={wrapperRef}>
+    <div className={`colored-select dropdown ${className}`}>
       <button
         type="button"
-        className={`colored-select-trigger ${renderTrigger || variant === "badge" ? "colored-select-trigger-custom" : ""}`}
+        className={`colored-select-trigger dropdown-trigger ${hasCustomTrigger ? "colored-select-trigger-custom" : ""}`}
         onClick={() => setIsOpen(!isOpen)}
         style={!renderTrigger && variant === "filter-chip" ? {
           "--chip-accent-color": selectedOption.color,
         } as React.CSSProperties : undefined}
       >
-        {renderTrigger ? renderTrigger(selectedOption) : defaultTrigger()}
+        {renderTrigger ? (
+          <>
+            {renderTrigger(selectedOption)}
+            {showChevron && <ChevronIcon open={isOpen} size={10} />}
+          </>
+        ) : defaultTrigger()}
       </button>
 
       {isOpen && (
-        <div className="colored-select-menu">
-          {options.map((option) => (
-            <button
-              key={String(option.value)}
-              type="button"
-              className={`colored-select-option ${option.value === value ? "selected" : ""}`}
-              onClick={() => handleSelect(option.value)}
-            >
-              {renderOption ? renderOption(option) : defaultOption(option)}
-            </button>
-          ))}
-        </div>
+        <>
+          {/* Invisible overlay to catch clicks outside */}
+          <div
+            className="colored-select-overlay"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="colored-select-menu dropdown-menu">
+            {options.map((option) => (
+              <button
+                key={String(option.value)}
+                type="button"
+                className={`colored-select-option dropdown-item ${option.value === value ? "selected" : ""}`}
+                onClick={() => handleSelect(option.value)}
+              >
+                {renderOption ? renderOption(option) : defaultOption(option)}
+              </button>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

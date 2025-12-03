@@ -149,6 +149,79 @@ textarea {
   min-height: 80px;
 }
 
+/* ==================== Generic Dropdown ==================== */
+
+.dropdown {
+  position: relative;
+}
+
+.dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  font-size: 12px;
+  height: 22px;
+  border: 1px solid var(--vscode-dropdown-border);
+  border-radius: var(--border-radius);
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+  cursor: pointer;
+  text-align: left;
+}
+
+.dropdown-trigger:hover {
+  background: var(--vscode-dropdown-listBackground);
+}
+
+.dropdown-trigger:active {
+  transform: scale(0.98);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 2px;
+  min-width: 100%;
+  background: var(--vscode-dropdown-listBackground);
+  border: 1px solid var(--vscode-dropdown-border);
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 12px;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--vscode-dropdown-foreground);
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.dropdown-item.active {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+/* Chevron icon */
+.chevron-icon {
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: transform 0.15s ease;
+}
+
 /* ==================== Project Selector ==================== */
 
 .project-selector {
@@ -388,11 +461,33 @@ textarea {
   color: var(--vscode-errorForeground);
 }
 
-.retry-button {
+.error-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.retry-button,
+.start-daemon-button {
   padding: var(--spacing-sm) var(--spacing-lg);
   background-color: var(--vscode-button-background);
   color: var(--vscode-button-foreground);
   border-radius: var(--border-radius);
+  cursor: pointer;
+  border: none;
+}
+
+.retry-button:hover,
+.start-daemon-button:hover {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+.start-daemon-button {
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.start-daemon-button:hover {
+  background-color: var(--vscode-button-secondaryHoverBackground);
 }
 
 /* Empty States */
@@ -520,6 +615,41 @@ textarea {
   background: #ef4444;
 }
 
+.daemon-dot.unknown {
+  background: #6b7280;
+}
+
+/* Project Dropdown - extends generic .dropdown */
+.project-dropdown {
+  flex-shrink: 0;
+}
+
+.project-dropdown-trigger {
+  min-width: 60px;
+  max-width: 200px;
+}
+
+.project-dropdown-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-dropdown-menu {
+  max-width: 300px;
+}
+
+.project-dropdown-item {
+  gap: 8px;
+}
+
+.project-dropdown-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .filter-toggle {
   display: flex;
   align-items: center;
@@ -566,66 +696,16 @@ textarea {
   min-height: 28px;
 }
 
-/* Preset dropdown */
-.preset-dropdown {
-  position: relative;
-}
-
+/* Preset dropdown - extends generic .dropdown */
 .preset-dropdown-btn {
-  display: flex;
-  align-items: center;
   gap: 4px;
   padding: 2px 6px;
   font-size: 11px;
-  background: var(--vscode-dropdown-background);
-  color: var(--vscode-dropdown-foreground);
-  border: 1px solid var(--vscode-dropdown-border);
-  border-radius: 3px;
-  cursor: pointer;
-}
-
-.preset-dropdown-btn:hover {
-  background: var(--vscode-list-hoverBackground);
-}
-
-.dropdown-chevron {
-  font-size: 10px;
-  opacity: 0.7;
+  height: auto;
 }
 
 .preset-dropdown-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 100;
-  margin-top: 2px;
   min-width: 100px;
-  background: var(--vscode-menu-background);
-  border: 1px solid var(--vscode-menu-border);
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-}
-
-.preset-option {
-  display: block;
-  width: 100%;
-  padding: 6px 10px;
-  font-size: 12px;
-  text-align: left;
-  background: none;
-  border: none;
-  color: var(--vscode-menu-foreground);
-  cursor: pointer;
-}
-
-.preset-option:hover {
-  background: var(--vscode-menu-selectionBackground);
-}
-
-.preset-option.active {
-  background: var(--vscode-list-activeSelectionBackground);
-  color: var(--vscode-list-activeSelectionForeground);
 }
 
 
@@ -1292,9 +1372,11 @@ textarea {
   opacity: 0.85;
 }
 
-.colored-select-arrow {
-  font-size: 8px;
-  opacity: 0.6;
+/* Invisible overlay to catch clicks outside */
+.colored-select-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
 }
 
 .colored-select-label {

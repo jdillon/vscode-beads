@@ -279,23 +279,52 @@ export class BeadsProjectManager implements vscode.Disposable {
       }
     }
 
+    const cmd = `bd daemon --start`;
+    const cwd = this.activeProject.rootPath;
     this.outputChannel.appendLine(
       `[ProjectManager] Starting daemon for ${this.activeProject.name}...`
     );
+    this.outputChannel.appendLine(`[ProjectManager] Running: ${cmd} (cwd: ${cwd})`);
 
-    // Start daemon via CLI (one-time spawn)
+    // Start daemon via CLI
     const { spawn } = await import("child_process");
     return new Promise((resolve) => {
       const proc = spawn("bd", ["daemon", "--start"], {
-        cwd: this.activeProject!.rootPath,
+        cwd,
         shell: true,
         detached: true,
-        stdio: "ignore",
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      // Capture any output for debugging
+      let stdout = "";
+      let stderr = "";
+      proc.stdout?.on("data", (data) => {
+        stdout += data.toString();
+      });
+      proc.stderr?.on("data", (data) => {
+        stderr += data.toString();
+      });
+
+      proc.on("error", (err) => {
+        this.outputChannel.appendLine(`[ProjectManager] Spawn error: ${err.message}`);
+      });
+
+      proc.on("exit", (code) => {
+        if (code !== 0 && code !== null) {
+          this.outputChannel.appendLine(`[ProjectManager] Process exited with code ${code}`);
+          if (stderr) {
+            this.outputChannel.appendLine(`[ProjectManager] stderr: ${stderr.trim()}`);
+          }
+        }
+        if (stdout) {
+          this.outputChannel.appendLine(`[ProjectManager] stdout: ${stdout.trim()}`);
+        }
       });
 
       proc.unref();
 
-      // Wait a moment for daemon to start
+      // Wait for daemon to start (2 seconds to be safe)
       setTimeout(async () => {
         if (this.client?.socketExists()) {
           try {
@@ -307,17 +336,22 @@ export class BeadsProjectManager implements vscode.Disposable {
 
             // Start mutation watching
             this.client.startMutationWatch(1000);
+            this._onActiveProjectChanged.fire(this.activeProject);
+            this._onDataChanged.fire();
             resolve(true);
-          } catch {
+          } catch (err) {
+            this.outputChannel.appendLine(
+              `[ProjectManager] Daemon health check failed: ${err}`
+            );
             resolve(false);
           }
         } else {
           this.outputChannel.appendLine(
-            `[ProjectManager] Daemon failed to start`
+            `[ProjectManager] Daemon failed to start - socket not found at ${path.join(this.activeProject!.beadsDir, "bd.sock")}`
           );
           resolve(false);
         }
-      }, 1000);
+      }, 2000);
     });
   }
 

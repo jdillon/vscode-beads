@@ -9,9 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Project selector in Dashboard view for consistency (`vsbeads-xbq`)
+- "Start Daemon" button on socket connection errors (`vsbeads-xbq`)
+- Custom project dropdown with daemon status indicators per project (`vsbeads-d8u`)
+
 ### Fixed
 
+- UI no longer blocked when daemon not running - project switching always available (`vsbeads-xbq`)
+- Improved daemon start logging - shows command, cwd, and errors (`vsbeads-868`)
+
 ### Changed
+
+- Extracted reusable `Dropdown` and `ChevronIcon` components for consistent dropdown behavior
 
 ## [0.4.0] - 2025-12-01
 
