@@ -14,22 +14,23 @@ import {
   ExtensionToWebviewMessage,
   WebviewToExtensionMessage,
 } from "../backend/types";
+import { Logger } from "../utils/logger";
 
 export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
   protected _view?: vscode.WebviewView;
   protected readonly extensionUri: vscode.Uri;
   protected readonly projectManager: BeadsProjectManager;
-  protected readonly outputChannel: vscode.OutputChannel;
+  protected readonly log: Logger;
   protected abstract readonly viewType: string;
 
   constructor(
     extensionUri: vscode.Uri,
     projectManager: BeadsProjectManager,
-    outputChannel: vscode.OutputChannel
+    logger: Logger
   ) {
     this.extensionUri = extensionUri;
     this.projectManager = projectManager;
-    this.outputChannel = outputChannel;
+    this.log = logger;
   }
 
   public resolveWebviewView(
@@ -189,9 +190,14 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
    * Triggers a refresh of the view
    */
   public refresh(): void {
-    // Also update project state in webview
+    // Update project state in webview
     const project = this.projectManager.getActiveProject();
     this.postMessage({ type: "setProject", project });
+
+    // Also update projects list (for dropdown status indicators)
+    const projects = this.projectManager.getProjects();
+    this.postMessage({ type: "setProjects", projects });
+
     this.loadData();
   }
 

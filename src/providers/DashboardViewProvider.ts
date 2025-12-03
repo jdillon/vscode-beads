@@ -12,6 +12,7 @@ import * as vscode from "vscode";
 import { BaseViewProvider } from "./BaseViewProvider";
 import { BeadsProjectManager } from "../backend/BeadsProjectManager";
 import { Bead, BeadsSummary, issueToWebviewBead, BeadStatus, BeadPriority } from "../backend/types";
+import { Logger } from "../utils/logger";
 
 export class DashboardViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsDashboard";
@@ -19,9 +20,9 @@ export class DashboardViewProvider extends BaseViewProvider {
   constructor(
     extensionUri: vscode.Uri,
     projectManager: BeadsProjectManager,
-    outputChannel: vscode.OutputChannel
+    logger: Logger
   ) {
-    super(extensionUri, projectManager, outputChannel);
+    super(extensionUri, projectManager, logger.child("Dashboard"));
   }
 
   protected async loadData(): Promise<void> {

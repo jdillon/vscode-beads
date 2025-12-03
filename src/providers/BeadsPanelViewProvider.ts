@@ -13,6 +13,7 @@ import * as vscode from "vscode";
 import { BaseViewProvider } from "./BaseViewProvider";
 import { BeadsProjectManager } from "../backend/BeadsProjectManager";
 import { WebviewToExtensionMessage, Bead, issueToWebviewBead } from "../backend/types";
+import { Logger } from "../utils/logger";
 
 export class BeadsPanelViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsPanel";
@@ -21,9 +22,9 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
   constructor(
     extensionUri: vscode.Uri,
     projectManager: BeadsProjectManager,
-    outputChannel: vscode.OutputChannel
+    logger: Logger
   ) {
-    super(extensionUri, projectManager, outputChannel);
+    super(extensionUri, projectManager, logger.child("Panel"));
   }
 
   /**

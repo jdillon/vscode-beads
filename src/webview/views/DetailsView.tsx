@@ -318,6 +318,7 @@ export function DetailsView({
               onChange={(v) => handleInlineUpdate("type", v)}
               renderTrigger={() => <TypeBadge type={(displayBead.type || "task") as BeadType} size="small" />}
               renderOption={(opt) => <TypeBadge type={opt.value as BeadType} size="small" />}
+              showChevron={false}
             />
             <ColoredSelect
               value={displayBead.status}
@@ -325,6 +326,7 @@ export function DetailsView({
               onChange={(v) => handleInlineUpdate("status", v)}
               renderTrigger={() => <StatusBadge status={displayBead.status} size="small" />}
               renderOption={(opt) => <StatusBadge status={opt.value as BeadStatus} size="small" />}
+              showChevron={false}
             />
             <ColoredSelect
               value={displayBead.priority ?? 4}
@@ -332,6 +334,7 @@ export function DetailsView({
               onChange={(v) => handleInlineUpdate("priority", v)}
               renderTrigger={() => <PriorityBadge priority={displayBead.priority ?? 4} size="small" />}
               renderOption={(opt) => <PriorityBadge priority={opt.value as BeadPriority} size="small" />}
+              showChevron={false}
             />
           </>
         )}

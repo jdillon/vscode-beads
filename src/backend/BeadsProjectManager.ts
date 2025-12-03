@@ -14,6 +14,7 @@ import * as fs from "fs";
 import * as crypto from "crypto";
 import { BeadsProject } from "./types";
 import { BeadsDaemonClient, MutationEvent } from "./BeadsDaemonClient";
+import { Logger } from "../utils/logger";
 
 const ACTIVE_PROJECT_KEY = "beads.activeProjectId";
 
@@ -21,7 +22,7 @@ export class BeadsProjectManager implements vscode.Disposable {
   private projects: BeadsProject[] = [];
   private activeProject: BeadsProject | null = null;
   private client: BeadsDaemonClient | null = null;
-  private outputChannel: vscode.OutputChannel;
+  private log: Logger;
   private context: vscode.ExtensionContext;
 
   private readonly _onProjectsChanged = new vscode.EventEmitter<BeadsProject[]>();
@@ -36,9 +37,9 @@ export class BeadsProjectManager implements vscode.Disposable {
   private readonly _onMutation = new vscode.EventEmitter<MutationEvent>();
   public readonly onMutation = this._onMutation.event;
 
-  constructor(context: vscode.ExtensionContext, outputChannel: vscode.OutputChannel) {
+  constructor(context: vscode.ExtensionContext, logger: Logger) {
     this.context = context;
-    this.outputChannel = outputChannel;
+    this.log = logger.child("ProjectManager");
   }
 
   /**
@@ -62,7 +63,7 @@ export class BeadsProjectManager implements vscode.Disposable {
    * Discovers Beads projects in all workspace folders
    */
   async discoverProjects(): Promise<void> {
-    this.outputChannel.appendLine("[ProjectManager] Discovering Beads projects...");
+    this.log.info("Discovering Beads projects...");
 
     const discoveredProjects: BeadsProject[] = [];
     const workspaceFolders = vscode.workspace.workspaceFolders || [];
@@ -80,9 +81,7 @@ export class BeadsProjectManager implements vscode.Disposable {
             folder.name
           );
           discoveredProjects.push(project);
-          this.outputChannel.appendLine(
-            `[ProjectManager] Found project: ${project.name} at ${project.rootPath}`
-          );
+          this.log.info(`Found project: ${project.name} at ${project.rootPath}`);
         }
       } catch {
         // .beads directory doesn't exist in this folder, skip
@@ -92,9 +91,7 @@ export class BeadsProjectManager implements vscode.Disposable {
     this.projects = discoveredProjects;
     this._onProjectsChanged.fire(this.projects);
 
-    this.outputChannel.appendLine(
-      `[ProjectManager] Discovered ${this.projects.length} project(s)`
-    );
+    this.log.info(`Discovered ${this.projects.length} project(s)`);
   }
 
   /**
@@ -168,9 +165,7 @@ export class BeadsProjectManager implements vscode.Disposable {
   async setActiveProject(projectId: string): Promise<boolean> {
     const project = this.projects.find((p) => p.id === projectId);
     if (!project) {
-      this.outputChannel.appendLine(
-        `[ProjectManager] Project not found: ${projectId}`
-      );
+      this.log.warn(`Project not found: ${projectId}`);
       return false;
     }
 
@@ -191,55 +186,47 @@ export class BeadsProjectManager implements vscode.Disposable {
       expectedDb: project.dbPath,
     });
 
-    this.outputChannel.appendLine(
-      `[ProjectManager] Active project set to: ${project.name}`
-    );
+    this.log.info(`Active project set to: ${project.name}`);
 
     // Check if daemon is running and connect
     if (this.client.socketExists()) {
       try {
         const health = await this.client.health();
         project.daemonStatus = health.status === "healthy" ? "running" : "stopped";
-        this.outputChannel.appendLine(
-          `[ProjectManager] Daemon status: ${health.status} (v${health.version})`
-        );
+        this.log.info(`Daemon status: ${health.status} (v${health.version})`);
 
         // Start mutation watching for real-time updates
         this.client.on("mutation", (mutation: MutationEvent) => {
-          this.outputChannel.appendLine(
-            `[ProjectManager] Mutation: ${mutation.Type} on ${mutation.IssueID}`
-          );
+          this.log.debug(`Mutation: ${mutation.Type} on ${mutation.IssueID}`);
           this._onMutation.fire(mutation);
           this._onDataChanged.fire();
         });
 
         this.client.on("disconnected", (err: Error) => {
-          this.outputChannel.appendLine(
-            `[ProjectManager] Daemon disconnected: ${err.message}`
-          );
           if (this.activeProject) {
+            this.log.warn(
+              `Lost connection to daemon for "${this.activeProject.name}": ${err.message}`
+            );
             this.activeProject.daemonStatus = "stopped";
             this._onActiveProjectChanged.fire(this.activeProject);
+            vscode.window.setStatusBarMessage("$(warning) Beads daemon disconnected", 3000);
           }
         });
 
         this.client.on("reconnected", () => {
-          this.outputChannel.appendLine(
-            `[ProjectManager] Daemon reconnected`
-          );
           if (this.activeProject) {
+            this.log.info(`Reconnected to daemon for "${this.activeProject.name}"`);
             this.activeProject.daemonStatus = "running";
             this._onActiveProjectChanged.fire(this.activeProject);
             this._onDataChanged.fire();
+            vscode.window.setStatusBarMessage("$(check) Beads daemon connected", 3000);
           }
         });
 
         // Poll for mutations every second (with exponential backoff on errors)
         this.client.startMutationWatch(1000);
       } catch (err) {
-        this.outputChannel.appendLine(
-          `[ProjectManager] Failed to connect to daemon: ${err}`
-        );
+        this.log.error(`Failed to connect to daemon: ${err}`);
         project.daemonStatus = "stopped";
       }
     } else {
@@ -268,57 +255,164 @@ export class BeadsProjectManager implements vscode.Disposable {
       return false;
     }
 
-    // Check if already running
+    // Check if already running and healthy
     if (this.client?.socketExists()) {
       try {
         await this.client.health();
         this.activeProject.daemonStatus = "running";
         return true;
       } catch {
-        // Socket exists but daemon not responding
+        // Socket exists but daemon not responding - try restart
+        this.log.warn("Daemon socket exists but not responding, attempting restart...");
+        await this.restartDaemon();
+        return this.activeProject.daemonStatus === "running";
       }
     }
 
-    this.outputChannel.appendLine(
-      `[ProjectManager] Starting daemon for ${this.activeProject.name}...`
-    );
+    // Try to start daemon
+    const result = await this.startDaemonProcess();
 
-    // Start daemon via CLI (one-time spawn)
+    if (!result.success && result.notInitialized) {
+      // Project has .beads directory but no database
+      this.log.warn("Project not fully initialized - no database found");
+      const action = await vscode.window.showWarningMessage(
+        `The project "${this.activeProject.name}" has not been initialized. Run 'bd init' to set up the database.`,
+        "Open Terminal",
+        "Dismiss"
+      );
+
+      if (action === "Open Terminal") {
+        const terminal = vscode.window.createTerminal({
+          name: `Beads Init: ${this.activeProject.name}`,
+          cwd: this.activeProject.rootPath,
+        });
+        terminal.show();
+        terminal.sendText("bd init");
+      }
+      return false;
+    }
+
+    if (!result.success && result.alreadyRunning) {
+      // Daemon claims to be running but we couldn't connect
+      // This usually means zombie daemon - offer restart
+      this.log.warn("Daemon reports already running but socket not accessible");
+      const action = await vscode.window.showWarningMessage(
+        `The daemon for "${this.activeProject.name}" appears to be in a bad state. Restart it?`,
+        "Restart Daemon",
+        "Cancel"
+      );
+
+      if (action === "Restart Daemon") {
+        return this.restartDaemon();
+      }
+      return false;
+    }
+
+    return result.success;
+  }
+
+  /**
+   * Starts the daemon process and waits for it to be ready
+   */
+  private async startDaemonProcess(): Promise<{
+    success: boolean;
+    alreadyRunning: boolean;
+    notInitialized: boolean;
+  }> {
+    if (!this.activeProject) {
+      return { success: false, alreadyRunning: false, notInitialized: false };
+    }
+
+    const cwd = this.activeProject.rootPath;
+    this.log.info(`Starting daemon for ${this.activeProject.name}...`);
+
     const { spawn } = await import("child_process");
     return new Promise((resolve) => {
       const proc = spawn("bd", ["daemon", "--start"], {
-        cwd: this.activeProject!.rootPath,
+        cwd,
         shell: true,
         detached: true,
-        stdio: "ignore",
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      let stderr = "";
+      proc.stderr?.on("data", (data) => {
+        stderr += data.toString();
+      });
+
+      proc.on("error", (err) => {
+        this.log.error(`Spawn error: ${err.message}`);
+      });
+
+      let exitCode: number | null = null;
+      proc.on("exit", (code) => {
+        exitCode = code;
+        if (code !== 0 && code !== null) {
+          this.log.error(`bd daemon --start exited with code ${code}`);
+          if (stderr) {
+            this.log.error(`stderr: ${stderr.trim()}`);
+          }
+        }
       });
 
       proc.unref();
 
-      // Wait a moment for daemon to start
+      // Wait for daemon to start
       setTimeout(async () => {
+        const alreadyRunning = stderr.includes("daemon already running");
+        const notInitialized = stderr.includes("no database path configured") ||
+                              stderr.includes("bd init");
+
         if (this.client?.socketExists()) {
           try {
             await this.client.health();
             this.activeProject!.daemonStatus = "running";
-            this.outputChannel.appendLine(
-              `[ProjectManager] Daemon started successfully`
-            );
-
-            // Start mutation watching
-            this.client.startMutationWatch(1000);
-            resolve(true);
-          } catch {
-            resolve(false);
+            this.log.info("Daemon started successfully");
+            this.setupMutationWatching();
+            resolve({ success: true, alreadyRunning: false, notInitialized: false });
+          } catch (err) {
+            this.log.error(`Daemon health check failed: ${err}`);
+            resolve({ success: false, alreadyRunning, notInitialized });
           }
         } else {
-          this.outputChannel.appendLine(
-            `[ProjectManager] Daemon failed to start`
-          );
-          resolve(false);
+          if (!alreadyRunning && !notInitialized) {
+            this.log.error(
+              `Daemon failed to start - socket not found at ${path.join(this.activeProject!.beadsDir, "bd.sock")}`
+            );
+          }
+          resolve({ success: false, alreadyRunning, notInitialized });
         }
-      }, 1000);
+      }, 2000);
     });
+  }
+
+  /**
+   * Sets up mutation watching after daemon connection
+   */
+  private setupMutationWatching(): void {
+    if (!this.client) return;
+
+    this.client.startMutationWatch(1000);
+    this._onActiveProjectChanged.fire(this.activeProject);
+    this._onDataChanged.fire();
+  }
+
+  /**
+   * Restarts the daemon (stop + start)
+   */
+  async restartDaemon(): Promise<boolean> {
+    if (!this.activeProject) {
+      return false;
+    }
+
+    this.log.info(`Restarting daemon for ${this.activeProject.name}...`);
+    await this.stopDaemon();
+
+    // Brief pause to ensure cleanup
+    await new Promise((r) => setTimeout(r, 500));
+
+    const result = await this.startDaemonProcess();
+    return result.success;
   }
 
   /**
@@ -328,6 +422,8 @@ export class BeadsProjectManager implements vscode.Disposable {
     if (!this.activeProject) {
       return false;
     }
+
+    this.log.info(`Stopping daemon for ${this.activeProject.name}...`);
 
     // Stop daemon via CLI
     const { spawn } = await import("child_process");
@@ -343,12 +439,157 @@ export class BeadsProjectManager implements vscode.Disposable {
           if (this.client) {
             this.client.stopMutationWatch();
           }
+          this.log.info("Daemon stopped");
           resolve(true);
         } else {
+          this.log.error(`Failed to stop daemon (exit code ${code})`);
           resolve(false);
         }
       });
     });
+  }
+
+  /**
+   * Detailed daemon status check with edge case detection
+   */
+  async getDaemonStatus(): Promise<{
+    state: "running" | "stopped" | "zombie" | "not_initialized" | "unknown";
+    message: string;
+    details: {
+      hasDatabase: boolean;
+      hasSocket: boolean;
+      hasPidFile: boolean;
+      pidFileValue: number | null;
+      processRunning: boolean;
+      healthCheckPassed: boolean;
+    };
+  }> {
+    if (!this.activeProject) {
+      return {
+        state: "unknown",
+        message: "No active project",
+        details: {
+          hasDatabase: false,
+          hasSocket: false,
+          hasPidFile: false,
+          pidFileValue: null,
+          processRunning: false,
+          healthCheckPassed: false,
+        },
+      };
+    }
+
+    const beadsDir = this.activeProject.beadsDir;
+    const details = {
+      hasDatabase: false,
+      hasSocket: false,
+      hasPidFile: false,
+      pidFileValue: null as number | null,
+      processRunning: false,
+      healthCheckPassed: false,
+    };
+
+    // Check for database
+    try {
+      await fs.promises.access(path.join(beadsDir, "beads.db"));
+      details.hasDatabase = true;
+    } catch {
+      // No database
+    }
+
+    // Check for socket
+    try {
+      await fs.promises.access(path.join(beadsDir, "bd.sock"));
+      details.hasSocket = true;
+    } catch {
+      // No socket
+    }
+
+    // Check PID file
+    try {
+      const pidContent = await fs.promises.readFile(
+        path.join(beadsDir, "daemon.pid"),
+        "utf-8"
+      );
+      details.hasPidFile = true;
+      details.pidFileValue = parseInt(pidContent.trim(), 10);
+
+      // Check if process is actually running
+      if (details.pidFileValue) {
+        try {
+          process.kill(details.pidFileValue, 0); // Signal 0 = check existence
+          details.processRunning = true;
+        } catch {
+          // Process not running
+        }
+      }
+    } catch {
+      // No PID file
+    }
+
+    // Try health check if socket exists
+    if (details.hasSocket && this.client) {
+      try {
+        await this.client.health();
+        details.healthCheckPassed = true;
+      } catch {
+        // Health check failed
+      }
+    }
+
+    // Determine state based on checks
+    if (!details.hasDatabase) {
+      return {
+        state: "not_initialized",
+        message: "Database not found. Run 'bd init' to initialize.",
+        details,
+      };
+    }
+
+    if (details.hasSocket && details.healthCheckPassed) {
+      this.activeProject.daemonStatus = "running";
+      return {
+        state: "running",
+        message: `Healthy (PID: ${details.pidFileValue || "unknown"})`,
+        details,
+      };
+    }
+
+    if (details.processRunning && !details.hasSocket) {
+      // Zombie: process running but no socket
+      return {
+        state: "zombie",
+        message: `Process running (PID: ${details.pidFileValue}) but socket missing. Daemon crashed?`,
+        details,
+      };
+    }
+
+    if (details.processRunning && details.hasSocket && !details.healthCheckPassed) {
+      // Zombie: socket exists but health check fails
+      return {
+        state: "zombie",
+        message: `Process running (PID: ${details.pidFileValue}) but not responding. Daemon unhealthy.`,
+        details,
+      };
+    }
+
+    if (details.hasPidFile && !details.processRunning) {
+      // Stale PID file
+      this.activeProject.daemonStatus = "stopped";
+      return {
+        state: "stopped",
+        message: `Stale PID file (was PID: ${details.pidFileValue}). Daemon not running.`,
+        details,
+      };
+    }
+
+    // Clean stopped state
+    this.activeProject.daemonStatus = "stopped";
+    return {
+      state: "stopped",
+      message: "Daemon not running",
+      details,
+    };
   }
 
   /**
@@ -359,14 +600,10 @@ export class BeadsProjectManager implements vscode.Disposable {
       return;
     }
 
-    // Re-check daemon status
-    if (this.client.socketExists()) {
-      try {
-        await this.client.health();
-        this.activeProject.daemonStatus = "running";
-      } catch {
-        this.activeProject.daemonStatus = "stopped";
-      }
+    // Re-check daemon status using detailed check
+    const status = await this.getDaemonStatus();
+    if (status.state === "running") {
+      this.activeProject.daemonStatus = "running";
     } else {
       this.activeProject.daemonStatus = "stopped";
     }

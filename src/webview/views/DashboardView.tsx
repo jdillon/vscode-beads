@@ -10,33 +10,44 @@
 import React from "react";
 import {
   Bead,
+  BeadsProject,
   BeadsSummary,
   BeadStatus,
   BeadPriority,
-  STATUS_LABELS,
   STATUS_COLORS,
-  PRIORITY_LABELS,
   PRIORITY_COLORS,
 } from "../types";
 import { StatusBadge } from "../common/StatusBadge";
 import { PriorityBadge } from "../common/PriorityBadge";
+import { ErrorMessage } from "../common/ErrorMessage";
+import { ProjectDropdown } from "../common/ProjectDropdown";
 
 interface DashboardViewProps {
   summary: BeadsSummary | null;
   beads: Bead[];
   loading: boolean;
+  error: string | null;
+  projects: BeadsProject[];
+  activeProject: BeadsProject | null;
+  onSelectProject: (projectId: string) => void;
   onSelectBead: (beadId: string) => void;
+  onStartDaemon: () => void;
+  onRetry: () => void;
 }
 
 export function DashboardView({
   summary,
   beads,
   loading,
+  error,
+  projects,
+  activeProject,
+  onSelectProject,
   onSelectBead,
+  onStartDaemon,
+  onRetry,
 }: DashboardViewProps): React.ReactElement {
-  if (!summary && loading) {
-    return <div className="dashboard loading">Loading dashboard...</div>;
-  }
+  const isSocketError = error?.includes("ENOENT") || error?.includes("socket");
 
   const openBeads = beads.filter((b) => b.status === "open").slice(0, 5);
   const blockedBeads = beads.filter((b) => b.status === "blocked").slice(0, 5);
@@ -44,7 +55,32 @@ export function DashboardView({
 
   return (
     <div className="dashboard">
-      {/* Summary Cards */}
+      {/* Toolbar with project selector */}
+      <div className="panel-toolbar-compact">
+        <ProjectDropdown
+          projects={projects}
+          activeProject={activeProject}
+          onSelectProject={onSelectProject}
+        />
+      </div>
+
+      {/* Error state */}
+      {error && !loading && (
+        <ErrorMessage
+          message={error}
+          onRetry={onRetry}
+          onStartDaemon={isSocketError ? onStartDaemon : undefined}
+        />
+      )}
+
+      {/* Loading state */}
+      {!summary && loading && !error && (
+        <div className="loading-message">Loading dashboard...</div>
+      )}
+
+      {/* Summary Cards - only show when we have data */}
+      {summary && !error && (
+        <>
       <div className="summary-section">
         <div className="summary-card total">
           <div className="card-value">{summary?.total || 0}</div>
@@ -164,6 +200,8 @@ export function DashboardView({
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }

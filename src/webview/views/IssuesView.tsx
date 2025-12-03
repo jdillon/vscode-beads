@@ -17,7 +17,6 @@ import {
   BeadType,
   STATUS_LABELS,
   STATUS_COLORS,
-  PRIORITY_LABELS,
   PRIORITY_COLORS,
   TYPE_LABELS,
   TYPE_COLORS,
@@ -29,16 +28,22 @@ import { PriorityBadge } from "../common/PriorityBadge";
 import { TypeBadge } from "../common/TypeBadge";
 import { LabelBadge } from "../common/LabelBadge";
 import { FilterChip } from "../common/FilterChip";
+import { ErrorMessage } from "../common/ErrorMessage";
+import { ProjectDropdown } from "../common/ProjectDropdown";
+import { Dropdown, DropdownItem } from "../common/Dropdown";
 
 interface IssuesViewProps {
   beads: Bead[];
   loading: boolean;
+  error: string | null;
   selectedBeadId: string | null;
   projects: BeadsProject[];
   activeProject: BeadsProject | null;
   onSelectProject: (projectId: string) => void;
   onSelectBead: (beadId: string) => void;
   onUpdateBead: (beadId: string, updates: Partial<Bead>) => void;
+  onStartDaemon: () => void;
+  onRetry: () => void;
 }
 
 type SortField = "title" | "status" | "priority" | "type" | "labels" | "assignee" | "estimate" | "createdAt" | "updatedAt";
@@ -93,13 +98,18 @@ const FILTER_PRESETS: FilterPreset[] = [
 export function IssuesView({
   beads,
   loading,
+  error,
   selectedBeadId,
   projects,
   activeProject,
   onSelectProject,
   onSelectBead,
-  onUpdateBead,
+  onUpdateBead: _onUpdateBead,
+  onStartDaemon,
+  onRetry,
 }: IssuesViewProps): React.ReactElement {
+  void _onUpdateBead; // Used for future inline editing
+  const isSocketError = error?.includes("ENOENT") || error?.includes("socket");
   const [sortField, setSortField] = useState<SortField>("updatedAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   // Initialize with "Not Closed" preset
@@ -111,7 +121,6 @@ export function IssuesView({
   const [activePreset, setActivePreset] = useState<string | null>("not-closed");
   const [filterBarOpen, setFilterBarOpen] = useState(true); // Start open to show default filter
   const [filterMenuOpen, setFilterMenuOpen] = useState<string | null>(null);
-  const [presetMenuOpen, setPresetMenuOpen] = useState(false);
   const [columnMenuOpen, setColumnMenuOpen] = useState(false);
   const [resizing, setResizing] = useState<{ id: SortField; startX: number; startWidth: number } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -152,7 +161,6 @@ export function IssuesView({
   const visibleColumns = columns.filter((c) => c.visible);
   const filterMenuRef = useRef<HTMLDivElement>(null);
   const columnMenuRef = useRef<HTMLTableCellElement>(null);
-  const presetMenuRef = useRef<HTMLDivElement>(null);
 
   // Click outside to close filter menu
   useEffect(() => {
@@ -182,26 +190,11 @@ export function IssuesView({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [columnMenuOpen]);
 
-  // Click outside to close preset menu
-  useEffect(() => {
-    if (!presetMenuOpen) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (presetMenuRef.current && !presetMenuRef.current.contains(e.target as Node)) {
-        setPresetMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [presetMenuOpen]);
-
   // Close menus when webview loses focus (click outside VS Code webview)
   useEffect(() => {
     const handleBlur = () => {
       setColumnMenuOpen(false);
       setFilterMenuOpen(null);
-      setPresetMenuOpen(false);
     };
 
     window.addEventListener("blur", handleBlur);
@@ -399,24 +392,13 @@ export function IssuesView({
 
   return (
     <div className="beads-panel">
-      {/* Row 1: status + project + search + filter toggle */}
+      {/* Row 1: project + search + filter toggle */}
       <div className="panel-toolbar-compact">
-        <span
-          className={`daemon-dot ${activeProject?.daemonStatus === "running" ? "running" : "stopped"}`}
-          title={`Daemon: ${activeProject?.daemonStatus || "unknown"}`}
+        <ProjectDropdown
+          projects={projects}
+          activeProject={activeProject}
+          onSelectProject={onSelectProject}
         />
-        <select
-          className="project-select-compact"
-          value={activeProject?.id || ""}
-          onChange={(e) => onSelectProject(e.target.value)}
-          title={activeProject?.rootPath}
-        >
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
         <div className="search-input-wrapper">
           <input
             type="text"
@@ -455,33 +437,25 @@ export function IssuesView({
       {showFilterRow && (
         <div className="filter-bar">
           {/* Preset dropdown */}
-          <div className="preset-dropdown" ref={presetMenuRef}>
-            <button
-              className="preset-dropdown-btn"
-              onClick={() => setPresetMenuOpen(!presetMenuOpen)}
-            >
-              {activePreset
-                ? FILTER_PRESETS.find((p) => p.id === activePreset)?.label
-                : "Custom"}
-              <span className="dropdown-chevron">▾</span>
-            </button>
-            {presetMenuOpen && (
-              <div className="preset-dropdown-menu">
-                {FILTER_PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    className={`preset-option ${activePreset === preset.id ? "active" : ""}`}
-                    onClick={() => {
-                      applyPreset(preset.id);
-                      setPresetMenuOpen(false);
-                    }}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <Dropdown
+            trigger={activePreset
+              ? FILTER_PRESETS.find((p) => p.id === activePreset)?.label
+              : "Custom"}
+            className="preset-dropdown"
+            triggerClassName="preset-dropdown-btn"
+            menuClassName="preset-dropdown-menu"
+          >
+            {FILTER_PRESETS.map((preset) => (
+              <DropdownItem
+                key={preset.id}
+                className="preset-option"
+                active={activePreset === preset.id}
+                onClick={() => applyPreset(preset.id)}
+              >
+                {preset.label}
+              </DropdownItem>
+            ))}
+          </Dropdown>
 
           {/* Active filter chips */}
           {filters.status.map((status) => (
@@ -575,7 +549,17 @@ export function IssuesView({
         </div>
       )}
 
-      {/* Table */}
+      {/* Error state */}
+      {error && !loading && (
+        <ErrorMessage
+          message={error}
+          onRetry={onRetry}
+          onStartDaemon={isSocketError ? onStartDaemon : undefined}
+        />
+      )}
+
+      {/* Table - hide when error */}
+      {!error && (
       <div className="beads-table-wrapper">
         <div className={`beads-table-container ${resizing ? "resizing" : ""}`}>
           <table
@@ -717,6 +701,7 @@ export function IssuesView({
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

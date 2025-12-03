@@ -15,7 +15,7 @@ code-server --auth none .
 mcp__chrome-devtools__new_page url=http://127.0.0.1:8080/
 
 # 4. After code changes: just reload browser window
-# Cmd+Shift+P → "Developer: Reload Window"
+# Run: codeserver reload
 ```
 
 ### Agent Protocol
@@ -61,7 +61,7 @@ cert: false
 | Start (custom port) | `code-server --auth none --bind-addr 127.0.0.1:3000 .` |
 | Build extension | `bun run compile:quiet` |
 | Watch mode | `bun run watch` |
-| Reload window | Cmd+Shift+P → "Developer: Reload Window" |
+| Reload window | `codeserver reload` ← cheap! (vs Cmd+Shift+P → "Developer: Reload Window") |
 
 ## Workflow
 
@@ -74,7 +74,7 @@ Run `bun run watch` as a background task - esbuild auto-rebuilds on file save. O
 bun run watch &
 
 # After code changes: just reload browser window
-# Cmd+Shift+P → "Developer: Reload Window" (or Cmd+R)
+# Run: codeserver reload
 ```
 
 **Benefits:**
@@ -87,7 +87,7 @@ bun run watch &
 1. Start code-server: `code-server --auth none .`
 2. Open http://127.0.0.1:8080
 3. Make changes, run `bun run compile:quiet`
-4. Reload window in browser (Cmd+Shift+P → Developer: Reload Window)
+4. Reload window: `codeserver reload`
 5. Test changes
 
 Use manual builds when watch mode isn't running or after major changes (new files, config changes).
