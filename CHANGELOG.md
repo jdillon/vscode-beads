@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Extracted reusable `Dropdown` and `ChevronIcon` components for consistent dropdown behavior
+- Upgraded logging to use VS Code's `LogOutputChannel` for colored output and log levels (`vsbeads-868`)
 
 ## [0.4.0] - 2025-12-01
 

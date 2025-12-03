@@ -11,27 +11,27 @@ import { BeadsProjectManager } from "./backend/BeadsProjectManager";
 import { DashboardViewProvider } from "./providers/DashboardViewProvider";
 import { BeadsPanelViewProvider } from "./providers/BeadsPanelViewProvider";
 import { BeadDetailsViewProvider } from "./providers/BeadDetailsViewProvider";
+import { createLogger, Logger } from "./utils/logger";
 
-let outputChannel: vscode.OutputChannel;
+let log: Logger;
 let projectManager: BeadsProjectManager;
 let dashboardProvider: DashboardViewProvider;
 let beadsPanelProvider: BeadsPanelViewProvider;
 let detailsProvider: BeadDetailsViewProvider;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  outputChannel = vscode.window.createOutputChannel("Beads");
+  // Create the root logger with LogOutputChannel
+  log = createLogger("Beads");
 
   // Log activation with version and timestamp for debugging
   const ext = context.extension;
   const version = ext.packageJSON.version || "unknown";
   const isDev = ext.extensionPath.includes("-dev") || !ext.extensionPath.includes(".vscode");
   const timestamp = new Date().toISOString();
-  outputChannel.appendLine(
-    `Beads extension activating... v${version}${isDev ? " (dev)" : ""} @ ${timestamp}`
-  );
+  log.info(`Activating v${version}${isDev ? " (dev)" : ""} @ ${timestamp}`);
 
   // Initialize the project manager
-  projectManager = new BeadsProjectManager(context, outputChannel);
+  projectManager = new BeadsProjectManager(context, log);
   await projectManager.initialize();
 
   // Initialize context for conditional menu items
@@ -41,19 +41,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   dashboardProvider = new DashboardViewProvider(
     context.extensionUri,
     projectManager,
-    outputChannel
+    log
   );
 
   beadsPanelProvider = new BeadsPanelViewProvider(
     context.extensionUri,
     projectManager,
-    outputChannel
+    log
   );
 
   detailsProvider = new BeadDetailsViewProvider(
     context.extensionUri,
     projectManager,
-    outputChannel
+    log
   );
 
   // Register webview providers
@@ -117,11 +117,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
 
     vscode.commands.registerCommand("beads.refresh", async () => {
-      outputChannel.appendLine("[Refresh] Manual refresh triggered");
+      log.info("Manual refresh triggered");
       await projectManager.refresh();
       beadsPanelProvider.refresh();
       detailsProvider.refresh();
-      outputChannel.appendLine("[Refresh] Complete");
+      log.info("Refresh complete");
       vscode.window.setStatusBarMessage("$(check) Beads: Refreshed", 2000);
     }),
 
@@ -163,8 +163,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           issue_type: type || "task",
           priority: priority?.value ?? 2,
         });
+        log.info(`Created bead: ${created.id}`);
         vscode.window.showInformationMessage(`Created bead: ${created.id}`);
       } catch (err) {
+        log.error(`Failed to create bead: ${err}`);
         vscode.window.showErrorMessage(`Failed to create bead: ${err}`);
       }
     }),
@@ -214,11 +216,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     })
   );
 
-  // Add project manager to subscriptions for disposal
+  // Add project manager and logger to subscriptions for disposal
   context.subscriptions.push(projectManager);
-  context.subscriptions.push(outputChannel);
+  context.subscriptions.push(log.outputChannel);
 
-  outputChannel.appendLine("Beads extension activated");
+  log.info("Extension activated");
 
   // Show warning if no projects found
   if (projectManager.getProjects().length === 0) {
@@ -234,5 +236,5 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 }
 
 export function deactivate(): void {
-  outputChannel?.appendLine("Beads extension deactivating...");
+  log?.info("Extension deactivating...");
 }

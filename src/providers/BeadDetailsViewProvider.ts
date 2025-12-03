@@ -12,6 +12,7 @@ import * as vscode from "vscode";
 import { BaseViewProvider } from "./BaseViewProvider";
 import { BeadsProjectManager } from "../backend/BeadsProjectManager";
 import { WebviewToExtensionMessage, issueToWebviewBead } from "../backend/types";
+import { Logger } from "../utils/logger";
 
 export class BeadDetailsViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsDetails";
@@ -21,9 +22,9 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
   constructor(
     extensionUri: vscode.Uri,
     projectManager: BeadsProjectManager,
-    outputChannel: vscode.OutputChannel
+    logger: Logger
   ) {
-    super(extensionUri, projectManager, outputChannel);
+    super(extensionUri, projectManager, logger.child("Details"));
   }
 
   /**
@@ -85,12 +86,12 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
       const [issue, comments] = await Promise.all([
         client.show(this.currentBeadId),
         client.listComments(this.currentBeadId).catch((err) => {
-          this.outputChannel.appendLine(`[Details] Failed to fetch comments: ${err}`);
+          this.log.warn(`Failed to fetch comments: ${err}`);
           return [];
         }),
       ]);
       const commentsArray = comments || [];
-      this.outputChannel.appendLine(`[Details] Loaded ${commentsArray.length} comments for ${this.currentBeadId}`);
+      this.log.debug(`Loaded ${commentsArray.length} comments for ${this.currentBeadId}`);
       if (issue) {
         // Merge comments into issue data
         const issueWithComments = {
@@ -126,9 +127,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
 
     switch (message.type) {
       case "updateBead":
-        this.outputChannel.appendLine(
-          `[Details] Updating bead ${message.beadId}: ${JSON.stringify(message.updates)}`
-        );
+        this.log.debug(`Updating bead ${message.beadId}: ${JSON.stringify(message.updates)}`);
 
         try {
           // Map webview field names to daemon API field names
