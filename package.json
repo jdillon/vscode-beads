@@ -103,6 +103,21 @@
         "icon": "$(debug-stop)"
       },
       {
+        "command": "beads.restartDaemon",
+        "title": "Beads: Restart Daemon",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "beads.checkDaemonStatus",
+        "title": "Beads: Check Daemon Status",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "beads.showDaemonMenu",
+        "title": "Beads: Daemon Menu",
+        "icon": "$(server-process)"
+      },
+      {
         "command": "beads.copyBeadId",
         "title": "Beads: Copy Issue ID",
         "icon": "$(copy)"

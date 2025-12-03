@@ -190,9 +190,14 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
    * Triggers a refresh of the view
    */
   public refresh(): void {
-    // Also update project state in webview
+    // Update project state in webview
     const project = this.projectManager.getActiveProject();
     this.postMessage({ type: "setProject", project });
+
+    // Also update projects list (for dropdown status indicators)
+    const projects = this.projectManager.getProjects();
+    this.postMessage({ type: "setProjects", projects });
+
     this.loadData();
   }
 

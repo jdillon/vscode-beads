@@ -18,6 +18,7 @@ let projectManager: BeadsProjectManager;
 let dashboardProvider: DashboardViewProvider;
 let beadsPanelProvider: BeadsPanelViewProvider;
 let detailsProvider: BeadDetailsViewProvider;
+let daemonStatusBar: vscode.StatusBarItem;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   // Create the root logger with LogOutputChannel
@@ -175,6 +176,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       const started = await projectManager.ensureDaemonRunning();
       if (started) {
         vscode.window.showInformationMessage("Beads daemon started");
+        updateDaemonStatusBar();
       } else {
         vscode.window.showErrorMessage("Failed to start Beads daemon");
       }
@@ -184,9 +186,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       const stopped = await projectManager.stopDaemon();
       if (stopped) {
         vscode.window.showInformationMessage("Beads daemon stopped");
+        updateDaemonStatusBar();
       } else {
         vscode.window.showErrorMessage("Failed to stop Beads daemon");
       }
+    }),
+
+    vscode.commands.registerCommand("beads.restartDaemon", async () => {
+      const restarted = await projectManager.restartDaemon();
+      if (restarted) {
+        vscode.window.showInformationMessage("Beads daemon restarted");
+        updateDaemonStatusBar();
+      } else {
+        vscode.window.showErrorMessage("Failed to restart Beads daemon");
+      }
+    }),
+
+    vscode.commands.registerCommand("beads.checkDaemonStatus", async () => {
+      await projectManager.refresh();
+      updateDaemonStatusBar();
     }),
 
     vscode.commands.registerCommand("beads.copyBeadId", async () => {
@@ -196,6 +214,67 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.window.setStatusBarMessage(`$(check) Copied: ${beadId}`, 2000);
       } else {
         vscode.window.showWarningMessage("No bead selected");
+      }
+    })
+  );
+
+  // Create daemon status bar item
+  daemonStatusBar = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Left,
+    100
+  );
+  daemonStatusBar.command = "beads.showDaemonMenu";
+  context.subscriptions.push(daemonStatusBar);
+
+  // Register daemon menu command
+  context.subscriptions.push(
+    vscode.commands.registerCommand("beads.showDaemonMenu", async () => {
+      const project = projectManager.getActiveProject();
+      if (!project) {
+        vscode.window.showWarningMessage("No active Beads project");
+        return;
+      }
+
+      const status = await projectManager.getDaemonStatus();
+      const items: vscode.QuickPickItem[] = [];
+
+      if (status.state === "running") {
+        items.push(
+          { label: "$(debug-stop) Stop Daemon", description: "Stop the daemon for this project" },
+          { label: "$(debug-restart) Restart Daemon", description: "Restart the daemon" },
+          { label: "$(refresh) Check Status", description: "Refresh daemon status" }
+        );
+      } else if (status.state === "zombie") {
+        items.push(
+          { label: "$(warning) Restart Daemon", description: "Daemon is unhealthy, restart recommended" },
+          { label: "$(debug-stop) Force Stop", description: "Force stop the zombie daemon" }
+        );
+      } else {
+        items.push(
+          { label: "$(play) Start Daemon", description: "Start the daemon for this project" },
+          { label: "$(refresh) Check Status", description: "Refresh daemon status" }
+        );
+      }
+
+      items.push({ label: "$(output) Show Logs", description: "Open Beads output panel" });
+
+      const selected = await vscode.window.showQuickPick(items, {
+        title: `Daemon: ${project.name} (${status.state})`,
+        placeHolder: status.message,
+      });
+
+      if (selected) {
+        if (selected.label.includes("Start")) {
+          vscode.commands.executeCommand("beads.startDaemon");
+        } else if (selected.label.includes("Stop")) {
+          vscode.commands.executeCommand("beads.stopDaemon");
+        } else if (selected.label.includes("Restart")) {
+          vscode.commands.executeCommand("beads.restartDaemon");
+        } else if (selected.label.includes("Check Status")) {
+          vscode.commands.executeCommand("beads.checkDaemonStatus");
+        } else if (selected.label.includes("Show Logs")) {
+          log.show();
+        }
       }
     })
   );
@@ -213,12 +292,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       dashboardProvider.refresh();
       beadsPanelProvider.refresh();
       detailsProvider.refresh();
+      updateDaemonStatusBar();
     })
   );
 
   // Add project manager and logger to subscriptions for disposal
   context.subscriptions.push(projectManager);
   context.subscriptions.push(log.outputChannel);
+
+  // Initialize status bar
+  updateDaemonStatusBar();
 
   log.info("Extension activated");
 
@@ -237,4 +320,47 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
 export function deactivate(): void {
   log?.info("Extension deactivating...");
+}
+
+/**
+ * Updates the daemon status bar item based on current project state
+ */
+async function updateDaemonStatusBar(): Promise<void> {
+  const project = projectManager.getActiveProject();
+
+  if (!project) {
+    daemonStatusBar.hide();
+    return;
+  }
+
+  const status = await projectManager.getDaemonStatus();
+
+  switch (status.state) {
+    case "running":
+      daemonStatusBar.text = "$(check) Beads";
+      daemonStatusBar.backgroundColor = undefined;
+      daemonStatusBar.tooltip = `Daemon running for ${project.name}\n${status.message}\nClick for options`;
+      break;
+    case "stopped":
+      daemonStatusBar.text = "$(circle-slash) Beads";
+      daemonStatusBar.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+      daemonStatusBar.tooltip = `Daemon stopped for ${project.name}\n${status.message}\nClick to start`;
+      break;
+    case "zombie":
+      daemonStatusBar.text = "$(warning) Beads";
+      daemonStatusBar.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
+      daemonStatusBar.tooltip = `Daemon unhealthy for ${project.name}\n${status.message}\nClick to restart`;
+      break;
+    case "not_initialized":
+      daemonStatusBar.text = "$(circle-slash) Beads";
+      daemonStatusBar.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+      daemonStatusBar.tooltip = `Project not initialized: ${project.name}\n${status.message}`;
+      break;
+    default:
+      daemonStatusBar.text = "$(question) Beads";
+      daemonStatusBar.backgroundColor = undefined;
+      daemonStatusBar.tooltip = `Unknown state for ${project.name}\n${status.message}`;
+  }
+
+  daemonStatusBar.show();
 }
