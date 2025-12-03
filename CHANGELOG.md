@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Fixed
+
+### Changed
+
+## [0.5.0] - 2025-12-03
+
+### Added
+
 - Project selector in Dashboard view for consistency (`vsbeads-xbq`)
 - "Start Daemon" button on socket connection errors (`vsbeads-xbq`)
 - Custom project dropdown with daemon status indicators per project (`vsbeads-d8u`)
