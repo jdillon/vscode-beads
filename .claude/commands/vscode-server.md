@@ -1,13 +1,75 @@
 ---
-description: Start code-server for extension testing with Chrome DevTools
+description: "Manage code-server for extension testing: start|stop|status"
 allowed-tools: Bash, Read, mcp__chrome-devtools__new_page, mcp__chrome-devtools__list_pages
 ---
 
-Start code-server development environment for testing the current VS Code extension.
+Manage code-server development environment for testing VS Code extensions.
+
+**Usage**: `/vscode-server [start|stop|status]`
+
+- `start` (default) - Start code-server and watch mode
+- `stop` - Stop code-server and watch mode
+- `status` - Show current status of processes
+
+**Arguments**: $ARGUMENTS
 
 ## Instructions
 
-Follow these steps exactly in order.
+Parse the argument (default to "start" if empty or not provided).
+
+---
+
+## Command: status
+
+Check the status of all processes without starting anything.
+
+### Check processes
+
+```bash
+echo "=== Watch Mode ==="
+pgrep -f "bun run watch" && echo "Running" || echo "Not running"
+
+echo "=== code-server ==="
+pgrep -f "code-server" && echo "Running" || echo "Not running"
+```
+
+### Report status
+
+Tell the user the current state of:
+- Watch mode: running/not running (with PID if running)
+- code-server: running/not running (with PID if running)
+
+Then stop (don't execute start or stop commands).
+
+---
+
+## Command: stop
+
+Stop all running processes.
+
+### Stop watch mode
+
+```bash
+pkill -f "bun run watch" && echo "Watch mode stopped" || echo "Watch mode was not running"
+```
+
+### Stop code-server
+
+```bash
+pkill -f "code-server" && echo "code-server stopped" || echo "code-server was not running"
+```
+
+### Report
+
+Tell the user what was stopped.
+
+Then stop (don't execute start commands).
+
+---
+
+## Command: start
+
+Start code-server development environment for testing the current VS Code extension.
 
 ### Step 1: Validate this is a VS Code extension
 
