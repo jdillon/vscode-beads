@@ -96,6 +96,11 @@ button {
   background-color: var(--vscode-toolbar-hoverBackground);
 }
 
+.icon-button:active {
+  transform: scale(0.93);
+  opacity: 0.8;
+}
+
 .action-button {
   padding: var(--spacing-xs) var(--spacing-md);
   border-radius: var(--border-radius);
@@ -107,6 +112,11 @@ button {
 
 .action-button:hover {
   background-color: var(--vscode-button-hoverBackground);
+}
+
+.action-button:active {
+  transform: scale(0.97);
+  opacity: 0.9;
 }
 
 .action-button.secondary {
@@ -479,6 +489,12 @@ textarea {
 .retry-button:hover,
 .start-daemon-button:hover {
   background-color: var(--vscode-button-hoverBackground);
+}
+
+.retry-button:active,
+.start-daemon-button:active {
+  transform: scale(0.97);
+  opacity: 0.9;
 }
 
 .start-daemon-button {
@@ -1301,6 +1317,20 @@ textarea {
 
 .btn-sm {
   padding: 3px 8px;
+}
+
+.btn:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.btn-primary:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.btn:active,
+.btn-primary:active {
+  transform: scale(0.97);
+  opacity: 0.9;
 }
 
 .details-title h2 {

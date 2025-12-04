@@ -53,6 +53,21 @@ export class Logger {
     this.channel.error(this.format(message), ...args);
   }
 
+  /**
+   * Log error and show notification to user with "Show Output" button
+   * Use for errors that users should be aware of (command failures, etc.)
+   */
+  async errorNotify(message: string, ...args: unknown[]): Promise<void> {
+    this.channel.error(this.format(message), ...args);
+    const action = await vscode.window.showErrorMessage(
+      `Beads: ${message}`,
+      "Show Output"
+    );
+    if (action === "Show Output") {
+      this.channel.show();
+    }
+  }
+
   /** Show the output channel */
   show(): void {
     this.channel.show();
