@@ -1,11 +1,13 @@
 /**
- * IssuesView - TanStack Table Prototype
+ * IssuesView
  *
- * Spike to evaluate TanStack Table for:
- * - Sortable columns
+ * Main table/list view for issues using TanStack Table v8.
+ * Features:
+ * - Multi-column sorting (shift+click)
  * - Column resizing
- * - Filtering
- * - Column visibility
+ * - Column reordering (drag & drop)
+ * - Faceted filtering with counts
+ * - Column visibility toggle
  */
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
