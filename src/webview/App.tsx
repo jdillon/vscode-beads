@@ -15,7 +15,8 @@ import {
   vscode,
 } from "./types";
 import { DashboardView } from "./views/DashboardView";
-import { IssuesView } from "./views/IssuesView";
+// SPIKE: Testing TanStack Table - swap back to "./views/IssuesView" after evaluation
+import { IssuesViewTanStack as IssuesView } from "./views/IssuesViewTanStack";
 import { DetailsView } from "./views/DetailsView";
 import { Loading } from "./common/Loading";
 import { ToastProvider, triggerToast } from "./common/Toast";

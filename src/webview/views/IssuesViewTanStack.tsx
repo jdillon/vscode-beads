@@ -1,0 +1,695 @@
+/**
+ * IssuesView - TanStack Table Prototype
+ *
+ * Spike to evaluate TanStack Table for:
+ * - Sortable columns
+ * - Column resizing
+ * - Filtering
+ * - Column visibility
+ */
+
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
+  flexRender,
+  createColumnHelper,
+  SortingState,
+  ColumnFiltersState,
+  VisibilityState,
+  ColumnResizeMode,
+  ColumnOrderState,
+} from "@tanstack/react-table";
+import {
+  Bead,
+  BeadsProject,
+  BeadStatus,
+  BeadPriority,
+  BeadType,
+  STATUS_LABELS,
+  STATUS_COLORS,
+  PRIORITY_COLORS,
+  TYPE_LABELS,
+  TYPE_COLORS,
+  sortLabels,
+  vscode,
+} from "../types";
+import { StatusBadge } from "../common/StatusBadge";
+import { PriorityBadge } from "../common/PriorityBadge";
+import { TypeBadge } from "../common/TypeBadge";
+import { LabelBadge } from "../common/LabelBadge";
+import { FilterChip } from "../common/FilterChip";
+import { ErrorMessage } from "../common/ErrorMessage";
+import { ProjectDropdown } from "../common/ProjectDropdown";
+import { Dropdown, DropdownItem } from "../common/Dropdown";  // Used for preset dropdown
+
+interface IssuesViewProps {
+  beads: Bead[];
+  loading: boolean;
+  error: string | null;
+  selectedBeadId: string | null;
+  projects: BeadsProject[];
+  activeProject: BeadsProject | null;
+  onSelectProject: (projectId: string) => void;
+  onSelectBead: (beadId: string) => void;
+  onUpdateBead: (beadId: string, updates: Partial<Bead>) => void;
+  onStartDaemon: () => void;
+  onRetry: () => void;
+}
+
+const ISSUE_TYPES = ["bug", "feature", "task", "epic", "chore"];
+
+// Filter presets
+interface FilterPreset {
+  id: string;
+  label: string;
+  statuses: BeadStatus[];
+}
+
+const FILTER_PRESETS: FilterPreset[] = [
+  { id: "all", label: "All", statuses: [] },
+  { id: "not-closed", label: "Not Closed", statuses: ["open", "in_progress", "blocked"] },
+  { id: "active", label: "Active", statuses: ["in_progress", "blocked"] },
+  { id: "blocked", label: "Blocked", statuses: ["blocked"] },
+  { id: "closed", label: "Closed", statuses: ["closed"] },
+];
+
+const columnHelper = createColumnHelper<Bead>();
+
+export function IssuesViewTanStack({
+  beads,
+  loading,
+  error,
+  selectedBeadId,
+  projects,
+  activeProject,
+  onSelectProject,
+  onSelectBead,
+  onUpdateBead: _onUpdateBead,
+  onStartDaemon,
+  onRetry,
+}: IssuesViewProps): React.ReactElement {
+  void _onUpdateBead;
+  const isSocketError = error?.includes("ENOENT") || error?.includes("socket");
+
+  // TanStack state
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "updatedAt", desc: true },
+  ]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
+    { id: "status", value: ["open", "in_progress", "blocked"] }, // Default: Not Closed
+  ]);
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+    labels: false,
+    assignee: false,
+    estimate: false,
+  });
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
+  const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+
+  // UI state
+  const [activePreset, setActivePreset] = useState<string>("not-closed");
+  const [filterBarOpen, setFilterBarOpen] = useState(true);
+  const [filterMenuOpen, setFilterMenuOpen] = useState<string | null>(null);
+  const [columnMenuOpen, setColumnMenuOpen] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const filterMenuRef = useRef<HTMLDivElement>(null);
+
+  // Click outside to close filter menu
+  useEffect(() => {
+    if (!filterMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (filterMenuRef.current && !filterMenuRef.current.contains(e.target as Node)) {
+        setFilterMenuOpen(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [filterMenuOpen]);
+
+  // Column definitions
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor("type", {
+        header: "Type",
+        size: 70,
+        minSize: 50,
+        cell: (info) =>
+          info.getValue() ? (
+            <TypeBadge type={info.getValue() as BeadType} size="small" />
+          ) : null,
+        filterFn: (row, columnId, filterValue: string[]) => {
+          if (!filterValue || filterValue.length === 0) return true;
+          const val = row.getValue(columnId) as string | undefined;
+          return val !== undefined && filterValue.includes(val);
+        },
+      }),
+      columnHelper.accessor("title", {
+        header: "Title",
+        size: 200,
+        minSize: 100,
+        cell: (info) => (
+          <>
+            <span
+              className={`bead-id ${copiedId === info.row.original.id ? "copied" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopyId(info.row.original.id);
+              }}
+              title={copiedId === info.row.original.id ? "Copied!" : "Click to copy"}
+            >
+              {info.row.original.id}
+            </span>
+            <span className="bead-title">{info.getValue()}</span>
+          </>
+        ),
+      }),
+      columnHelper.accessor("status", {
+        header: "Status",
+        size: 80,
+        minSize: 60,
+        cell: (info) => <StatusBadge status={info.getValue()} size="small" />,
+        filterFn: (row, columnId, filterValue: BeadStatus[]) => {
+          if (!filterValue || filterValue.length === 0) return true;
+          return filterValue.includes(row.getValue(columnId));
+        },
+      }),
+      columnHelper.accessor("priority", {
+        header: "Priority",
+        size: 70,
+        minSize: 50,
+        cell: (info) =>
+          info.getValue() !== undefined ? (
+            <PriorityBadge priority={info.getValue()!} size="small" />
+          ) : null,
+        filterFn: (row, columnId, filterValue: BeadPriority[]) => {
+          if (!filterValue || filterValue.length === 0) return true;
+          const val = row.getValue(columnId) as BeadPriority | undefined;
+          return val !== undefined && filterValue.includes(val);
+        },
+      }),
+      columnHelper.accessor("labels", {
+        header: "Labels",
+        size: 100,
+        minSize: 60,
+        enableSorting: false,
+        cell: (info) => (
+          <>
+            {sortLabels(info.getValue()).map((label) => (
+              <LabelBadge key={label} label={label} />
+            ))}
+          </>
+        ),
+      }),
+      columnHelper.accessor("assignee", {
+        header: "Assignee",
+        size: 80,
+        minSize: 50,
+        cell: (info) => info.getValue() || "-",
+      }),
+      columnHelper.accessor("estimatedMinutes", {
+        id: "estimate",
+        header: "Estimate",
+        size: 70,
+        minSize: 50,
+        cell: (info) => (info.getValue() ? `${info.getValue()}m` : "-"),
+      }),
+      columnHelper.accessor("updatedAt", {
+        header: "Updated",
+        size: 80,
+        minSize: 60,
+        cell: (info) =>
+          info.getValue()
+            ? new Date(info.getValue()!).toLocaleDateString()
+            : "-",
+      }),
+      columnHelper.accessor("createdAt", {
+        header: "Created",
+        size: 80,
+        minSize: 60,
+        cell: (info) =>
+          info.getValue()
+            ? new Date(info.getValue()!).toLocaleDateString()
+            : "-",
+      }),
+    ],
+    [copiedId]
+  );
+
+  const table = useReactTable({
+    data: beads,
+    columns,
+    state: {
+      sorting,
+      columnFilters,
+      globalFilter,
+      columnVisibility,
+      columnOrder,
+    },
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
+    onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: setColumnOrder,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
+    columnResizeMode: "onChange" as ColumnResizeMode,
+    enableColumnResizing: true,
+  });
+
+  const handleCopyId = useCallback((beadId: string) => {
+    vscode.postMessage({ type: "copyBeadId", beadId });
+    setCopiedId(beadId);
+    setTimeout(() => setCopiedId(null), 1500);
+  }, []);
+
+  // Filter helpers
+  const statusFilter = (columnFilters.find((f) => f.id === "status")?.value || []) as BeadStatus[];
+  const priorityFilter = (columnFilters.find((f) => f.id === "priority")?.value || []) as BeadPriority[];
+  const typeFilter = (columnFilters.find((f) => f.id === "type")?.value || []) as string[];
+  const hasActiveFilters = statusFilter.length > 0 || priorityFilter.length > 0 || typeFilter.length > 0;
+
+  const applyPreset = (presetId: string) => {
+    const preset = FILTER_PRESETS.find((p) => p.id === presetId);
+    if (preset) {
+      setColumnFilters((prev) =>
+        prev
+          .filter((f) => f.id !== "status")
+          .concat(preset.statuses.length > 0 ? [{ id: "status", value: preset.statuses }] : [])
+      );
+      setActivePreset(presetId);
+    }
+  };
+
+  const addStatusFilter = (status: BeadStatus) => {
+    if (!statusFilter.includes(status)) {
+      setColumnFilters((prev) => {
+        const others = prev.filter((f) => f.id !== "status");
+        return [...others, { id: "status", value: [...statusFilter, status] }];
+      });
+      setActivePreset("");
+    }
+    setFilterMenuOpen(null);
+  };
+
+  const removeStatusFilter = (status: BeadStatus) => {
+    const newStatuses = statusFilter.filter((s) => s !== status);
+    setColumnFilters((prev) => {
+      const others = prev.filter((f) => f.id !== "status");
+      return newStatuses.length > 0
+        ? [...others, { id: "status", value: newStatuses }]
+        : others;
+    });
+    setActivePreset("");
+  };
+
+  const addPriorityFilter = (priority: BeadPriority) => {
+    if (!priorityFilter.includes(priority)) {
+      setColumnFilters((prev) => {
+        const others = prev.filter((f) => f.id !== "priority");
+        return [...others, { id: "priority", value: [...priorityFilter, priority] }];
+      });
+      setActivePreset("");
+    }
+    setFilterMenuOpen(null);
+  };
+
+  const addTypeFilter = (type: string) => {
+    if (!typeFilter.includes(type)) {
+      setColumnFilters((prev) => {
+        const others = prev.filter((f) => f.id !== "type");
+        return [...others, { id: "type", value: [...typeFilter, type] }];
+      });
+      setActivePreset("");
+    }
+    setFilterMenuOpen(null);
+  };
+
+  const removePriorityFilter = (priority: BeadPriority) => {
+    const newPriorities = priorityFilter.filter((p) => p !== priority);
+    setColumnFilters((prev) => {
+      const others = prev.filter((f) => f.id !== "priority");
+      return newPriorities.length > 0
+        ? [...others, { id: "priority", value: newPriorities }]
+        : others;
+    });
+    setActivePreset("");
+  };
+
+  const removeTypeFilter = (type: string) => {
+    const newTypes = typeFilter.filter((t) => t !== type);
+    setColumnFilters((prev) => {
+      const others = prev.filter((f) => f.id !== "type");
+      return newTypes.length > 0
+        ? [...others, { id: "type", value: newTypes }]
+        : others;
+    });
+    setActivePreset("");
+  };
+
+  const clearAllFilters = () => {
+    setColumnFilters([]);
+    setGlobalFilter("");
+    setActivePreset("all");
+  };
+
+  const filteredCount = table.getFilteredRowModel().rows.length;
+  const totalCount = beads.length;
+
+  // Get faceted counts for filters (counts based on OTHER active filters, not this column)
+  const statusFacets = table.getColumn("status")?.getFacetedUniqueValues() ?? new Map();
+  const priorityFacets = table.getColumn("priority")?.getFacetedUniqueValues() ?? new Map();
+  const typeFacets = table.getColumn("type")?.getFacetedUniqueValues() ?? new Map();
+
+  return (
+    <div className="beads-panel">
+      {/* Row 1: project + search + filter toggle */}
+      <div className="panel-toolbar-compact">
+        <ProjectDropdown
+          projects={projects}
+          activeProject={activeProject}
+          onSelectProject={onSelectProject}
+        />
+        <div className="search-input-wrapper">
+          <input
+            type="text"
+            className="search-input-compact"
+            placeholder="Search..."
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+          />
+          {globalFilter && (
+            <button
+              className="search-clear-btn"
+              onClick={() => setGlobalFilter("")}
+              title="Clear search"
+            >
+              ×
+            </button>
+          )}
+        </div>
+        <button
+          className={`filter-toggle ${filterBarOpen || hasActiveFilters ? "active" : ""}`}
+          onClick={() => setFilterBarOpen(!filterBarOpen)}
+          title="Filter"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M6 10.5v-1h4v1H6zm-2-3v-1h8v1H4zm-2-3v-1h12v1H2z" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Row 2: Filter bar */}
+      {(filterBarOpen || hasActiveFilters) && (
+        <div className="filter-bar">
+          <Dropdown
+            trigger={FILTER_PRESETS.find((p) => p.id === activePreset)?.label || "Custom"}
+            className="preset-dropdown"
+            triggerClassName="preset-dropdown-btn"
+            menuClassName="preset-dropdown-menu"
+          >
+            {FILTER_PRESETS.map((preset) => (
+              <DropdownItem
+                key={preset.id}
+                className="preset-option"
+                active={activePreset === preset.id}
+                onClick={() => applyPreset(preset.id)}
+              >
+                {preset.label}
+              </DropdownItem>
+            ))}
+          </Dropdown>
+
+          {/* Active filter chips */}
+          {statusFilter.map((status) => (
+            <FilterChip
+              key={`status-${status}`}
+              label={STATUS_LABELS[status]}
+              accentColor={STATUS_COLORS[status]}
+              onRemove={() => removeStatusFilter(status)}
+            />
+          ))}
+          {priorityFilter.map((priority) => (
+            <FilterChip
+              key={`priority-${priority}`}
+              label={`p${priority}`}
+              accentColor={PRIORITY_COLORS[priority]}
+              onRemove={() => removePriorityFilter(priority)}
+            />
+          ))}
+          {typeFilter.map((type) => (
+            <FilterChip
+              key={`type-${type}`}
+              label={TYPE_LABELS[type as BeadType] || type}
+              accentColor={TYPE_COLORS[type as BeadType]}
+              onRemove={() => removeTypeFilter(type)}
+            />
+          ))}
+
+          {/* Add filter dropdown with faceted counts */}
+          <div className="filter-add-wrapper" ref={filterMenuRef}>
+            <button
+              className="filter-add-btn"
+              onClick={() => setFilterMenuOpen(filterMenuOpen === "main" ? null : "main")}
+            >
+              + Filter
+            </button>
+
+            {filterMenuOpen === "main" && (
+              <div className="filter-menu">
+                <button onClick={() => setFilterMenuOpen("status")}>Status <span className="menu-chevron">›</span></button>
+                <button onClick={() => setFilterMenuOpen("priority")}>Priority <span className="menu-chevron">›</span></button>
+                <button onClick={() => setFilterMenuOpen("type")}>Type <span className="menu-chevron">›</span></button>
+              </div>
+            )}
+
+            {filterMenuOpen === "status" && (
+              <div className="filter-menu">
+                {(Object.keys(STATUS_LABELS) as BeadStatus[])
+                  .filter((s) => s !== "unknown" && !statusFilter.includes(s))
+                  .map((status) => {
+                    const count = statusFacets.get(status) ?? 0;
+                    return (
+                      <button key={status} onClick={() => addStatusFilter(status)}>
+                        <StatusBadge status={status} size="small" />
+                        <span className="facet-count">({count})</span>
+                      </button>
+                    );
+                  })}
+                <button className="back-btn" onClick={() => setFilterMenuOpen("main")}>← Back</button>
+              </div>
+            )}
+
+            {filterMenuOpen === "priority" && (
+              <div className="filter-menu">
+                {([0, 1, 2, 3, 4] as BeadPriority[])
+                  .filter((p) => !priorityFilter.includes(p))
+                  .map((priority) => {
+                    const count = priorityFacets.get(priority) ?? 0;
+                    return (
+                      <button key={priority} onClick={() => addPriorityFilter(priority)}>
+                        <PriorityBadge priority={priority} size="small" />
+                        <span className="facet-count">({count})</span>
+                      </button>
+                    );
+                  })}
+                <button className="back-btn" onClick={() => setFilterMenuOpen("main")}>← Back</button>
+              </div>
+            )}
+
+            {filterMenuOpen === "type" && (
+              <div className="filter-menu">
+                {ISSUE_TYPES
+                  .filter((t) => !typeFilter.includes(t))
+                  .map((type) => {
+                    const count = typeFacets.get(type) ?? 0;
+                    return (
+                      <button key={type} onClick={() => addTypeFilter(type)}>
+                        <TypeBadge type={type as BeadType} size="small" />
+                        <span className="facet-count">({count})</span>
+                      </button>
+                    );
+                  })}
+                <button className="back-btn" onClick={() => setFilterMenuOpen("main")}>← Back</button>
+              </div>
+            )}
+          </div>
+
+          {hasActiveFilters && (
+            <button className="filter-reset" onClick={clearAllFilters}>
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && !loading && (
+        <ErrorMessage
+          message={error}
+          onRetry={onRetry}
+          onStartDaemon={isSocketError ? onStartDaemon : undefined}
+        />
+      )}
+
+      {/* Table */}
+      {!error && (
+        <div className="beads-table-wrapper">
+          <div className={`beads-table-container ${table.getState().columnSizingInfo.isResizingColumn ? "resizing" : ""}`}>
+            <table
+              className="beads-table"
+              style={{ minWidth: table.getCenterTotalSize() }}
+            >
+              <thead>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <th
+                        key={header.id}
+                        style={{ width: header.getSize() }}
+                        className={`${header.column.getCanSort() ? "sortable" : ""} ${draggedColumn === header.id ? "dragging" : ""} ${dragOverColumn === header.id && draggedColumn !== header.id ? "drag-over" : ""}`}
+                        onClick={header.column.getToggleSortingHandler()}
+                        draggable
+                        onDragStart={(e) => {
+                          setDraggedColumn(header.id);
+                          e.dataTransfer.effectAllowed = "move";
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
+                          if (draggedColumn && draggedColumn !== header.id) {
+                            setDragOverColumn(header.id);
+                          }
+                        }}
+                        onDragLeave={() => {
+                          setDragOverColumn(null);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (draggedColumn && draggedColumn !== header.id) {
+                            const currentOrder = table.getAllLeafColumns().map((c) => c.id);
+                            const dragIdx = currentOrder.indexOf(draggedColumn);
+                            const dropIdx = currentOrder.indexOf(header.id);
+                            const newOrder = [...currentOrder];
+                            newOrder.splice(dragIdx, 1);
+                            newOrder.splice(dropIdx, 0, draggedColumn);
+                            setColumnOrder(newOrder);
+                          }
+                          setDraggedColumn(null);
+                          setDragOverColumn(null);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedColumn(null);
+                          setDragOverColumn(null);
+                        }}
+                      >
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        {header.column.getIsSorted() && (
+                          <span className="sort-indicator">
+                            {header.column.getIsSorted() === "asc" ? "▲" : "▼"}
+                          </span>
+                        )}
+                        <span
+                          className="resize-handle"
+                          onMouseDown={header.getResizeHandler()}
+                          onTouchStart={header.getResizeHandler()}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </th>
+                    ))}
+                    <th className="col-menu-th">
+                      <button
+                        className="col-menu-btn"
+                        onClick={() => setColumnMenuOpen(!columnMenuOpen)}
+                        title="Show/hide columns"
+                      >
+                        ⋮
+                      </button>
+                      {columnMenuOpen && (
+                        <div className="col-menu">
+                          {table.getAllLeafColumns().map((column) => (
+                            <label key={column.id}>
+                              <input
+                                type="checkbox"
+                                checked={column.getIsVisible()}
+                                onChange={column.getToggleVisibilityHandler()}
+                              />
+                              {typeof column.columnDef.header === "string"
+                                ? column.columnDef.header
+                                : column.id}
+                            </label>
+                          ))}
+                          <hr className="col-menu-divider" />
+                          <button
+                            className="col-menu-reset"
+                            onClick={() => {
+                              setColumnVisibility({
+                                labels: false,
+                                assignee: false,
+                                estimate: false,
+                              });
+                              setColumnMenuOpen(false);
+                            }}
+                          >
+                            Reset to defaults
+                          </button>
+                        </div>
+                      )}
+                    </th>
+                  </tr>
+                ))}
+              </thead>
+              <tbody>
+                {table.getRowModel().rows.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={table.getVisibleLeafColumns().length + 1}
+                      className="empty-row"
+                    >
+                      {loading ? "Loading..." : "No issues matching filter"}
+                    </td>
+                  </tr>
+                ) : (
+                  table.getRowModel().rows.map((row) => (
+                    <tr
+                      key={row.id}
+                      onClick={() => onSelectBead(row.original.id)}
+                      className={`bead-row ${row.original.id === selectedBeadId ? "selected" : ""}`}
+                      title={row.original.description || row.original.title}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <td
+                          key={cell.id}
+                          className={`${cell.column.id}-cell`}
+                          style={{ width: cell.column.getSize() }}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                      <td className="row-spacer" />
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          {/* Filtered count overlay */}
+          {(hasActiveFilters || globalFilter) && filteredCount !== totalCount && (
+            <div className="filter-count-overlay">
+              {filteredCount} of {totalCount}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
