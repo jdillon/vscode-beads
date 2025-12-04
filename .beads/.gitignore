@@ -32,3 +32,6 @@ deletions.jsonl
 # Keep config files on main
 !metadata.json
 !config.json
+
+# Version tracking (local only)
+.local_version
