@@ -15,7 +15,7 @@ import {
   vscode,
 } from "./types";
 import { DashboardView } from "./views/DashboardView";
-import { IssuesViewTanStack as IssuesView } from "./views/IssuesViewTanStack";
+import { IssuesView } from "./views/IssuesView";
 import { DetailsView } from "./views/DetailsView";
 import { Loading } from "./common/Loading";
 import { ToastProvider, triggerToast } from "./common/Toast";
