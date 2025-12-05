@@ -293,6 +293,30 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       beadsPanelProvider.refresh();
       detailsProvider.refresh();
       updateDaemonStatusBar();
+    }),
+
+    // Refresh projects when workspace folders change
+    vscode.workspace.onDidChangeWorkspaceFolders(async () => {
+      log.info("Workspace folders changed, refreshing projects...");
+      const previousActiveId = projectManager.getActiveProject()?.id;
+      await projectManager.discoverProjects();
+
+      // If active project was removed, switch to first available
+      const projects = projectManager.getProjects();
+      const activeStillExists = projects.some((p) => p.id === previousActiveId);
+
+      if (!activeStillExists && projects.length > 0) {
+        log.info("Active project removed, switching to first available");
+        await projectManager.setActiveProject(projects[0].id);
+      } else if (projects.length === 0) {
+        log.info("No beads projects remaining");
+        updateDaemonStatusBar();
+      }
+
+      // Refresh all views
+      dashboardProvider.refresh();
+      beadsPanelProvider.refresh();
+      detailsProvider.refresh();
     })
   );
 

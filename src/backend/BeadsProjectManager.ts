@@ -196,35 +196,7 @@ export class BeadsProjectManager implements vscode.Disposable {
         this.log.info(`Daemon status: ${health.status} (v${health.version})`);
 
         // Start mutation watching for real-time updates
-        this.client.on("mutation", (mutation: MutationEvent) => {
-          this.log.debug(`Mutation: ${mutation.Type} on ${mutation.IssueID}`);
-          this._onMutation.fire(mutation);
-          this._onDataChanged.fire();
-        });
-
-        this.client.on("disconnected", (err: Error) => {
-          if (this.activeProject) {
-            this.log.warn(
-              `Lost connection to daemon for "${this.activeProject.name}": ${err.message}`
-            );
-            this.activeProject.daemonStatus = "stopped";
-            this._onActiveProjectChanged.fire(this.activeProject);
-            vscode.window.setStatusBarMessage("$(warning) Beads daemon disconnected", 3000);
-          }
-        });
-
-        this.client.on("reconnected", () => {
-          if (this.activeProject) {
-            this.log.info(`Reconnected to daemon for "${this.activeProject.name}"`);
-            this.activeProject.daemonStatus = "running";
-            this._onActiveProjectChanged.fire(this.activeProject);
-            this._onDataChanged.fire();
-            vscode.window.setStatusBarMessage("$(check) Beads daemon connected", 3000);
-          }
-        });
-
-        // Poll for mutations every second (with exponential backoff on errors)
-        this.client.startMutationWatch(1000);
+        this.setupMutationWatching();
       } catch (err) {
         this.log.error(`Failed to connect to daemon: ${err}`);
         project.daemonStatus = "stopped";
@@ -371,12 +343,12 @@ export class BeadsProjectManager implements vscode.Disposable {
             this.setupMutationWatching();
             resolve({ success: true, alreadyRunning: false, notInitialized: false });
           } catch (err) {
-            this.log.error(`Daemon health check failed: ${err}`);
+            this.log.errorNotify(`Daemon health check failed: ${err}`);
             resolve({ success: false, alreadyRunning, notInitialized });
           }
         } else {
           if (!alreadyRunning && !notInitialized) {
-            this.log.error(
+            this.log.errorNotify(
               `Daemon failed to start - socket not found at ${path.join(this.activeProject!.beadsDir, "bd.sock")}`
             );
           }
@@ -391,6 +363,34 @@ export class BeadsProjectManager implements vscode.Disposable {
    */
   private setupMutationWatching(): void {
     if (!this.client) return;
+
+    // Register event listeners for mutation events
+    this.client.on("mutation", (mutation: MutationEvent) => {
+      this.log.debug(`Mutation: ${mutation.Type} on ${mutation.IssueID}`);
+      this._onMutation.fire(mutation);
+      this._onDataChanged.fire();
+    });
+
+    this.client.on("disconnected", (err: Error) => {
+      if (this.activeProject) {
+        this.log.warn(
+          `Lost connection to daemon for "${this.activeProject.name}": ${err.message}`
+        );
+        this.activeProject.daemonStatus = "stopped";
+        this._onActiveProjectChanged.fire(this.activeProject);
+        vscode.window.setStatusBarMessage("$(warning) Beads daemon disconnected", 3000);
+      }
+    });
+
+    this.client.on("reconnected", () => {
+      if (this.activeProject) {
+        this.log.info(`Reconnected to daemon for "${this.activeProject.name}"`);
+        this.activeProject.daemonStatus = "running";
+        this._onActiveProjectChanged.fire(this.activeProject);
+        this._onDataChanged.fire();
+        vscode.window.setStatusBarMessage("$(check) Beads daemon connected", 3000);
+      }
+    });
 
     this.client.startMutationWatch(1000);
     this._onActiveProjectChanged.fire(this.activeProject);
@@ -442,7 +442,7 @@ export class BeadsProjectManager implements vscode.Disposable {
           this.log.info("Daemon stopped");
           resolve(true);
         } else {
-          this.log.error(`Failed to stop daemon (exit code ${code})`);
+          this.log.errorNotify(`Failed to stop daemon (exit code ${code})`);
           resolve(false);
         }
       });

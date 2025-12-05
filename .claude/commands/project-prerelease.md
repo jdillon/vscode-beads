@@ -106,11 +106,17 @@ Show this information clearly:
 
 ### Step 8: Ask for confirmation
 
-Use `AskUserQuestion` tool with exactly these options:
+**IMPORTANT:** You MUST use the `AskUserQuestion` tool here. Do not proceed without user confirmation.
+
+Use `AskUserQuestion` tool with:
 - Question: "Update CHANGELOG.md with these entries?"
+- Header: "Changelog"
 - Options:
-  - Label: "Yes, update changelog" / Description: "Merge entries into [Unreleased] section"
-  - Label: "No, I'll edit manually" / Description: "Stop without changes"
+  - Label: "Yes, update" / Description: "Merge entries into [Unreleased] section"
+  - Label: "No, skip" / Description: "Stop without making changes"
+- multiSelect: false
+
+Wait for the user's response before proceeding to Step 9.
 
 ### Step 9: Update CHANGELOG.md (only if user said yes)
 

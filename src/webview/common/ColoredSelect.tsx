@@ -6,8 +6,9 @@
  * Built on generic Dropdown for consistent behavior.
  */
 
-import React, { useState, ReactNode } from "react";
+import React, { useState, useRef, ReactNode } from "react";
 import { ChevronIcon } from "./ChevronIcon";
+import { useClickOutside } from "../hooks/useClickOutside";
 
 export interface ColoredSelectOption<T extends string | number> {
   value: T;
@@ -42,6 +43,9 @@ export function ColoredSelect<T extends string | number>({
   showChevron = true,
 }: ColoredSelectProps<T>): React.ReactElement {
   const [isOpen, setIsOpen] = useState(false);
+  const selectRef = useRef<HTMLDivElement>(null);
+
+  useClickOutside(selectRef, () => setIsOpen(false), isOpen);
 
   const selectedOption = options.find((o) => o.value === value) || options[0];
 
@@ -90,7 +94,7 @@ export function ColoredSelect<T extends string | number>({
   const hasCustomTrigger = renderTrigger || variant === "badge";
 
   return (
-    <div className={`colored-select dropdown ${className}`}>
+    <div className={`colored-select dropdown ${className}`} ref={selectRef}>
       <button
         type="button"
         className={`colored-select-trigger dropdown-trigger ${hasCustomTrigger ? "colored-select-trigger-custom" : ""}`}
@@ -108,25 +112,18 @@ export function ColoredSelect<T extends string | number>({
       </button>
 
       {isOpen && (
-        <>
-          {/* Invisible overlay to catch clicks outside */}
-          <div
-            className="colored-select-overlay"
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="colored-select-menu dropdown-menu">
-            {options.map((option) => (
-              <button
-                key={String(option.value)}
-                type="button"
-                className={`colored-select-option dropdown-item ${option.value === value ? "selected" : ""}`}
-                onClick={() => handleSelect(option.value)}
-              >
-                {renderOption ? renderOption(option) : defaultOption(option)}
-              </button>
-            ))}
-          </div>
-        </>
+        <div className="colored-select-menu dropdown-menu">
+          {options.map((option) => (
+            <button
+              key={String(option.value)}
+              type="button"
+              className={`colored-select-option dropdown-item ${option.value === value ? "selected" : ""}`}
+              onClick={() => handleSelect(option.value)}
+            >
+              {renderOption ? renderOption(option) : defaultOption(option)}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

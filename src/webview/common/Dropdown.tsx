@@ -10,6 +10,7 @@
 
 import React, { useState, useRef, useEffect, ReactNode, createContext, useContext } from "react";
 import { ChevronIcon } from "./ChevronIcon";
+import { useClickOutside } from "../hooks/useClickOutside";
 
 // Context to allow DropdownItem to close the dropdown
 const DropdownContext = createContext<{ close: () => void } | null>(null);
@@ -62,18 +63,7 @@ export function Dropdown({
   const close = () => setIsOpen(false);
 
   // Close on click outside
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen]);
+  useClickOutside(dropdownRef, close, isOpen);
 
   // Close on blur (click outside webview)
   useEffect(() => {

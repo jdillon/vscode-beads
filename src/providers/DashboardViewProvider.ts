@@ -99,6 +99,7 @@ export class DashboardViewProvider extends BaseViewProvider {
       this.postMessage({ type: "setBeads", beads: importantBeads });
     } catch (err) {
       this.setError(String(err));
+      this.log.errorNotify(`Failed to load dashboard: ${err}`);
     } finally {
       this.setLoading(false);
     }
