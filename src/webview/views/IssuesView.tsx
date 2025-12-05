@@ -550,6 +550,7 @@ export function IssuesView({
             <table
               className="beads-table"
               style={{ minWidth: table.getCenterTotalSize() }}
+              onContextMenu={(e) => e.preventDefault()}
             >
               <thead>
                 {table.getHeaderGroups().map((headerGroup) => (
