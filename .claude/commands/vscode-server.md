@@ -1,6 +1,6 @@
 ---
 description: "Manage code-server for extension testing: start|stop|status"
-allowed-tools: Bash, Read, mcp__chrome-devtools__new_page, mcp__chrome-devtools__list_pages, mcp__chrome-devtools__navigate_page
+allowed-tools: Bash, Read, mcp__chrome-devtools__new_page, mcp__chrome-devtools__list_pages, mcp__chrome-devtools__navigate_page, mcp__chrome-devtools__close_page
 ---
 
 Manage code-server development environment for testing VS Code extensions.
@@ -9,10 +9,31 @@ Manage code-server development environment for testing VS Code extensions.
 
 - `start` (default) - Start code-server and watch mode
 - `stop` - Stop code-server and watch mode
-- `reload` - Hard reload browser (cache bypass)
+- `reload [--devtools]` - Hard reload browser (cache bypass). With `--devtools`, closes and reopens the page (useful if MCP disconnected)
 - `status` - Show current status of processes
 
 **Arguments**: $ARGUMENTS
+
+## Note: Opening DevTools Manually
+
+Chrome only allows one DevTools client at a time. If you manually open DevTools (F12) while chrome-devtools-mcp is connected, the MCP will crash/disconnect.
+
+**Workaround**: Configure the MCP server to launch with `--devtools` flag:
+
+```json
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["chrome-devtools-mcp@latest", "--devtools"]
+    }
+  }
+}
+```
+
+This launches Chrome with DevTools already open, avoiding the conflict.
+
+See: `~/Documents/Obsidian/Wonderland/VSCode/chrome-devtools-mcp-crash-when-opening-devtools.md`
 
 ## Instructions
 
@@ -73,11 +94,23 @@ Then stop (don't execute start commands).
 
 Hard reload the browser with cache bypass. Useful after rebuilding the extension.
 
+### Without --devtools (default)
+
 Use `mcp__chrome-devtools__navigate_page` with:
 - `type`: `"reload"`
 - `ignoreCache`: `true`
 
 This bypasses browser cache, ensuring the latest extension code is loaded.
+
+### With --devtools
+
+If the `--devtools` flag is present, do a full page close/reopen instead of just reload. This recovers from MCP disconnection (e.g., if you opened DevTools manually).
+
+1. First, try to close the existing page using `mcp__chrome-devtools__close_page` (ignore errors if it fails)
+2. Then open a fresh page using `mcp__chrome-devtools__new_page` with URL `http://127.0.0.1:8080/`
+3. Do a hard reload with `mcp__chrome-devtools__navigate_page` (type: reload, ignoreCache: true)
+
+**Note**: The `--devtools` flag name is a hint that this is useful when DevTools caused the disconnect. The actual DevTools panel opening depends on your MCP server config (see "Opening DevTools Manually" section above).
 
 ---
 

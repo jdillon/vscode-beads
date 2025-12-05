@@ -3,14 +3,15 @@
  *
  * Main table/list view for issues using TanStack Table v8.
  * Features:
- * - Multi-column sorting (shift+click)
+ * - Multi-column sorting (shift+click for secondary sort)
  * - Column resizing
  * - Column reordering (drag & drop)
  * - Faceted filtering with counts
  * - Column visibility toggle
+ * - State persistence (sort order, column visibility, column order survive reloads)
  */
 
-import React, { useState, useMemo, useCallback, useRef } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -99,22 +100,40 @@ export function IssuesView({
   void _onUpdateBead;
   const isSocketError = error?.includes("ENOENT") || error?.includes("socket");
 
-  // TanStack state
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: "updatedAt", desc: true },
-  ]);
+  // Persisted state - restore from VS Code webview state
+  interface PersistedState {
+    sorting?: SortingState;
+    columnVisibility?: VisibilityState;
+    columnOrder?: ColumnOrderState;
+  }
+  const savedState = useMemo(() => vscode.getState() as PersistedState | undefined, []);
+
+  // TanStack state (with persistence)
+  const [sorting, setSorting] = useState<SortingState>(
+    savedState?.sorting ?? [{ id: "updatedAt", desc: true }]
+  );
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
     { id: "status", value: ["open", "in_progress", "blocked"] }, // Default: Not Closed
   ]);
   const [globalFilter, setGlobalFilter] = useState("");
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
-    labels: false,
-    assignee: false,
-    estimate: false,
-  });
-  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
+    savedState?.columnVisibility ?? {
+      labels: false,
+      assignee: false,
+      estimate: false,
+    }
+  );
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(
+    savedState?.columnOrder ?? []
+  );
+
+  // Persist state changes to VS Code
+  useEffect(() => {
+    vscode.setState({ sorting, columnVisibility, columnOrder });
+  }, [sorting, columnVisibility, columnOrder]);
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  const [isResizing, setIsResizing] = useState(false);
 
   // UI state
   const [activePreset, setActivePreset] = useState<string>("not-closed");
@@ -565,8 +584,12 @@ export function IssuesView({
                         style={{ width: header.getSize() }}
                         className={`${header.column.getCanSort() ? "sortable" : ""} ${draggedColumn === header.id ? "dragging" : ""} ${dragOverColumn === header.id && draggedColumn !== header.id ? "drag-over" : ""}`}
                         onClick={header.column.getToggleSortingHandler()}
-                        draggable
+                        draggable={!isResizing}
                         onDragStart={(e) => {
+                          if (isResizing) {
+                            e.preventDefault();
+                            return;
+                          }
                           setDraggedColumn(header.id);
                           e.dataTransfer.effectAllowed = "move";
                         }}
@@ -607,8 +630,29 @@ export function IssuesView({
                         )}
                         <span
                           className="resize-handle"
-                          onMouseDown={header.getResizeHandler()}
-                          onTouchStart={header.getResizeHandler()}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setIsResizing(true);
+                            const resizeHandler = header.getResizeHandler();
+                            resizeHandler(e);
+                            // Clear resizing state on mouseup
+                            const handleMouseUp = () => {
+                              setIsResizing(false);
+                              document.removeEventListener("mouseup", handleMouseUp);
+                            };
+                            document.addEventListener("mouseup", handleMouseUp);
+                          }}
+                          onTouchStart={(e) => {
+                            e.stopPropagation();
+                            setIsResizing(true);
+                            const resizeHandler = header.getResizeHandler();
+                            resizeHandler(e);
+                            const handleTouchEnd = () => {
+                              setIsResizing(false);
+                              document.removeEventListener("touchend", handleTouchEnd);
+                            };
+                            document.addEventListener("touchend", handleTouchEnd);
+                          }}
                           onClick={(e) => e.stopPropagation()}
                         />
                       </th>
