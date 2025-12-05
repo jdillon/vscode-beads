@@ -10,7 +10,7 @@
  * - Column visibility toggle
  */
 
-import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useRef } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -48,6 +48,7 @@ import { FilterChip } from "../common/FilterChip";
 import { ErrorMessage } from "../common/ErrorMessage";
 import { ProjectDropdown } from "../common/ProjectDropdown";
 import { Dropdown, DropdownItem } from "../common/Dropdown";  // Used for preset dropdown
+import { useClickOutside } from "../hooks/useClickOutside";
 
 interface IssuesViewProps {
   beads: Bead[];
@@ -122,18 +123,11 @@ export function IssuesView({
   const [columnMenuOpen, setColumnMenuOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const filterMenuRef = useRef<HTMLDivElement>(null);
+  const columnMenuRef = useRef<HTMLDivElement>(null);
 
-  // Click outside to close filter menu
-  useEffect(() => {
-    if (!filterMenuOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (filterMenuRef.current && !filterMenuRef.current.contains(e.target as Node)) {
-        setFilterMenuOpen(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [filterMenuOpen]);
+  // Click outside to close menus
+  useClickOutside(filterMenuRef, () => setFilterMenuOpen(null), !!filterMenuOpen);
+  useClickOutside(columnMenuRef, () => setColumnMenuOpen(false), columnMenuOpen);
 
   // Column definitions
   const columns = useMemo(
@@ -619,7 +613,7 @@ export function IssuesView({
                         />
                       </th>
                     ))}
-                    <th className="col-menu-th">
+                    <th className="col-menu-th" ref={columnMenuRef}>
                       <button
                         className="col-menu-btn"
                         onClick={() => setColumnMenuOpen(!columnMenuOpen)}

@@ -1426,13 +1426,6 @@ textarea {
   opacity: 0.85;
 }
 
-/* Invisible overlay to catch clicks outside */
-.colored-select-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 99;
-}
-
 .colored-select-label {
   font-size: 11px;
   color: var(--vscode-foreground);
