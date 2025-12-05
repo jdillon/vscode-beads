@@ -778,6 +778,12 @@ textarea {
   border-color: var(--vscode-foreground);
 }
 
+.facet-count {
+  margin-left: var(--spacing-xs);
+  color: var(--vscode-descriptionForeground);
+  font-size: 10px;
+}
+
 .filter-menu {
   position: absolute;
   top: 100%;
@@ -867,6 +873,24 @@ textarea {
 
 .beads-table th.sortable:hover {
   background-color: var(--vscode-list-hoverBackground);
+}
+
+.beads-table th.dragging {
+  opacity: 0.5;
+  background-color: var(--vscode-list-activeSelectionBackground);
+}
+
+.beads-table th.drag-over {
+  border-left: 2px solid var(--vscode-focusBorder);
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.beads-table th[draggable="true"] {
+  cursor: grab;
+}
+
+.beads-table th[draggable="true"]:active {
+  cursor: grabbing;
 }
 
 .sort-indicator {
