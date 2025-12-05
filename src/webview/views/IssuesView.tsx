@@ -1,14 +1,31 @@
 /**
  * IssuesView
  *
- * Main table/list view for issues with:
- * - Sortable columns
- * - Modern chip-based filtering
- * - Text search
- * - Row interactions
+ * Main table/list view for issues using TanStack Table v8.
+ * Features:
+ * - Multi-column sorting (shift+click)
+ * - Column resizing
+ * - Column reordering (drag & drop)
+ * - Faceted filtering with counts
+ * - Column visibility toggle
  */
 
-import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
+  flexRender,
+  createColumnHelper,
+  SortingState,
+  ColumnFiltersState,
+  VisibilityState,
+  ColumnResizeMode,
+  ColumnOrderState,
+} from "@tanstack/react-table";
 import {
   Bead,
   BeadsProject,
@@ -30,7 +47,7 @@ import { LabelBadge } from "../common/LabelBadge";
 import { FilterChip } from "../common/FilterChip";
 import { ErrorMessage } from "../common/ErrorMessage";
 import { ProjectDropdown } from "../common/ProjectDropdown";
-import { Dropdown, DropdownItem } from "../common/Dropdown";
+import { Dropdown, DropdownItem } from "../common/Dropdown";  // Used for preset dropdown
 
 interface IssuesViewProps {
   beads: Bead[];
@@ -46,54 +63,24 @@ interface IssuesViewProps {
   onRetry: () => void;
 }
 
-type SortField = "title" | "status" | "priority" | "type" | "labels" | "assignee" | "estimate" | "createdAt" | "updatedAt";
-type SortDirection = "asc" | "desc";
-
-interface Filters {
-  status: BeadStatus[];
-  priority: BeadPriority[];
-  type: string[];
-  search: string;
-}
-
-interface ColumnConfig {
-  id: SortField;
-  label: string;
-  visible: boolean;
-  width: number;
-  minWidth: number;
-  sortable: boolean;
-}
-
-const DEFAULT_COLUMNS: ColumnConfig[] = [
-  { id: "type", label: "Type", visible: true, width: 70, minWidth: 50, sortable: true },
-  { id: "title", label: "Title", visible: true, width: 200, minWidth: 50, sortable: true },
-  { id: "status", label: "Status", visible: true, width: 80, minWidth: 60, sortable: true },
-  { id: "priority", label: "Priority", visible: true, width: 70, minWidth: 50, sortable: true },
-  { id: "labels", label: "Labels", visible: false, width: 100, minWidth: 60, sortable: false },
-  { id: "assignee", label: "Assignee", visible: false, width: 80, minWidth: 50, sortable: true },
-  { id: "estimate", label: "Estimate", visible: false, width: 70, minWidth: 50, sortable: true },
-  { id: "updatedAt", label: "Updated", visible: true, width: 80, minWidth: 60, sortable: true },
-  { id: "createdAt", label: "Created", visible: true, width: 80, minWidth: 60, sortable: true },
-];
-
 const ISSUE_TYPES = ["bug", "feature", "task", "epic", "chore"];
 
-// Filter presets for quick filtering
+// Filter presets
 interface FilterPreset {
   id: string;
   label: string;
-  filters: Omit<Filters, "search">;
+  statuses: BeadStatus[];
 }
 
 const FILTER_PRESETS: FilterPreset[] = [
-  { id: "all", label: "All", filters: { status: [], priority: [], type: [] } },
-  { id: "not-closed", label: "Not Closed", filters: { status: ["open", "in_progress", "blocked"], priority: [], type: [] } },
-  { id: "active", label: "Active", filters: { status: ["in_progress", "blocked"], priority: [], type: [] } },
-  { id: "blocked", label: "Blocked", filters: { status: ["blocked"], priority: [], type: [] } },
-  { id: "closed", label: "Closed", filters: { status: ["closed"], priority: [], type: [] } },
-  { id: "epics", label: "Epics", filters: { status: [], priority: [], type: ["epic"] } },
+  { id: "all", label: "All", statuses: [] },
+  { id: "not-closed", label: "Not Closed", statuses: ["open", "in_progress", "blocked"] },
+  { id: "active", label: "Active", statuses: ["in_progress", "blocked"] },
+  { id: "blocked", label: "Blocked", statuses: ["blocked"] },
+  { id: "closed", label: "Closed", statuses: ["closed"] },
 ];
+
+const columnHelper = createColumnHelper<Bead>();
 
 export function IssuesView({
   beads,
@@ -108,287 +95,282 @@ export function IssuesView({
   onStartDaemon,
   onRetry,
 }: IssuesViewProps): React.ReactElement {
-  void _onUpdateBead; // Used for future inline editing
+  void _onUpdateBead;
   const isSocketError = error?.includes("ENOENT") || error?.includes("socket");
-  const [sortField, setSortField] = useState<SortField>("updatedAt");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  // Initialize with "Not Closed" preset
-  const defaultPreset = FILTER_PRESETS.find((p) => p.id === "not-closed")!;
-  const [filters, setFilters] = useState<Filters>({
-    ...defaultPreset.filters,
-    search: "",
+
+  // TanStack state
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "updatedAt", desc: true },
+  ]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
+    { id: "status", value: ["open", "in_progress", "blocked"] }, // Default: Not Closed
+  ]);
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+    labels: false,
+    assignee: false,
+    estimate: false,
   });
-  const [activePreset, setActivePreset] = useState<string | null>("not-closed");
-  const [filterBarOpen, setFilterBarOpen] = useState(true); // Start open to show default filter
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
+  const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+
+  // UI state
+  const [activePreset, setActivePreset] = useState<string>("not-closed");
+  const [filterBarOpen, setFilterBarOpen] = useState(true);
   const [filterMenuOpen, setFilterMenuOpen] = useState<string | null>(null);
   const [columnMenuOpen, setColumnMenuOpen] = useState(false);
-  const [resizing, setResizing] = useState<{ id: SortField; startX: number; startWidth: number } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  // Load column settings from webview state, merging with defaults for new columns
-  const [columns, setColumns] = useState<ColumnConfig[]>(() => {
-    try {
-      const saved = vscode.getState() as { columns?: ColumnConfig[] } | null;
-      if (saved?.columns) {
-        // Merge: keep saved settings but update minWidth from defaults, add new columns
-        const defaultsMap = new Map(DEFAULT_COLUMNS.map((c) => [c.id, c]));
-        const merged = saved.columns.map((col) => {
-          const def = defaultsMap.get(col.id);
-          return def ? { ...col, minWidth: def.minWidth } : col;
-        });
-        const savedIds = new Set(saved.columns.map((c) => c.id));
-        const newColumns = DEFAULT_COLUMNS.filter((c) => !savedIds.has(c.id));
-        return [...merged, ...newColumns];
-      }
-    } catch (e) {
-      console.error('Failed to restore column state:', e);
-    }
-    return DEFAULT_COLUMNS;
-  });
-
-  // Save column settings when they change
-  useEffect(() => {
-    try {
-      const current = vscode.getState() as Record<string, unknown> | null;
-      vscode.setState({ ...current, columns });
-    } catch (e) {
-      console.error('Failed to save column state:', e);
-    }
-  }, [columns]);
-
-  const hasActiveFilters = filters.status.length > 0 || filters.priority.length > 0 || filters.type.length > 0;
-  const showFilterRow = filterBarOpen || hasActiveFilters;
-  const visibleColumns = columns.filter((c) => c.visible);
   const filterMenuRef = useRef<HTMLDivElement>(null);
-  const columnMenuRef = useRef<HTMLTableCellElement>(null);
 
   // Click outside to close filter menu
   useEffect(() => {
     if (!filterMenuOpen) return;
-
     const handleClickOutside = (e: MouseEvent) => {
       if (filterMenuRef.current && !filterMenuRef.current.contains(e.target as Node)) {
         setFilterMenuOpen(null);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [filterMenuOpen]);
 
-  // Click outside to close column menu
-  useEffect(() => {
-    if (!columnMenuOpen) return;
+  // Column definitions
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor("type", {
+        header: "Type",
+        size: 70,
+        minSize: 50,
+        cell: (info) =>
+          info.getValue() ? (
+            <TypeBadge type={info.getValue() as BeadType} size="small" />
+          ) : null,
+        filterFn: (row, columnId, filterValue: string[]) => {
+          if (!filterValue || filterValue.length === 0) return true;
+          const val = row.getValue(columnId) as string | undefined;
+          return val !== undefined && filterValue.includes(val);
+        },
+      }),
+      columnHelper.accessor("title", {
+        header: "Title",
+        size: 200,
+        minSize: 100,
+        cell: (info) => (
+          <>
+            <span
+              className={`bead-id ${copiedId === info.row.original.id ? "copied" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopyId(info.row.original.id);
+              }}
+              title={copiedId === info.row.original.id ? "Copied!" : "Click to copy"}
+            >
+              {info.row.original.id}
+            </span>
+            <span className="bead-title">{info.getValue()}</span>
+          </>
+        ),
+      }),
+      columnHelper.accessor("status", {
+        header: "Status",
+        size: 80,
+        minSize: 60,
+        cell: (info) => <StatusBadge status={info.getValue()} size="small" />,
+        filterFn: (row, columnId, filterValue: BeadStatus[]) => {
+          if (!filterValue || filterValue.length === 0) return true;
+          return filterValue.includes(row.getValue(columnId));
+        },
+      }),
+      columnHelper.accessor("priority", {
+        header: "Priority",
+        size: 70,
+        minSize: 50,
+        cell: (info) =>
+          info.getValue() !== undefined ? (
+            <PriorityBadge priority={info.getValue()!} size="small" />
+          ) : null,
+        filterFn: (row, columnId, filterValue: BeadPriority[]) => {
+          if (!filterValue || filterValue.length === 0) return true;
+          const val = row.getValue(columnId) as BeadPriority | undefined;
+          return val !== undefined && filterValue.includes(val);
+        },
+      }),
+      columnHelper.accessor("labels", {
+        header: "Labels",
+        size: 100,
+        minSize: 60,
+        enableSorting: false,
+        cell: (info) => (
+          <>
+            {sortLabels(info.getValue()).map((label) => (
+              <LabelBadge key={label} label={label} />
+            ))}
+          </>
+        ),
+      }),
+      columnHelper.accessor("assignee", {
+        header: "Assignee",
+        size: 80,
+        minSize: 50,
+        cell: (info) => info.getValue() || "-",
+      }),
+      columnHelper.accessor("estimatedMinutes", {
+        id: "estimate",
+        header: "Estimate",
+        size: 70,
+        minSize: 50,
+        cell: (info) => (info.getValue() ? `${info.getValue()}m` : "-"),
+      }),
+      columnHelper.accessor("updatedAt", {
+        header: "Updated",
+        size: 80,
+        minSize: 60,
+        cell: (info) =>
+          info.getValue()
+            ? new Date(info.getValue()!).toLocaleDateString()
+            : "-",
+      }),
+      columnHelper.accessor("createdAt", {
+        header: "Created",
+        size: 80,
+        minSize: 60,
+        cell: (info) =>
+          info.getValue()
+            ? new Date(info.getValue()!).toLocaleDateString()
+            : "-",
+      }),
+    ],
+    [copiedId]
+  );
 
-    const handleClickOutside = (e: MouseEvent) => {
-      if (columnMenuRef.current && !columnMenuRef.current.contains(e.target as Node)) {
-        setColumnMenuOpen(false);
-      }
-    };
+  const table = useReactTable({
+    data: beads,
+    columns,
+    state: {
+      sorting,
+      columnFilters,
+      globalFilter,
+      columnVisibility,
+      columnOrder,
+    },
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
+    onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: setColumnOrder,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
+    columnResizeMode: "onChange" as ColumnResizeMode,
+    enableColumnResizing: true,
+  });
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [columnMenuOpen]);
-
-  // Close menus when webview loses focus (click outside VS Code webview)
-  useEffect(() => {
-    const handleBlur = () => {
-      setColumnMenuOpen(false);
-      setFilterMenuOpen(null);
-    };
-
-    window.addEventListener("blur", handleBlur);
-    return () => window.removeEventListener("blur", handleBlur);
+  const handleCopyId = useCallback((beadId: string) => {
+    vscode.postMessage({ type: "copyBeadId", beadId });
+    setCopiedId(beadId);
+    setTimeout(() => setCopiedId(null), 1500);
   }, []);
 
-  // Handle column resize
-  const handleResizeStart = useCallback((e: React.MouseEvent, col: ColumnConfig) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setResizing({ id: col.id, startX: e.clientX, startWidth: col.width });
-  }, []);
+  // Filter helpers
+  const statusFilter = (columnFilters.find((f) => f.id === "status")?.value || []) as BeadStatus[];
+  const priorityFilter = (columnFilters.find((f) => f.id === "priority")?.value || []) as BeadPriority[];
+  const typeFilter = (columnFilters.find((f) => f.id === "type")?.value || []) as string[];
+  const hasActiveFilters = statusFilter.length > 0 || priorityFilter.length > 0 || typeFilter.length > 0;
 
-  useEffect(() => {
-    if (!resizing) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const delta = e.clientX - resizing.startX;
-      setColumns((prev) =>
-        prev.map((col) =>
-          col.id === resizing.id
-            ? { ...col, width: Math.max(col.minWidth, resizing.startWidth + delta) }
-            : col
-        )
-      );
-    };
-
-    const handleMouseUp = () => {
-      setResizing(null);
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [resizing]);
-
-  const toggleColumnVisibility = useCallback((id: SortField) => {
-    setColumns((prev) =>
-      prev.map((col) => (col.id === id ? { ...col, visible: !col.visible } : col))
-    );
-  }, []);
-
-  // Filter and sort beads
-  const filteredBeads = useMemo(() => {
-    let result = [...beads];
-
-    if (filters.status.length > 0) {
-      result = result.filter((b) => filters.status.includes(b.status));
-    }
-
-    if (filters.priority.length > 0) {
-      result = result.filter(
-        (b) => b.priority !== undefined && filters.priority.includes(b.priority)
-      );
-    }
-
-    if (filters.type.length > 0) {
-      result = result.filter((b) => b.type && filters.type.includes(b.type));
-    }
-
-    if (filters.search) {
-      const search = filters.search.toLowerCase();
-      result = result.filter(
-        (b) =>
-          b.title.toLowerCase().includes(search) ||
-          b.id.toLowerCase().includes(search) ||
-          (b.description && b.description.toLowerCase().includes(search)) ||
-          (b.labels && b.labels.some((l) => l.toLowerCase().includes(search)))
-      );
-    }
-
-    result.sort((a, b) => {
-      let comparison = 0;
-      switch (sortField) {
-        case "title":
-          comparison = a.title.localeCompare(b.title);
-          break;
-        case "status":
-          comparison = a.status.localeCompare(b.status);
-          break;
-        case "priority":
-          comparison = (a.priority ?? 4) - (b.priority ?? 4);
-          break;
-        case "type":
-          comparison = (a.type || "").localeCompare(b.type || "");
-          break;
-        case "assignee":
-          comparison = (a.assignee || "").localeCompare(b.assignee || "");
-          break;
-        case "estimate":
-          comparison = (a.estimatedMinutes ?? 0) - (b.estimatedMinutes ?? 0);
-          break;
-        case "createdAt":
-          comparison = (a.createdAt || "").localeCompare(b.createdAt || "");
-          break;
-        case "updatedAt":
-          comparison = (a.updatedAt || "").localeCompare(b.updatedAt || "");
-          break;
-      }
-      return sortDirection === "asc" ? comparison : -comparison;
-    });
-
-    return result;
-  }, [beads, filters, sortField, sortDirection]);
-
-  const handleSort = useCallback((field: SortField) => {
-    setSortField((prev) => {
-      if (prev === field) {
-        setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
-        return prev;
-      }
-      setSortDirection("asc");
-      return field;
-    });
-  }, []);
-
-  // Apply a filter preset
   const applyPreset = (presetId: string) => {
     const preset = FILTER_PRESETS.find((p) => p.id === presetId);
     if (preset) {
-      setFilters((prev) => ({ ...preset.filters, search: prev.search }));
+      setColumnFilters((prev) =>
+        prev
+          .filter((f) => f.id !== "status")
+          .concat(preset.statuses.length > 0 ? [{ id: "status", value: preset.statuses }] : [])
+      );
       setActivePreset(presetId);
-      setFilterMenuOpen(null);
     }
   };
 
   const addStatusFilter = (status: BeadStatus) => {
-    if (!filters.status.includes(status)) {
-      setFilters((prev) => ({ ...prev, status: [...prev.status, status] }));
-      setActivePreset(null); // Manual change clears preset
-    }
-    setFilterMenuOpen(null);
-  };
-
-  const addPriorityFilter = (priority: BeadPriority) => {
-    if (!filters.priority.includes(priority)) {
-      setFilters((prev) => ({ ...prev, priority: [...prev.priority, priority] }));
-      setActivePreset(null);
-    }
-    setFilterMenuOpen(null);
-  };
-
-  const addTypeFilter = (type: string) => {
-    if (!filters.type.includes(type)) {
-      setFilters((prev) => ({ ...prev, type: [...prev.type, type] }));
-      setActivePreset(null);
+    if (!statusFilter.includes(status)) {
+      setColumnFilters((prev) => {
+        const others = prev.filter((f) => f.id !== "status");
+        return [...others, { id: "status", value: [...statusFilter, status] }];
+      });
+      setActivePreset("");
     }
     setFilterMenuOpen(null);
   };
 
   const removeStatusFilter = (status: BeadStatus) => {
-    setFilters((prev) => ({
-      ...prev,
-      status: prev.status.filter((s) => s !== status),
-    }));
-    setActivePreset(null);
+    const newStatuses = statusFilter.filter((s) => s !== status);
+    setColumnFilters((prev) => {
+      const others = prev.filter((f) => f.id !== "status");
+      return newStatuses.length > 0
+        ? [...others, { id: "status", value: newStatuses }]
+        : others;
+    });
+    setActivePreset("");
+  };
+
+  const addPriorityFilter = (priority: BeadPriority) => {
+    if (!priorityFilter.includes(priority)) {
+      setColumnFilters((prev) => {
+        const others = prev.filter((f) => f.id !== "priority");
+        return [...others, { id: "priority", value: [...priorityFilter, priority] }];
+      });
+      setActivePreset("");
+    }
+    setFilterMenuOpen(null);
+  };
+
+  const addTypeFilter = (type: string) => {
+    if (!typeFilter.includes(type)) {
+      setColumnFilters((prev) => {
+        const others = prev.filter((f) => f.id !== "type");
+        return [...others, { id: "type", value: [...typeFilter, type] }];
+      });
+      setActivePreset("");
+    }
+    setFilterMenuOpen(null);
   };
 
   const removePriorityFilter = (priority: BeadPriority) => {
-    setFilters((prev) => ({
-      ...prev,
-      priority: prev.priority.filter((p) => p !== priority),
-    }));
-    setActivePreset(null);
+    const newPriorities = priorityFilter.filter((p) => p !== priority);
+    setColumnFilters((prev) => {
+      const others = prev.filter((f) => f.id !== "priority");
+      return newPriorities.length > 0
+        ? [...others, { id: "priority", value: newPriorities }]
+        : others;
+    });
+    setActivePreset("");
   };
 
   const removeTypeFilter = (type: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      type: prev.type.filter((t) => t !== type),
-    }));
-    setActivePreset(null);
+    const newTypes = typeFilter.filter((t) => t !== type);
+    setColumnFilters((prev) => {
+      const others = prev.filter((f) => f.id !== "type");
+      return newTypes.length > 0
+        ? [...others, { id: "type", value: newTypes }]
+        : others;
+    });
+    setActivePreset("");
   };
 
   const clearAllFilters = () => {
-    setFilters({ status: [], priority: [], type: [], search: "" });
+    setColumnFilters([]);
+    setGlobalFilter("");
     setActivePreset("all");
   };
 
-  const SortIndicator = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return null;
-    return <span className="sort-indicator">{sortDirection === "asc" ? "▲" : "▼"}</span>;
-  };
+  const filteredCount = table.getFilteredRowModel().rows.length;
+  const totalCount = beads.length;
 
-  const handleCopyId = useCallback((beadId: string) => {
-    // Post to extension for clipboard + status bar message
-    vscode.postMessage({ type: "copyBeadId", beadId });
-    // Local visual feedback
-    setCopiedId(beadId);
-    setTimeout(() => setCopiedId(null), 1500);
-  }, []);
+  // Get faceted counts for filters (counts based on OTHER active filters, not this column)
+  const statusFacets = table.getColumn("status")?.getFacetedUniqueValues() ?? new Map();
+  const priorityFacets = table.getColumn("priority")?.getFacetedUniqueValues() ?? new Map();
+  const typeFacets = table.getColumn("type")?.getFacetedUniqueValues() ?? new Map();
 
   return (
     <div className="beads-panel">
@@ -404,15 +386,13 @@ export function IssuesView({
             type="text"
             className="search-input-compact"
             placeholder="Search..."
-            value={filters.search}
-            onChange={(e) =>
-              setFilters((prev) => ({ ...prev, search: e.target.value }))
-            }
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
           />
-          {filters.search && (
+          {globalFilter && (
             <button
               className="search-clear-btn"
-              onClick={() => setFilters((prev) => ({ ...prev, search: "" }))}
+              onClick={() => setGlobalFilter("")}
               title="Clear search"
             >
               ×
@@ -420,27 +400,21 @@ export function IssuesView({
           )}
         </div>
         <button
-          className={`filter-toggle ${showFilterRow ? "active" : ""}`}
-          onClick={() => {
-            setFilterBarOpen(!filterBarOpen);
-            if (filterBarOpen) setFilterMenuOpen(null); // Close menu when closing bar
-          }}
+          className={`filter-toggle ${filterBarOpen || hasActiveFilters ? "active" : ""}`}
+          onClick={() => setFilterBarOpen(!filterBarOpen)}
           title="Filter"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M6 10.5v-1h4v1H6zm-2-3v-1h8v1H4zm-2-3v-1h12v1H2z"/>
+            <path d="M6 10.5v-1h4v1H6zm-2-3v-1h8v1H4zm-2-3v-1h12v1H2z" />
           </svg>
         </button>
       </div>
 
-      {/* Row 2: Filter bar (shown when filters active or menu open) */}
-      {showFilterRow && (
+      {/* Row 2: Filter bar */}
+      {(filterBarOpen || hasActiveFilters) && (
         <div className="filter-bar">
-          {/* Preset dropdown */}
           <Dropdown
-            trigger={activePreset
-              ? FILTER_PRESETS.find((p) => p.id === activePreset)?.label
-              : "Custom"}
+            trigger={FILTER_PRESETS.find((p) => p.id === activePreset)?.label || "Custom"}
             className="preset-dropdown"
             triggerClassName="preset-dropdown-btn"
             menuClassName="preset-dropdown-menu"
@@ -458,7 +432,7 @@ export function IssuesView({
           </Dropdown>
 
           {/* Active filter chips */}
-          {filters.status.map((status) => (
+          {statusFilter.map((status) => (
             <FilterChip
               key={`status-${status}`}
               label={STATUS_LABELS[status]}
@@ -466,7 +440,7 @@ export function IssuesView({
               onRemove={() => removeStatusFilter(status)}
             />
           ))}
-          {filters.priority.map((priority) => (
+          {priorityFilter.map((priority) => (
             <FilterChip
               key={`priority-${priority}`}
               label={`p${priority}`}
@@ -474,7 +448,7 @@ export function IssuesView({
               onRemove={() => removePriorityFilter(priority)}
             />
           ))}
-          {filters.type.map((type) => (
+          {typeFilter.map((type) => (
             <FilterChip
               key={`type-${type}`}
               label={TYPE_LABELS[type as BeadType] || type}
@@ -483,7 +457,7 @@ export function IssuesView({
             />
           ))}
 
-          {/* Add filter dropdown */}
+          {/* Add filter dropdown with faceted counts */}
           <div className="filter-add-wrapper" ref={filterMenuRef}>
             <button
               className="filter-add-btn"
@@ -503,12 +477,16 @@ export function IssuesView({
             {filterMenuOpen === "status" && (
               <div className="filter-menu">
                 {(Object.keys(STATUS_LABELS) as BeadStatus[])
-                  .filter((s) => s !== "unknown" && !filters.status.includes(s))
-                  .map((status) => (
-                    <button key={status} onClick={() => addStatusFilter(status)}>
-                      <StatusBadge status={status} size="small" />
-                    </button>
-                  ))}
+                  .filter((s) => s !== "unknown" && !statusFilter.includes(s))
+                  .map((status) => {
+                    const count = statusFacets.get(status) ?? 0;
+                    return (
+                      <button key={status} onClick={() => addStatusFilter(status)}>
+                        <StatusBadge status={status} size="small" />
+                        <span className="facet-count">({count})</span>
+                      </button>
+                    );
+                  })}
                 <button className="back-btn" onClick={() => setFilterMenuOpen("main")}>← Back</button>
               </div>
             )}
@@ -516,12 +494,16 @@ export function IssuesView({
             {filterMenuOpen === "priority" && (
               <div className="filter-menu">
                 {([0, 1, 2, 3, 4] as BeadPriority[])
-                  .filter((p) => !filters.priority.includes(p))
-                  .map((priority) => (
-                    <button key={priority} onClick={() => addPriorityFilter(priority)}>
-                      <PriorityBadge priority={priority} size="small" />
-                    </button>
-                  ))}
+                  .filter((p) => !priorityFilter.includes(p))
+                  .map((priority) => {
+                    const count = priorityFacets.get(priority) ?? 0;
+                    return (
+                      <button key={priority} onClick={() => addPriorityFilter(priority)}>
+                        <PriorityBadge priority={priority} size="small" />
+                        <span className="facet-count">({count})</span>
+                      </button>
+                    );
+                  })}
                 <button className="back-btn" onClick={() => setFilterMenuOpen("main")}>← Back</button>
               </div>
             )}
@@ -529,18 +511,21 @@ export function IssuesView({
             {filterMenuOpen === "type" && (
               <div className="filter-menu">
                 {ISSUE_TYPES
-                  .filter((t) => !filters.type.includes(t))
-                  .map((type) => (
-                    <button key={type} onClick={() => addTypeFilter(type)}>
-                      <TypeBadge type={type as BeadType} size="small" />
-                    </button>
-                  ))}
+                  .filter((t) => !typeFilter.includes(t))
+                  .map((type) => {
+                    const count = typeFacets.get(type) ?? 0;
+                    return (
+                      <button key={type} onClick={() => addTypeFilter(type)}>
+                        <TypeBadge type={type as BeadType} size="small" />
+                        <span className="facet-count">({count})</span>
+                      </button>
+                    );
+                  })}
                 <button className="back-btn" onClick={() => setFilterMenuOpen("main")}>← Back</button>
               </div>
             )}
           </div>
 
-          {/* Reset all filters */}
           {hasActiveFilters && (
             <button className="filter-reset" onClick={clearAllFilters}>
               Clear
@@ -558,149 +543,155 @@ export function IssuesView({
         />
       )}
 
-      {/* Table - hide when error */}
+      {/* Table */}
       {!error && (
-      <div className="beads-table-wrapper">
-        <div className={`beads-table-container ${resizing ? "resizing" : ""}`}>
-          <table
-            className="beads-table"
-            style={{ minWidth: `${visibleColumns.reduce((sum, c) => sum + c.width, 0) + 24}px` }}
-          >
-          <colgroup>
-            {visibleColumns.map((col) => (
-              <col key={col.id} style={{ width: `${col.width}px` }} />
-            ))}
-            <col style={{ width: '24px' }} />
-          </colgroup>
-          <thead>
-            <tr>
-              {visibleColumns.map((col) => (
-                <th
-                  key={col.id}
-                  className={col.sortable ? "sortable" : ""}
-                  onClick={() => col.sortable && handleSort(col.id)}
-                >
-                  {col.label}
-                  {col.sortable && <SortIndicator field={col.id} />}
-                  <span
-                    className="resize-handle"
-                    onMouseDown={(e) => handleResizeStart(e, col)}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </th>
-              ))}
-              <th className="col-menu-th" ref={columnMenuRef}>
-                <button
-                  className="col-menu-btn"
-                  onClick={() => setColumnMenuOpen(!columnMenuOpen)}
-                  title="Show/hide columns"
-                >
-                  ⋮
-                </button>
-                {columnMenuOpen && (
-                  <div className="col-menu">
-                    {columns.map((col) => (
-                      <label key={col.id}>
-                        <input
-                          type="checkbox"
-                          checked={col.visible}
-                          onChange={() => toggleColumnVisibility(col.id)}
-                        />
-                        {col.label}
-                      </label>
-                    ))}
-                    <hr className="col-menu-divider" />
-                    <button
-                      className="col-menu-reset"
-                      onClick={() => {
-                        setColumns(DEFAULT_COLUMNS);
-                        setColumnMenuOpen(false);
-                      }}
-                    >
-                      Reset to defaults
-                    </button>
-                  </div>
-                )}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredBeads.length === 0 ? (
-              <tr>
-                <td colSpan={visibleColumns.length + 1} className="empty-row">
-                  {loading ? "Loading..." : "No issues matching filter"}
-                </td>
-              </tr>
-            ) : (
-              filteredBeads.map((bead) => (
-                <tr
-                  key={bead.id}
-                  onClick={() => onSelectBead(bead.id)}
-                  className={`bead-row ${bead.id === selectedBeadId ? "selected" : ""}`}
-                  title={bead.description || bead.title}
-                >
-                  {visibleColumns.map((col) => (
-                    <td key={col.id} className={`${col.id}-cell`}>
-                      {col.id === "title" && (
-                        <>
-                          <span
-                            className={`bead-id ${copiedId === bead.id ? "copied" : ""}`}
-                            onClick={() => handleCopyId(bead.id)}
-                            title={copiedId === bead.id ? "Copied!" : "Click to copy"}
-                          >
-                            {bead.id}
+        <div className="beads-table-wrapper">
+          <div className={`beads-table-container ${table.getState().columnSizingInfo.isResizingColumn ? "resizing" : ""}`}>
+            <table
+              className="beads-table"
+              style={{ minWidth: table.getCenterTotalSize() }}
+              onContextMenu={(e) => e.preventDefault()}
+            >
+              <thead>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <th
+                        key={header.id}
+                        style={{ width: header.getSize() }}
+                        className={`${header.column.getCanSort() ? "sortable" : ""} ${draggedColumn === header.id ? "dragging" : ""} ${dragOverColumn === header.id && draggedColumn !== header.id ? "drag-over" : ""}`}
+                        onClick={header.column.getToggleSortingHandler()}
+                        draggable
+                        onDragStart={(e) => {
+                          setDraggedColumn(header.id);
+                          e.dataTransfer.effectAllowed = "move";
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
+                          if (draggedColumn && draggedColumn !== header.id) {
+                            setDragOverColumn(header.id);
+                          }
+                        }}
+                        onDragLeave={() => {
+                          setDragOverColumn(null);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (draggedColumn && draggedColumn !== header.id) {
+                            const currentOrder = table.getAllLeafColumns().map((c) => c.id);
+                            const dragIdx = currentOrder.indexOf(draggedColumn);
+                            const dropIdx = currentOrder.indexOf(header.id);
+                            const newOrder = [...currentOrder];
+                            newOrder.splice(dragIdx, 1);
+                            newOrder.splice(dropIdx, 0, draggedColumn);
+                            setColumnOrder(newOrder);
+                          }
+                          setDraggedColumn(null);
+                          setDragOverColumn(null);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedColumn(null);
+                          setDragOverColumn(null);
+                        }}
+                      >
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        {header.column.getIsSorted() && (
+                          <span className="sort-indicator">
+                            {header.column.getIsSorted() === "asc" ? "▲" : "▼"}
                           </span>
-                          <span className="bead-title">{bead.title}</span>
-                        </>
-                      )}
-                      {col.id === "status" && (
-                        <StatusBadge status={bead.status} size="small" />
-                      )}
-                      {col.id === "priority" && bead.priority !== undefined && (
-                        <PriorityBadge priority={bead.priority} size="small" />
-                      )}
-                      {col.id === "type" && bead.type && (
-                        <TypeBadge type={bead.type as BeadType} size="small" />
-                      )}
-                      {col.id === "labels" && (
-                        <>
-                          {sortLabels(bead.labels).map((label) => (
-                            <LabelBadge key={label} label={label} />
+                        )}
+                        <span
+                          className="resize-handle"
+                          onMouseDown={header.getResizeHandler()}
+                          onTouchStart={header.getResizeHandler()}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </th>
+                    ))}
+                    <th className="col-menu-th">
+                      <button
+                        className="col-menu-btn"
+                        onClick={() => setColumnMenuOpen(!columnMenuOpen)}
+                        title="Show/hide columns"
+                      >
+                        ⋮
+                      </button>
+                      {columnMenuOpen && (
+                        <div className="col-menu">
+                          {table.getAllLeafColumns().map((column) => (
+                            <label key={column.id}>
+                              <input
+                                type="checkbox"
+                                checked={column.getIsVisible()}
+                                onChange={column.getToggleVisibilityHandler()}
+                              />
+                              {typeof column.columnDef.header === "string"
+                                ? column.columnDef.header
+                                : column.id}
+                            </label>
                           ))}
-                        </>
+                          <hr className="col-menu-divider" />
+                          <button
+                            className="col-menu-reset"
+                            onClick={() => {
+                              setColumnVisibility({
+                                labels: false,
+                                assignee: false,
+                                estimate: false,
+                              });
+                              setColumnMenuOpen(false);
+                            }}
+                          >
+                            Reset to defaults
+                          </button>
+                        </div>
                       )}
-                      {col.id === "assignee" && (bead.assignee || "-")}
-                      {col.id === "estimate" && (
-                        bead.estimatedMinutes
-                          ? `${bead.estimatedMinutes}m`
-                          : "-"
-                      )}
-                      {col.id === "createdAt" && (
-                        bead.createdAt
-                          ? new Date(bead.createdAt).toLocaleDateString()
-                          : "-"
-                      )}
-                      {col.id === "updatedAt" && (
-                        bead.updatedAt
-                          ? new Date(bead.updatedAt).toLocaleDateString()
-                          : "-"
-                      )}
+                    </th>
+                  </tr>
+                ))}
+              </thead>
+              <tbody>
+                {table.getRowModel().rows.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={table.getVisibleLeafColumns().length + 1}
+                      className="empty-row"
+                    >
+                      {loading ? "Loading..." : "No issues matching filter"}
                     </td>
-                  ))}
-                  <td className="row-spacer" />
-                </tr>
-              ))
-            )}
-          </tbody>
-          </table>
-        </div>
-        {/* Filtered count overlay - outside scrollable container */}
-        {(hasActiveFilters || filters.search) && filteredBeads.length !== beads.length && (
-          <div className="filter-count-overlay">
-            {filteredBeads.length} of {beads.length}
+                  </tr>
+                ) : (
+                  table.getRowModel().rows.map((row) => (
+                    <tr
+                      key={row.id}
+                      onClick={() => onSelectBead(row.original.id)}
+                      className={`bead-row ${row.original.id === selectedBeadId ? "selected" : ""}`}
+                      title={row.original.description || row.original.title}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <td
+                          key={cell.id}
+                          className={`${cell.column.id}-cell`}
+                          style={{ width: cell.column.getSize() }}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                      <td className="row-spacer" />
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
+          {/* Filtered count overlay */}
+          {(hasActiveFilters || globalFilter) && filteredCount !== totalCount && (
+            <div className="filter-count-overlay">
+              {filteredCount} of {totalCount}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
