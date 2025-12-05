@@ -259,6 +259,16 @@ export function IssuesView({
     onGlobalFilterChange: setGlobalFilter,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnOrderChange: setColumnOrder,
+    globalFilterFn: (row, _columnId, filterValue: string) => {
+      const search = filterValue.toLowerCase();
+      const bead = row.original;
+      return (
+        bead.id.toLowerCase().includes(search) ||
+        bead.title.toLowerCase().includes(search) ||
+        (bead.description?.toLowerCase().includes(search) ?? false) ||
+        (bead.labels?.some((l) => l.toLowerCase().includes(search)) ?? false)
+      );
+    },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
