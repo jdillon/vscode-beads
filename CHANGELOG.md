@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Error notifications when bd commands fail with output console access (`vsbeads-ycx`)
+- Persist sort order, column visibility, and column order across reloads (`vsbeads-4fw`)
+- Multi-column sorting with shift+click for secondary sort (`vsbeads-gsb`)
 
 ### Fixed
 
@@ -17,10 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Project list now refreshes when workspace folders are added/removed (`vsbeads-s4i`)
 - Button press feedback now visible on webview buttons (`vsbeads-zsy`)
 - Browser context menu disabled on Issues table (`vsbeads-zvs`)
+- Global search now works correctly with TanStack Table
+- Column resize no longer triggers column reorder
 
 ### Changed
 
-- Issues view now uses TanStack Table for robust sorting/filtering/resizing
+- Issues view migrated to TanStack Table v8 (`vsbeads-4uw`, `vsbeads-7yz`)
 - Updated beads logo SVG in activity bar icon (`vsbeads-94s`)
 
 ## [0.5.0] - 2025-12-03
