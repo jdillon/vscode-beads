@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Fixed
+
+### Changed
+
+## [0.6.0] - 2025-12-05
+
+### Added
+
 - Error notifications when bd commands fail with output console access (`vsbeads-ycx`)
 - Persist sort order, column visibility, and column order across reloads (`vsbeads-4fw`)
 - Multi-column sorting with shift+click for secondary sort (`vsbeads-gsb`)
