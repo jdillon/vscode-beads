@@ -52,7 +52,7 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
     } catch (err) {
       this.setError(String(err));
       this.postMessage({ type: "setBeads", beads: [] });
-      this.log.errorNotify(`Failed to load beads: ${err}`);
+      this.handleDaemonError("Failed to load beads", err);
     } finally {
       this.setLoading(false);
     }
