@@ -1,7 +1,9 @@
 /**
- * BeadsDaemonClient - Direct Unix socket RPC client for the Beads daemon
+ install
+  * BeadsDaemonClient - RPC client for the Beads daemon
  *
  * Connects to .beads/bd.sock and communicates via line-delimited JSON-RPC.
+ * Supports Unix domain sockets (Linux/macOS) and TCP sockets (Windows).
  * Supports real-time mutation tracking via get_mutations.
  */
 
@@ -283,6 +285,28 @@ export class BeadsDaemonClient extends EventEmitter {
   }
 
   /**
+   * Determine socket connection parameters from bd.sock
+   * Returns TCP connection info if Windows-style, otherwise Unix socket path
+   */
+  private getSocketConnection(): { type: "unix"; path: string } | { type: "tcp"; host: string; port: number } {
+    try {
+      const sockContent = fs.readFileSync(this.socketPath, "utf-8").trim();
+      const sockInfo = JSON.parse(sockContent);
+      
+      // Windows daemon writes TCP connection info to bd.sock
+      if (sockInfo.network === "tcp" && sockInfo.address) {
+        const [host, portStr] = sockInfo.address.split(":");
+        const port = parseInt(portStr, 10);
+        return { type: "tcp", host, port };
+      }
+    } catch {
+      // Not JSON or file read error - assume Unix socket
+    }
+    
+    return { type: "unix", path: this.socketPath };
+  }
+
+  /**
    * Execute an RPC request
    */
   private async execute<T>(operation: string, args: unknown = {}): Promise<T> {
@@ -355,8 +379,12 @@ export class BeadsDaemonClient extends EventEmitter {
         }
       });
 
-      // Connect to Unix socket
-      socket.connect(this.socketPath);
+      const connection = this.getSocketConnection();
+      if (connection.type === "tcp") {
+        socket.connect(connection.port, connection.host);
+      } else {
+        socket.connect(connection.path);
+      }
     });
   }
 
