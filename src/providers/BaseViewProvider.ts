@@ -187,6 +187,16 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
   }
 
   /**
+   * Handles daemon connection errors - logs and notifies ProjectManager
+   * Views show error state in UI; centralized notification handled by ProjectManager
+   */
+  protected handleDaemonError(message: string, err: unknown): void {
+    this.log.error(`${message}: ${err}`);
+    // ProjectManager handles the notification - views just update their error state
+    this.projectManager.notifyDaemonError(err);
+  }
+
+  /**
    * Triggers a refresh of the view
    */
   public refresh(): void {

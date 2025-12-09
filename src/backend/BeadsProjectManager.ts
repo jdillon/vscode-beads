@@ -25,6 +25,10 @@ export class BeadsProjectManager implements vscode.Disposable {
   private log: Logger;
   private context: vscode.ExtensionContext;
 
+  // Dedupe daemon error notifications
+  private lastDaemonErrorTime = 0;
+  private static readonly DAEMON_ERROR_DEDUPE_MS = 5000;
+
   private readonly _onProjectsChanged = new vscode.EventEmitter<BeadsProject[]>();
   public readonly onProjectsChanged = this._onProjectsChanged.event;
 
@@ -189,6 +193,8 @@ export class BeadsProjectManager implements vscode.Disposable {
     this.log.info(`Active project set to: ${project.name}`);
 
     // Check if daemon is running and connect
+    let needsAutoStart = false;
+
     if (this.client.socketExists()) {
       try {
         const health = await this.client.health();
@@ -198,13 +204,18 @@ export class BeadsProjectManager implements vscode.Disposable {
         // Start mutation watching for real-time updates
         this.setupMutationWatching();
       } catch (err) {
-        this.log.error(`Failed to connect to daemon: ${err}`);
+        // Socket exists but connection failed (stale socket from reboot, etc.)
+        this.log.warn(`Stale socket detected, daemon not responding: ${err}`);
         project.daemonStatus = "stopped";
+        needsAutoStart = true;
       }
     } else {
       project.daemonStatus = "stopped";
+      needsAutoStart = true;
+    }
 
-      // Check if we should auto-start the daemon
+    // Auto-start daemon if needed and configured
+    if (needsAutoStart) {
       const config = vscode.workspace.getConfiguration("beads");
       const autoStart = config.get<boolean>("autoStartDaemon", true);
 
@@ -665,6 +676,38 @@ export class BeadsProjectManager implements vscode.Disposable {
     }
 
     return false;
+  }
+
+  /**
+   * Centralized daemon error notification - dedupes across all callers
+   * Called by views when they encounter daemon connection errors
+   */
+  async notifyDaemonError(err: unknown): Promise<void> {
+    // Dedupe: only show one notification within time window
+    const now = Date.now();
+    if (now - this.lastDaemonErrorTime < BeadsProjectManager.DAEMON_ERROR_DEDUPE_MS) {
+      return;
+    }
+    this.lastDaemonErrorTime = now;
+
+    const projectName = this.activeProject?.name || "unknown";
+    const action = await vscode.window.showErrorMessage(
+      `Beads: Failed to connect to daemon for "${projectName}"`,
+      "Restart Daemon",
+      "Show Output"
+    );
+
+    if (action === "Restart Daemon") {
+      const restarted = await this.restartDaemon();
+      if (restarted) {
+        vscode.window.setStatusBarMessage("$(check) Daemon restarted", 3000);
+        this._onDataChanged.fire();
+      } else {
+        vscode.window.showErrorMessage("Failed to restart daemon");
+      }
+    } else if (action === "Show Output") {
+      this.log.show();
+    }
   }
 
   dispose(): void {
