@@ -9,14 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Fixed
+
+### Changed
+
+## [0.7.0] - 2025-12-08
+
+### Added
+
 - Windows TCP socket support for daemon connection ([#30](https://github.com/jdillon/vscode-beads/pull/30) by [@cg-shmoop](https://github.com/cg-shmoop))
 
 ### Fixed
 
 - Auto-recover from stale daemon socket after system reboot (`vsbeads-ugm`)
 - Centralize daemon error notifications to avoid notification spam (`vsbeads-ugm`)
-
-### Changed
 
 ## [0.6.0] - 2025-12-05
 
