@@ -1,6 +1,5 @@
 /**
- install
-  * BeadsDaemonClient - RPC client for the Beads daemon
+ * BeadsDaemonClient - RPC client for the Beads daemon
  *
  * Connects to .beads/bd.sock and communicates via line-delimited JSON-RPC.
  * Supports Unix domain sockets (Linux/macOS) and TCP sockets (Windows).
@@ -292,17 +291,24 @@ export class BeadsDaemonClient extends EventEmitter {
     try {
       const sockContent = fs.readFileSync(this.socketPath, "utf-8").trim();
       const sockInfo = JSON.parse(sockContent);
-      
+
       // Windows daemon writes TCP connection info to bd.sock
       if (sockInfo.network === "tcp" && sockInfo.address) {
         const [host, portStr] = sockInfo.address.split(":");
         const port = parseInt(portStr, 10);
+
+        // Security: only allow localhost connections
+        if (host !== "127.0.0.1" && host !== "localhost") {
+          console.error(`[BeadsDaemonClient] Security: refusing non-localhost daemon address: ${host}`);
+          return { type: "unix", path: "" }; // Empty path will fail to connect
+        }
+
         return { type: "tcp", host, port };
       }
     } catch {
-      // Not JSON or file read error - assume Unix socket
+      // Not JSON or file read error - assume Unix socket (normal on Linux/macOS)
     }
-    
+
     return { type: "unix", path: this.socketPath };
   }
 
