@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Fixed
+
+### Changed
+
+## [0.8.0] - 2025-12-10
+
+### Added
+
 - Assignee column and filter to Issues view with "Assign to me" quick action (`vsbeads-s2c`)
 - Move labels inline with type/status/priority badges at top of Details panel (`vsbeads-677`)
 - Timestamp component with timezone-aware display and adaptive formatting (`vsbeads-5bz`, `vsbeads-izh`)
@@ -18,8 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clicking bead ID in Issues list now selects row and updates Details panel (`vsbeads-qgo`)
 - Dropdown menus now close when clicking outside webview panel (`vsbeads-tbq`)
 - Timestamp sorting now handles cross-timezone comparisons correctly (`vsbeads-5bz`)
-
-### Changed
 
 ## [0.7.0] - 2025-12-08
 
