@@ -155,7 +155,7 @@ export function IssuesView({
       columnHelper.accessor("type", {
         header: "Type",
         size: 70,
-        minSize: 50,
+        minSize: 30,
         cell: (info) =>
           info.getValue() ? (
             <TypeBadge type={info.getValue() as BeadType} size="small" />
@@ -189,7 +189,7 @@ export function IssuesView({
       columnHelper.accessor("status", {
         header: "Status",
         size: 80,
-        minSize: 60,
+        minSize: 30,
         cell: (info) => <StatusBadge status={info.getValue()} size="small" />,
         filterFn: (row, columnId, filterValue: BeadStatus[]) => {
           if (!filterValue || filterValue.length === 0) return true;
@@ -199,7 +199,7 @@ export function IssuesView({
       columnHelper.accessor("priority", {
         header: "Priority",
         size: 70,
-        minSize: 50,
+        minSize: 30,
         cell: (info) =>
           info.getValue() !== undefined ? (
             <PriorityBadge priority={info.getValue()!} size="small" />
@@ -213,7 +213,7 @@ export function IssuesView({
       columnHelper.accessor("labels", {
         header: "Labels",
         size: 100,
-        minSize: 60,
+        minSize: 30,
         enableSorting: false,
         cell: (info) => (
           <>
@@ -226,27 +226,27 @@ export function IssuesView({
       columnHelper.accessor("assignee", {
         header: "Assignee",
         size: 80,
-        minSize: 50,
+        minSize: 30,
         cell: (info) => info.getValue() || "-",
       }),
       columnHelper.accessor("estimatedMinutes", {
         id: "estimate",
         header: "Estimate",
         size: 70,
-        minSize: 50,
+        minSize: 30,
         cell: (info) => (info.getValue() ? `${info.getValue()}m` : "-"),
       }),
       columnHelper.accessor("updatedAt", {
         header: "Updated",
         size: 80,
-        minSize: 60,
+        minSize: 30,
         cell: (info) => <Timestamp value={info.getValue()} format="auto" />,
         sortingFn: timestampSortingFn,
       }),
       columnHelper.accessor("createdAt", {
         header: "Created",
         size: 80,
-        minSize: 60,
+        minSize: 30,
         cell: (info) => <Timestamp value={info.getValue()} format="auto" />,
         sortingFn: timestampSortingFn,
       }),

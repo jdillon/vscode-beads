@@ -83,7 +83,8 @@ function formatTimestamp(
 ): string {
   switch (format) {
     case "datetime":
-      return date.toLocaleString();
+      // Format without comma: "12/5/2025 12:22 AM"
+      return `${date.toLocaleDateString()} ${date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
     case "relative":
       return getRelativeTime(date);
     case "date":
