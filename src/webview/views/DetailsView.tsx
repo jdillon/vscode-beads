@@ -23,6 +23,7 @@ import {
   TYPE_LABELS,
   sortLabels,
 } from "../types";
+import { Timestamp } from "../common/Timestamp";
 
 // Labels for dependency sections based on array (direction) and type
 const DEPENDENCY_LABELS: Record<"dependsOn" | "blocks", Record<DependencyType, string>> = {
@@ -611,7 +612,7 @@ export function DetailsView({
               <div className="comment-header">
                 <span className="comment-author">{comment.author}</span>
                 <span className="comment-date">
-                  {new Date(comment.createdAt).toLocaleDateString()}
+                  <Timestamp value={comment.createdAt} />
                 </span>
               </div>
               <div className="comment-text">
@@ -650,10 +651,10 @@ export function DetailsView({
 
       {/* Metadata footer */}
       <div className="details-meta">
-        <span>Created: {displayBead.createdAt ? new Date(displayBead.createdAt).toLocaleDateString() : "-"}</span>
-        <span>Updated: {displayBead.updatedAt ? new Date(displayBead.updatedAt).toLocaleDateString() : "-"}</span>
+        <span>Created: <Timestamp value={displayBead.createdAt} /></span>
+        <span>Updated: <Timestamp value={displayBead.updatedAt} /></span>
         {displayBead.closedAt && (
-          <span>Closed: {new Date(displayBead.closedAt).toLocaleDateString()}</span>
+          <span>Closed: <Timestamp value={displayBead.closedAt} /></span>
         )}
       </div>
     </div>
