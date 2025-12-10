@@ -1485,17 +1485,67 @@ textarea {
   color: var(--vscode-badge-foreground);
 }
 
-.details-assignee {
-  font-size: 12px;
-  color: var(--vscode-descriptionForeground);
+.assignee-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
 }
 
-.details-assignee .label {
-  margin-right: var(--spacing-xs);
-}
-
-.details-assignee .value {
+.assignee-menu-trigger {
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
   color: var(--vscode-foreground);
+}
+
+.assignee-menu-trigger:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.person-icon {
+  opacity: 0.7;
+}
+
+.assignee-trigger:hover .person-icon {
+  opacity: 1;
+}
+
+.assignee-name {
+  font-size: 12px;
+}
+
+.assignee-name.muted {
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+}
+
+.assignee-menu .dropdown-menu {
+  min-width: 120px;
+}
+
+.dropdown-divider {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--vscode-widget-border);
+}
+
+.btn-secondary {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.assignee-dropdown .dropdown-menu {
+  min-width: 100px;
+}
+
+.filter-menu-empty {
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+  font-size: 12px;
+  padding: 4px 8px;
 }
 
 .inline-input {

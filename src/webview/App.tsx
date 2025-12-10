@@ -43,7 +43,7 @@ const initialState: AppState = {
   summary: null,
   loading: true,
   error: null,
-  settings: { renderMarkdown: true },
+  settings: { renderMarkdown: true, userId: "" },
 };
 
 export function App(): React.ReactElement {
@@ -164,7 +164,7 @@ export function App(): React.ReactElement {
           />
         );
 
-      case "beadsDetails":
+      case "beadsDetails": {
         if (!state.selectedBead && !state.loading) {
           return (
             <div className="empty-state compact">
@@ -175,11 +175,17 @@ export function App(): React.ReactElement {
         if (!state.selectedBead) {
           return <Loading />;
         }
+        // Extract unique assignees from beads list
+        const knownAssignees = Array.from(
+          new Set(state.beads.map((b) => b.assignee).filter((a): a is string => !!a))
+        ).sort();
         return (
           <DetailsView
             bead={state.selectedBead}
             loading={state.loading}
             renderMarkdown={state.settings.renderMarkdown}
+            userId={state.settings.userId}
+            knownAssignees={knownAssignees}
             onUpdateBead={(beadId, updates) =>
               vscode.postMessage({ type: "updateBead", beadId, updates })
             }
@@ -203,6 +209,7 @@ export function App(): React.ReactElement {
             }
           />
         );
+      }
 
       default:
         return (

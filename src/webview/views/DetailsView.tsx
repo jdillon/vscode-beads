@@ -85,6 +85,7 @@ import { TypeBadge } from "../common/TypeBadge";
 import { Markdown } from "../common/Markdown";
 import { useToast } from "../common/Toast";
 import { ColoredSelect, ColoredSelectOption } from "../common/ColoredSelect";
+import { Dropdown, DropdownItem } from "../common/Dropdown";
 
 // Build options for ColoredSelect dropdowns
 const TYPE_OPTIONS: ColoredSelectOption<BeadType>[] = (Object.keys(TYPE_LABELS) as BeadType[]).map((t) => ({
@@ -110,6 +111,8 @@ interface DetailsViewProps {
   bead: Bead | null;
   loading: boolean;
   renderMarkdown?: boolean;
+  userId?: string;
+  knownAssignees?: string[];
   onUpdateBead: (beadId: string, updates: Partial<Bead>) => void;
   onAddDependency: (beadId: string, dependsOnId: string) => void;
   onRemoveDependency: (beadId: string, dependsOnId: string) => void;
@@ -131,6 +134,8 @@ export function DetailsView({
   bead,
   loading,
   renderMarkdown = true,
+  userId = "",
+  knownAssignees = [],
   onUpdateBead,
   onAddDependency,
   onRemoveDependency,
@@ -172,9 +177,11 @@ export function DetailsView({
   }, [bead, editedBead, onUpdateBead]);
 
   // Inline update - saves immediately without entering edit mode
+  // Also optimistically updates local state for instant feedback
   const handleInlineUpdate = useCallback(
     (field: keyof Bead, value: unknown) => {
       if (bead) {
+        setEditedBead((prev) => ({ ...prev, [field]: value }));
         onUpdateBead(bead.id, { [field]: value });
       }
     },
@@ -291,7 +298,7 @@ export function DetailsView({
         )}
       </div>
 
-      {/* Type/Status/Priority chiclets */}
+      {/* Type/Status/Priority/Assignee chiclets */}
       <div className="details-badges">
         {editMode ? (
           <>
@@ -310,6 +317,41 @@ export function DetailsView({
               options={PRIORITY_OPTIONS}
               onChange={(v) => handleFieldChange("priority", v)}
             />
+            <Dropdown
+              trigger={
+                <span className="assignee-trigger">
+                  <svg className="person-icon" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/>
+                  </svg>
+                  <span className={`assignee-name ${!displayBead.assignee ? "muted" : ""}`}>
+                    {displayBead.assignee || "Unassigned"}
+                  </span>
+                </span>
+              }
+              className="assignee-menu"
+              triggerClassName="assignee-menu-trigger"
+            >
+              {userId && displayBead.assignee !== userId && (
+                <DropdownItem onClick={() => handleFieldChange("assignee", userId)}>
+                  Assign to me
+                </DropdownItem>
+              )}
+              {displayBead.assignee && (
+                <DropdownItem onClick={() => handleFieldChange("assignee", "")}>
+                  Unassign
+                </DropdownItem>
+              )}
+              {knownAssignees.length > 0 && (userId || displayBead.assignee) && (
+                <div className="dropdown-divider" />
+              )}
+              {knownAssignees
+                .filter((a) => a !== displayBead.assignee)
+                .map((a) => (
+                  <DropdownItem key={a} onClick={() => handleFieldChange("assignee", a)}>
+                    {a}
+                  </DropdownItem>
+                ))}
+            </Dropdown>
           </>
         ) : (
           <>
@@ -337,27 +379,45 @@ export function DetailsView({
               renderOption={(opt) => <PriorityBadge priority={opt.value as BeadPriority} size="small" />}
               showChevron={false}
             />
+            <Dropdown
+              trigger={
+                <span className="assignee-trigger">
+                  <svg className="person-icon" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/>
+                  </svg>
+                  <span className={`assignee-name ${!displayBead.assignee ? "muted" : ""}`}>
+                    {displayBead.assignee || "Unassigned"}
+                  </span>
+                </span>
+              }
+              className="assignee-menu"
+              triggerClassName="assignee-menu-trigger"
+              showChevron={false}
+            >
+              {userId && displayBead.assignee !== userId && (
+                <DropdownItem onClick={() => handleInlineUpdate("assignee", userId)}>
+                  Assign to me
+                </DropdownItem>
+              )}
+              {displayBead.assignee && (
+                <DropdownItem onClick={() => handleInlineUpdate("assignee", "")}>
+                  Unassign
+                </DropdownItem>
+              )}
+              {knownAssignees.length > 0 && (userId || displayBead.assignee) && (
+                <div className="dropdown-divider" />
+              )}
+              {knownAssignees
+                .filter((a) => a !== displayBead.assignee)
+                .map((a) => (
+                  <DropdownItem key={a} onClick={() => handleInlineUpdate("assignee", a)}>
+                    {a}
+                  </DropdownItem>
+                ))}
+            </Dropdown>
           </>
         )}
       </div>
-
-      {/* Assignee */}
-      {(displayBead.assignee || editMode) && (
-        <div className="details-assignee">
-          <span className="label">Assignee:</span>
-          {editMode ? (
-            <input
-              type="text"
-              value={displayBead.assignee || ""}
-              onChange={(e) => handleFieldChange("assignee", e.target.value)}
-              className="inline-input"
-              placeholder="unassigned"
-            />
-          ) : (
-            <span className="value">{displayBead.assignee || "unassigned"}</span>
-          )}
-        </div>
-      )}
 
       {/* Description */}
       <div className="details-section">
