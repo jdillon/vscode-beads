@@ -11,7 +11,7 @@
  * - State persistence (sort order, column visibility, column order survive reloads)
  */
 
-import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useRef } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -21,11 +21,8 @@ import {
   getFacetedUniqueValues,
   flexRender,
   createColumnHelper,
-  SortingState,
   ColumnFiltersState,
-  VisibilityState,
   ColumnResizeMode,
-  ColumnOrderState,
 } from "@tanstack/react-table";
 import {
   Bead,
@@ -51,6 +48,7 @@ import { ProjectDropdown } from "../common/ProjectDropdown";
 import { Dropdown, DropdownItem } from "../common/Dropdown";
 import { Timestamp, timestampSortingFn } from "../common/Timestamp";
 import { useClickOutside } from "../hooks/useClickOutside";
+import { useColumnState } from "../hooks/useColumnState";
 
 interface IssuesViewProps {
   beads: Bead[];
@@ -101,37 +99,30 @@ export function IssuesView({
   void _onUpdateBead;
   const isSocketError = error?.includes("ENOENT") || error?.includes("socket");
 
-  // Persisted state - restore from VS Code webview state
-  interface PersistedState {
-    sorting?: SortingState;
-    columnVisibility?: VisibilityState;
-    columnOrder?: ColumnOrderState;
-  }
-  const savedState = useMemo(() => vscode.getState() as PersistedState | undefined, []);
+  // Persisted column state (sorting, visibility, order)
+  const defaultVisibility = {
+    labels: false,
+    assignee: false,
+    estimate: false,
+  };
+  const {
+    sorting,
+    setSorting,
+    columnVisibility,
+    setColumnVisibility,
+    columnOrder,
+    setColumnOrder,
+    resetVisibility,
+  } = useColumnState({
+    defaultSorting: [{ id: "updatedAt", desc: true }],
+    defaultVisibility,
+  });
 
-  // TanStack state (with persistence)
-  const [sorting, setSorting] = useState<SortingState>(
-    savedState?.sorting ?? [{ id: "updatedAt", desc: true }]
-  );
+  // Non-persisted TanStack state
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
     { id: "status", value: ["open", "in_progress", "blocked"] }, // Default: Not Closed
   ]);
   const [globalFilter, setGlobalFilter] = useState("");
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
-    savedState?.columnVisibility ?? {
-      labels: false,
-      assignee: false,
-      estimate: false,
-    }
-  );
-  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(
-    savedState?.columnOrder ?? []
-  );
-
-  // Persist state changes to VS Code
-  useEffect(() => {
-    vscode.setState({ sorting, columnVisibility, columnOrder });
-  }, [sorting, columnVisibility, columnOrder]);
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [isResizing, setIsResizing] = useState(false);
@@ -177,6 +168,7 @@ export function IssuesView({
               onClick={(e) => {
                 e.stopPropagation();
                 handleCopyId(info.row.original.id);
+                onSelectBead(info.row.original.id);
               }}
               title={copiedId === info.row.original.id ? "Copied!" : "Click to copy"}
             >
@@ -766,11 +758,7 @@ export function IssuesView({
                           <button
                             className="col-menu-reset"
                             onClick={() => {
-                              setColumnVisibility({
-                                labels: false,
-                                assignee: false,
-                                estimate: false,
-                              });
+                              resetVisibility();
                               setColumnMenuOpen(false);
                             }}
                           >
