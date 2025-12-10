@@ -48,7 +48,8 @@ import { LabelBadge } from "../common/LabelBadge";
 import { FilterChip } from "../common/FilterChip";
 import { ErrorMessage } from "../common/ErrorMessage";
 import { ProjectDropdown } from "../common/ProjectDropdown";
-import { Dropdown, DropdownItem } from "../common/Dropdown";  // Used for preset dropdown
+import { Dropdown, DropdownItem } from "../common/Dropdown";
+import { Timestamp, timestampSortingFn } from "../common/Timestamp";
 import { useClickOutside } from "../hooks/useClickOutside";
 
 interface IssuesViewProps {
@@ -239,19 +240,15 @@ export function IssuesView({
         header: "Updated",
         size: 80,
         minSize: 60,
-        cell: (info) =>
-          info.getValue()
-            ? new Date(info.getValue()!).toLocaleDateString()
-            : "-",
+        cell: (info) => <Timestamp value={info.getValue()} format="auto" />,
+        sortingFn: timestampSortingFn,
       }),
       columnHelper.accessor("createdAt", {
         header: "Created",
         size: 80,
         minSize: 60,
-        cell: (info) =>
-          info.getValue()
-            ? new Date(info.getValue()!).toLocaleDateString()
-            : "-",
+        cell: (info) => <Timestamp value={info.getValue()} format="auto" />,
+        sortingFn: timestampSortingFn,
       }),
     ],
     [copiedId]
