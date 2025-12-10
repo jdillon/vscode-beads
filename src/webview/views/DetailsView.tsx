@@ -291,7 +291,7 @@ export function DetailsView({
         )}
       </div>
 
-      {/* Type/Status/Priority chiclets */}
+      {/* Type/Status/Priority chiclets + Labels */}
       <div className="details-badges">
         {editMode ? (
           <>
@@ -310,6 +310,24 @@ export function DetailsView({
               options={PRIORITY_OPTIONS}
               onChange={(v) => handleFieldChange("priority", v)}
             />
+            {/* Labels in edit mode - pushed to right, input first */}
+            <span className="badges-spacer" />
+            <div className="add-label-inline">
+              <input
+                type="text"
+                value={newLabel}
+                onChange={(e) => setNewLabel(e.target.value)}
+                placeholder="+ label"
+                onKeyDown={(e) => e.key === "Enter" && handleAddLabel()}
+              />
+            </div>
+            {sortLabels(displayBead.labels).map((label) => (
+              <LabelBadge
+                key={label}
+                label={label}
+                onRemove={() => handleRemoveLabel(label)}
+              />
+            ))}
           </>
         ) : (
           <>
@@ -337,6 +355,15 @@ export function DetailsView({
               renderOption={(opt) => <PriorityBadge priority={opt.value as BeadPriority} size="small" />}
               showChevron={false}
             />
+            {/* Labels inline in display mode - pushed to right */}
+            {displayBead.labels && displayBead.labels.length > 0 && (
+              <>
+                <span className="badges-spacer" />
+                {sortLabels(displayBead.labels).map((label) => (
+                  <LabelBadge key={label} label={label} />
+                ))}
+              </>
+            )}
           </>
         )}
       </div>
@@ -376,33 +403,6 @@ export function DetailsView({
           <p className="description-text muted">No description</p>
         )}
       </div>
-
-      {/* Labels - hide when empty in view mode */}
-      {(editMode || (displayBead.labels && displayBead.labels.length > 0)) && (
-        <div className="details-section">
-          <h4>Labels</h4>
-          <div className="labels-row">
-            {sortLabels(displayBead.labels).map((label) => (
-              <LabelBadge
-                key={label}
-                label={label}
-                onRemove={editMode ? () => handleRemoveLabel(label) : undefined}
-              />
-            ))}
-            {editMode && (
-              <div className="add-inline">
-                <input
-                  type="text"
-                  value={newLabel}
-                  onChange={(e) => setNewLabel(e.target.value)}
-                  placeholder="+ label"
-                  onKeyDown={(e) => e.key === "Enter" && handleAddLabel()}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* External Reference & Estimate row */}
       {(displayBead.externalRef || displayBead.estimatedMinutes || editMode) && (
