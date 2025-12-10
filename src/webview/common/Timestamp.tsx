@@ -59,7 +59,7 @@ export function Timestamp({
   const date = new Date(value);
 
   // Determine effective format for auto mode
-  let effectiveFormat: "date" | "datetime" | "relative" =
+  const effectiveFormat: "date" | "datetime" | "relative" =
     format === "auto"
       ? (containerWidth >= AUTO_DATETIME_WIDTH ? "datetime" : "date")
       : format;
@@ -132,7 +132,7 @@ export function compareTimestamps(
  * TanStack Table sorting function for timestamp columns.
  * Use as the `sortingFn` option on timestamp accessor columns.
  */
-export function timestampSortingFn<T>(
+export function timestampSortingFn(
   rowA: { getValue: (columnId: string) => unknown },
   rowB: { getValue: (columnId: string) => unknown },
   columnId: string
