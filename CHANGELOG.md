@@ -9,7 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Timestamp component with timezone-aware display and adaptive formatting (`vsbeads-5bz`, `vsbeads-izh`)
+
 ### Fixed
+
+- Timestamp sorting now handles cross-timezone comparisons correctly (`vsbeads-5bz`)
 
 ### Changed
 
