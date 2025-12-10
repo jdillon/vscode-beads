@@ -177,6 +177,7 @@ export function IssuesView({
               onClick={(e) => {
                 e.stopPropagation();
                 handleCopyId(info.row.original.id);
+                onSelectBead(info.row.original.id);
               }}
               title={copiedId === info.row.original.id ? "Copied!" : "Click to copy"}
             >
