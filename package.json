@@ -164,6 +164,11 @@
           "type": "boolean",
           "default": true,
           "description": "Render markdown in description, design notes, and other text fields"
+        },
+        "beads.userId": {
+          "type": "string",
+          "default": "",
+          "description": "Your user ID for 'Assign to me'. Defaults to $USER if not set."
         }
       }
     }

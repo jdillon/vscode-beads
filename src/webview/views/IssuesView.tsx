@@ -220,6 +220,15 @@ export function IssuesView({
         size: 80,
         minSize: 30,
         cell: (info) => info.getValue() || "-",
+        filterFn: (row, columnId, filterValue: string[]) => {
+          if (!filterValue || filterValue.length === 0) return true;
+          const val = row.getValue(columnId) as string | undefined;
+          // Special handling for "Unassigned" filter
+          if (filterValue.includes("__unassigned__")) {
+            if (!val) return true;
+          }
+          return val !== undefined && filterValue.includes(val);
+        },
       }),
       columnHelper.accessor("estimatedMinutes", {
         id: "estimate",
@@ -290,7 +299,8 @@ export function IssuesView({
   const statusFilter = (columnFilters.find((f) => f.id === "status")?.value || []) as BeadStatus[];
   const priorityFilter = (columnFilters.find((f) => f.id === "priority")?.value || []) as BeadPriority[];
   const typeFilter = (columnFilters.find((f) => f.id === "type")?.value || []) as string[];
-  const hasActiveFilters = statusFilter.length > 0 || priorityFilter.length > 0 || typeFilter.length > 0;
+  const assigneeFilter = (columnFilters.find((f) => f.id === "assignee")?.value || []) as string[];
+  const hasActiveFilters = statusFilter.length > 0 || priorityFilter.length > 0 || typeFilter.length > 0 || assigneeFilter.length > 0;
 
   const applyPreset = (presetId: string) => {
     const preset = FILTER_PRESETS.find((p) => p.id === presetId);
@@ -370,6 +380,28 @@ export function IssuesView({
     setActivePreset("");
   };
 
+  const addAssigneeFilter = (assignee: string) => {
+    if (!assigneeFilter.includes(assignee)) {
+      setColumnFilters((prev) => {
+        const others = prev.filter((f) => f.id !== "assignee");
+        return [...others, { id: "assignee", value: [...assigneeFilter, assignee] }];
+      });
+      setActivePreset("");
+    }
+    setFilterMenuOpen(null);
+  };
+
+  const removeAssigneeFilter = (assignee: string) => {
+    const newAssignees = assigneeFilter.filter((a) => a !== assignee);
+    setColumnFilters((prev) => {
+      const others = prev.filter((f) => f.id !== "assignee");
+      return newAssignees.length > 0
+        ? [...others, { id: "assignee", value: newAssignees }]
+        : others;
+    });
+    setActivePreset("");
+  };
+
   const clearAllFilters = () => {
     setColumnFilters([]);
     setGlobalFilter("");
@@ -383,6 +415,25 @@ export function IssuesView({
   const statusFacets = table.getColumn("status")?.getFacetedUniqueValues() ?? new Map();
   const priorityFacets = table.getColumn("priority")?.getFacetedUniqueValues() ?? new Map();
   const typeFacets = table.getColumn("type")?.getFacetedUniqueValues() ?? new Map();
+  const assigneeFacets = table.getColumn("assignee")?.getFacetedUniqueValues() ?? new Map();
+
+  // Get unique assignees from facets for filter menu
+  const uniqueAssignees = useMemo(() => {
+    const assignees = Array.from(assigneeFacets.keys()).filter((a): a is string => typeof a === "string" && a !== "");
+    return assignees.sort();
+  }, [assigneeFacets]);
+
+  // Count unassigned issues
+  const unassignedCount = useMemo(() => {
+    // Count null/undefined/empty assignees
+    let count = 0;
+    for (const [key, value] of assigneeFacets.entries()) {
+      if (!key || key === "") {
+        count += value;
+      }
+    }
+    return count;
+  }, [assigneeFacets]);
 
   return (
     <div className="beads-panel">
@@ -468,6 +519,14 @@ export function IssuesView({
               onRemove={() => removeTypeFilter(type)}
             />
           ))}
+          {assigneeFilter.map((assignee) => (
+            <FilterChip
+              key={`assignee-${assignee}`}
+              label={assignee === "__unassigned__" ? "Unassigned" : assignee}
+              accentColor="#6b7280"
+              onRemove={() => removeAssigneeFilter(assignee)}
+            />
+          ))}
 
           {/* Add filter dropdown with faceted counts */}
           <div className="filter-add-wrapper" ref={filterMenuRef}>
@@ -483,6 +542,7 @@ export function IssuesView({
                 <button onClick={() => setFilterMenuOpen("status")}>Status <span className="menu-chevron">›</span></button>
                 <button onClick={() => setFilterMenuOpen("priority")}>Priority <span className="menu-chevron">›</span></button>
                 <button onClick={() => setFilterMenuOpen("type")}>Type <span className="menu-chevron">›</span></button>
+                <button onClick={() => setFilterMenuOpen("assignee")}>Assignee <span className="menu-chevron">›</span></button>
               </div>
             )}
 
@@ -533,6 +593,32 @@ export function IssuesView({
                       </button>
                     );
                   })}
+                <button className="back-btn" onClick={() => setFilterMenuOpen("main")}>← Back</button>
+              </div>
+            )}
+
+            {filterMenuOpen === "assignee" && (
+              <div className="filter-menu">
+                {!assigneeFilter.includes("__unassigned__") && unassignedCount > 0 && (
+                  <button onClick={() => addAssigneeFilter("__unassigned__")}>
+                    <span className="assignee-name">Unassigned</span>
+                    <span className="facet-count">({unassignedCount})</span>
+                  </button>
+                )}
+                {uniqueAssignees
+                  .filter((a) => !assigneeFilter.includes(a))
+                  .map((assignee) => {
+                    const count = assigneeFacets.get(assignee) ?? 0;
+                    return (
+                      <button key={assignee} onClick={() => addAssigneeFilter(assignee)}>
+                        <span className="assignee-name">{assignee}</span>
+                        <span className="facet-count">({count})</span>
+                      </button>
+                    );
+                  })}
+                {uniqueAssignees.length === 0 && unassignedCount === 0 && (
+                  <span className="filter-menu-empty">No assignees</span>
+                )}
                 <button className="back-btn" onClick={() => setFilterMenuOpen("main")}>← Back</button>
               </div>
             )}

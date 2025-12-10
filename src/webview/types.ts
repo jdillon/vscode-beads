@@ -73,6 +73,7 @@ export interface BeadsSummary {
 
 export interface WebviewSettings {
   renderMarkdown: boolean;
+  userId: string;
 }
 
 // Messages from extension to webview
@@ -105,7 +106,8 @@ export type WebviewMessage =
   | { type: "openBeadDetails"; beadId: string }
   | { type: "viewInGraph"; beadId: string }
   | { type: "startDaemon" }
-  | { type: "stopDaemon" };
+  | { type: "stopDaemon" }
+  | { type: "copyBeadId"; beadId: string };
 
 // Human-readable labels
 export const PRIORITY_LABELS: Record<BeadPriority, string> = {

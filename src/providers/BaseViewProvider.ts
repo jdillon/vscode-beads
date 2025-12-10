@@ -87,10 +87,13 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
 
     // Send settings
     const config = vscode.workspace.getConfiguration("beads");
+    // User ID: prefer setting, fallback to $USER, then "unknown"
+    const userId = config.get<string>("userId", "") || process.env.USER || process.env.USERNAME || "unknown";
     this.postMessage({
       type: "setSettings",
       settings: {
         renderMarkdown: config.get<boolean>("renderMarkdown", true),
+        userId,
       },
     });
 
