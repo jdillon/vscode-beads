@@ -95,16 +95,32 @@ Format rules:
 - Added a new feature that allows users to see colored dropdown menus when editing the type, status, and priority fields in the Details view panel
 ```
 
-### Step 7: Present report to user
+### Step 7: Check README.md and draft updates
+
+Read README.md and compare the Features section against the draft changelog entries.
+
+**Flag as needing updates if:**
+- New features in changelog aren't reflected in README Features section
+- README mentions capabilities that have changed significantly
+- Installation section is missing new distribution channels
+- Commands or Settings tables are outdated
+
+If README needs updates, draft specific changes:
+- List each section that needs updating
+- Show the current text and proposed replacement
+- Keep changes minimal and focused on new features
+
+### Step 8: Present report to user
 
 Show this information clearly:
 
 1. **Commits analyzed** - table with: commit hash, type, INCLUDE/SKIP, reason
 2. **Beads referenced** - list with: bead ID, title, type (feature/bug/task)
 3. **Gaps detected** - any closed beads missing from commits (or "None")
-4. **Draft entries** - the changelog entries grouped by section
+4. **Draft changelog entries** - the changelog entries grouped by section
+5. **README updates needed** - "Up to date" or list specific proposed changes
 
-### Step 8: Ask for confirmation
+### Step 9: Ask for changelog confirmation
 
 **IMPORTANT:** You MUST use the `AskUserQuestion` tool here. Do not proceed without user confirmation.
 
@@ -113,12 +129,10 @@ Use `AskUserQuestion` tool with:
 - Header: "Changelog"
 - Options:
   - Label: "Yes, update" / Description: "Merge entries into [Unreleased] section"
-  - Label: "No, skip" / Description: "Stop without making changes"
+  - Label: "No, skip" / Description: "Skip changelog updates"
 - multiSelect: false
 
-Wait for the user's response before proceeding to Step 9.
-
-### Step 9: Update CHANGELOG.md (only if user said yes)
+### Step 10: Update CHANGELOG.md (only if user said yes)
 
 1. Read CHANGELOG.md
 2. Find `## [Unreleased]`
@@ -128,4 +142,23 @@ Wait for the user's response before proceeding to Step 9.
 6. Do NOT commit
 7. Tell user: "CHANGELOG.md updated. Review with `git diff CHANGELOG.md`"
 
-If user said no, just stop - don't make any changes.
+### Step 11: Ask for README confirmation (only if updates needed)
+
+If README updates were proposed in Step 7, use `AskUserQuestion` tool with:
+- Question: "Update README.md with the proposed changes?"
+- Header: "README"
+- Options:
+  - Label: "Yes, update" / Description: "Apply the proposed README changes"
+  - Label: "No, skip" / Description: "Skip README updates"
+- multiSelect: false
+
+If README is up to date, skip this step.
+
+### Step 12: Update README.md (only if user said yes)
+
+1. Apply the proposed changes from Step 7
+2. Use the Edit tool to make the changes
+3. Do NOT commit
+4. Tell user: "README.md updated. Review with `git diff README.md`"
+
+If user said no or no updates needed, skip this step.
