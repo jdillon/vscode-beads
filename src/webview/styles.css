@@ -232,6 +232,88 @@ textarea {
   transition: transform 0.15s ease;
 }
 
+/* ==================== Autocomplete Input ==================== */
+
+.autocomplete-input {
+  position: relative;
+  display: inline-block;
+}
+
+.autocomplete-text-input {
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 12px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: var(--border-radius);
+  outline: none;
+}
+
+.autocomplete-text-input:focus {
+  border-color: var(--vscode-focusBorder);
+}
+
+.autocomplete-text-input::placeholder {
+  color: var(--vscode-input-placeholderForeground);
+}
+
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 2px;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--vscode-dropdown-background);
+  border: 1px solid var(--vscode-dropdown-border, var(--vscode-widget-border));
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.autocomplete-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 12px;
+  text-align: left;
+  background: transparent;
+  color: var(--vscode-dropdown-foreground);
+  border: none;
+  cursor: pointer;
+}
+
+.autocomplete-option:hover,
+.autocomplete-option.highlighted {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.autocomplete-option-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.autocomplete-option-count {
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+}
+
+.autocomplete-create {
+  border-top: 1px solid var(--vscode-widget-border);
+}
+
+.autocomplete-create-label {
+  font-style: italic;
+  color: var(--vscode-descriptionForeground);
+}
+
 /* ==================== Project Selector ==================== */
 
 .project-selector {
@@ -838,6 +920,39 @@ textarea {
   margin-top: 4px;
   padding-top: 8px;
   color: var(--vscode-descriptionForeground);
+}
+
+/* Label filter with autocomplete */
+.filter-menu-label {
+  min-width: 180px;
+  padding: 8px;
+}
+
+.filter-menu-label .autocomplete-input {
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.filter-menu-label .autocomplete-dropdown {
+  position: static;
+  max-height: 150px;
+  margin-top: 4px;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  scrollbar-width: none;
+}
+
+.filter-menu-label .autocomplete-dropdown::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-menu-label .autocomplete-option {
+  padding: 4px 0;
+}
+
+.filter-menu-label .back-btn {
+  margin-top: 8px;
 }
 
 .filter-reset {
@@ -1550,7 +1665,8 @@ textarea {
   opacity: 1;
 }
 
-.assignee-name {
+.assignee-name,
+.label-name {
   font-size: 12px;
 }
 

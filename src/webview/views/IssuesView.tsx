@@ -48,6 +48,8 @@ import { ErrorMessage } from "../common/ErrorMessage";
 import { ProjectDropdown } from "../common/ProjectDropdown";
 import { Dropdown, DropdownItem } from "../common/Dropdown";
 import { Timestamp, timestampSortingFn } from "../common/Timestamp";
+import { AutocompleteInput, AutocompleteOption } from "../common/AutocompleteInput";
+import { getLabelColorStyle } from "../utils/label-colors";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useColumnState } from "../hooks/useColumnState";
 
@@ -227,6 +229,16 @@ export function IssuesView({
             ))}
           </>
         ),
+        filterFn: (row, columnId, filterValue: string[]) => {
+          if (!filterValue || filterValue.length === 0) return true;
+          const labels = row.getValue(columnId) as string[] | undefined;
+          if (!labels || labels.length === 0) {
+            // Special handling for "Unlabeled" filter
+            return filterValue.includes("__unlabeled__");
+          }
+          // Match if any of the issue's labels are in the filter
+          return labels.some((label) => filterValue.includes(label));
+        },
       }),
       columnHelper.accessor("assignee", {
         header: "Assignee",
@@ -313,7 +325,8 @@ export function IssuesView({
   const priorityFilter = (columnFilters.find((f) => f.id === "priority")?.value || []) as BeadPriority[];
   const typeFilter = (columnFilters.find((f) => f.id === "type")?.value || []) as string[];
   const assigneeFilter = (columnFilters.find((f) => f.id === "assignee")?.value || []) as string[];
-  const hasActiveFilters = statusFilter.length > 0 || priorityFilter.length > 0 || typeFilter.length > 0 || assigneeFilter.length > 0;
+  const labelFilter = (columnFilters.find((f) => f.id === "labels")?.value || []) as string[];
+  const hasActiveFilters = statusFilter.length > 0 || priorityFilter.length > 0 || typeFilter.length > 0 || assigneeFilter.length > 0 || labelFilter.length > 0;
 
   const applyPreset = (presetId: string) => {
     const preset = FILTER_PRESETS.find((p) => p.id === presetId);
@@ -415,6 +428,28 @@ export function IssuesView({
     setActivePreset("");
   };
 
+  const addLabelFilter = (label: string) => {
+    if (!labelFilter.includes(label)) {
+      setColumnFilters((prev) => {
+        const others = prev.filter((f) => f.id !== "labels");
+        return [...others, { id: "labels", value: [...labelFilter, label] }];
+      });
+      setActivePreset("");
+    }
+    setFilterMenuOpen(null);
+  };
+
+  const removeLabelFilter = (label: string) => {
+    const newLabels = labelFilter.filter((l) => l !== label);
+    setColumnFilters((prev) => {
+      const others = prev.filter((f) => f.id !== "labels");
+      return newLabels.length > 0
+        ? [...others, { id: "labels", value: newLabels }]
+        : others;
+    });
+    setActivePreset("");
+  };
+
   const clearAllFilters = () => {
     setColumnFilters([]);
     setGlobalFilter("");
@@ -447,6 +482,55 @@ export function IssuesView({
     }
     return count;
   }, [assigneeFacets]);
+
+  // Get unique labels and counts from filtered rows (labels are arrays, so facets don't work directly)
+  const { uniqueLabels, labelCounts, unlabeledCount } = useMemo(() => {
+    const counts = new Map<string, number>();
+    let unlabeled = 0;
+    const filteredRows = table.getFilteredRowModel().rows;
+    for (const row of filteredRows) {
+      const labels = row.original.labels;
+      if (!labels || labels.length === 0) {
+        unlabeled++;
+      } else {
+        for (const label of labels) {
+          counts.set(label, (counts.get(label) || 0) + 1);
+        }
+      }
+    }
+    const sorted = Array.from(counts.keys()).sort();
+    return { uniqueLabels: sorted, labelCounts: counts, unlabeledCount: unlabeled };
+  }, [table.getFilteredRowModel().rows]);
+
+  // Build label autocomplete options
+  const labelOptions = useMemo((): AutocompleteOption[] => {
+    const options: AutocompleteOption[] = [];
+    // Add "Unlabeled" option first if available
+    if (!labelFilter.includes("__unlabeled__") && unlabeledCount > 0) {
+      options.push({
+        value: "__unlabeled__",
+        label: "Unlabeled",
+        count: unlabeledCount,
+      });
+    }
+    // Add all unique labels not already filtered
+    for (const label of uniqueLabels) {
+      if (!labelFilter.includes(label)) {
+        options.push({
+          value: label,
+          label: label,
+          count: labelCounts.get(label) ?? 0,
+          render: () => (
+            <>
+              <LabelBadge label={label} />
+              <span className="autocomplete-option-count">({labelCounts.get(label) ?? 0})</span>
+            </>
+          ),
+        });
+      }
+    }
+    return options;
+  }, [uniqueLabels, labelCounts, unlabeledCount, labelFilter]);
 
   return (
     <div className="beads-panel">
@@ -540,6 +624,14 @@ export function IssuesView({
               onRemove={() => removeAssigneeFilter(assignee)}
             />
           ))}
+          {labelFilter.map((label) => (
+            <FilterChip
+              key={`label-${label}`}
+              label={label === "__unlabeled__" ? "Unlabeled" : label}
+              accentColor={label === "__unlabeled__" ? "#6b7280" : getLabelColorStyle(label).backgroundColor}
+              onRemove={() => removeLabelFilter(label)}
+            />
+          ))}
 
           {/* Add filter dropdown with faceted counts */}
           <div className="filter-add-wrapper" ref={filterMenuRef}>
@@ -556,6 +648,7 @@ export function IssuesView({
                 <button onClick={() => setFilterMenuOpen("priority")}>Priority <span className="menu-chevron">›</span></button>
                 <button onClick={() => setFilterMenuOpen("type")}>Type <span className="menu-chevron">›</span></button>
                 <button onClick={() => setFilterMenuOpen("assignee")}>Assignee <span className="menu-chevron">›</span></button>
+                <button onClick={() => setFilterMenuOpen("label")}>Label <span className="menu-chevron">›</span></button>
               </div>
             )}
 
@@ -632,6 +725,22 @@ export function IssuesView({
                 {uniqueAssignees.length === 0 && unassignedCount === 0 && (
                   <span className="filter-menu-empty">No assignees</span>
                 )}
+                <button className="back-btn" onClick={() => setFilterMenuOpen("main")}>← Back</button>
+              </div>
+            )}
+
+            {filterMenuOpen === "label" && (
+              <div className="filter-menu filter-menu-label">
+                <AutocompleteInput
+                  placeholder="Search labels..."
+                  options={labelOptions}
+                  onSelect={(value) => {
+                    addLabelFilter(value);
+                    setFilterMenuOpen(null);
+                  }}
+                  autoFocus
+                  showAllOnFocus
+                />
                 <button className="back-btn" onClick={() => setFilterMenuOpen("main")}>← Back</button>
               </div>
             )}
