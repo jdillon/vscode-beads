@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Fixed
+
+### Changed
+
+## [0.9.0] - 2025-12-11
+
+### Added
+
 - Label filter option for Issues list with autocomplete and counts (`vsbeads-65h`)
 - FontAwesome icons for issue types and UI elements
 - Tag/label icon to label displays (`vsbeads-qlp`)
@@ -18,8 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Typography inconsistency across dropdown menus (`vsbeads-efp`)
-
-### Changed
 
 ## [0.8.0] - 2025-12-10
 
