@@ -79,9 +79,11 @@ Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/item
 
 ## Credits
 
-Built with 💜 using [Claude Code](https://claude.ai/code)
+Built with [Claude Code](https://claude.ai/code)
 
 Icon inspired by <a href="https://www.flaticon.com/free-icons/beads" title="Beads icons">Beads icons created by imaginationlol - Flaticon</a>
+
+Issue type icons from [Font Awesome Free](https://fontawesome.com) ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/))
 
 ## License
 

@@ -108,3 +108,7 @@ At release time, `[Unreleased]` content moves to `## [x.y.z] - date`.
 
 - **kebab-case**: Source code, docs, configs (`my-module.ts`, `api-reference.md`)
 - **UPPERCASE**: Only for standard files (`README.md`, `CHANGELOG.md`, `CLAUDE.md`, `LICENSE`)
+
+## Icons
+
+Use [Font Awesome Free](https://fontawesome.com) icons unless there's a good reason not to. Icons are stored as SVG files in `src/webview/icons/` and imported via the `Icon` component or `icons` object. See `src/webview/icons/index.ts` for available icons.
