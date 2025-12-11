@@ -82,6 +82,8 @@ import { LabelBadge } from "../common/LabelBadge";
 import { StatusBadge } from "../common/StatusBadge";
 import { PriorityBadge } from "../common/PriorityBadge";
 import { TypeBadge } from "../common/TypeBadge";
+import { TypeIcon } from "../common/TypeIcon";
+import { Icon } from "../common/Icon";
 import { Markdown } from "../common/Markdown";
 import { useToast } from "../common/Toast";
 import { ColoredSelect, ColoredSelectOption } from "../common/ColoredSelect";
@@ -246,8 +248,9 @@ export function DetailsView({
 
   return (
     <div className="bead-details">
-      {/* Header with ID and actions */}
+      {/* Header with icon, ID and actions */}
       <div className="details-header">
+        <TypeIcon type={(displayBead.type || "task") as BeadType} size={20} />
         <span
           className="bead-id-badge clickable"
           onClick={() => {
@@ -320,9 +323,7 @@ export function DetailsView({
             <Dropdown
               trigger={
                 <span className="assignee-trigger">
-                  <svg className="person-icon" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/>
-                  </svg>
+                  <Icon name="user" size={10} className="person-icon" />
                   <span className={`assignee-name ${!displayBead.assignee ? "muted" : ""}`}>
                     {displayBead.assignee || "Unassigned"}
                   </span>
@@ -354,6 +355,7 @@ export function DetailsView({
             </Dropdown>
             {/* Labels in edit mode - pushed to right, input first */}
             <span className="badges-spacer" />
+            <Icon name="tag" size={10} className="labels-icon" title="Labels" />
             <div className="add-label-inline">
               <input
                 type="text"
@@ -400,9 +402,7 @@ export function DetailsView({
             <Dropdown
               trigger={
                 <span className="assignee-trigger">
-                  <svg className="person-icon" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/>
-                  </svg>
+                  <Icon name="user" size={10} className="person-icon" />
                   <span className={`assignee-name ${!displayBead.assignee ? "muted" : ""}`}>
                     {displayBead.assignee || "Unassigned"}
                   </span>
@@ -437,6 +437,7 @@ export function DetailsView({
             {displayBead.labels && displayBead.labels.length > 0 && (
               <>
                 <span className="badges-spacer" />
+                <Icon name="tag" size={10} className="labels-icon" title="Labels" />
                 {sortLabels(displayBead.labels).map((label) => (
                   <LabelBadge key={label} label={label} />
                 ))}
@@ -711,10 +712,16 @@ export function DetailsView({
 
       {/* Metadata footer */}
       <div className="details-meta">
-        <span>Created: <Timestamp value={displayBead.createdAt} /></span>
-        <span>Updated: <Timestamp value={displayBead.updatedAt} /></span>
+        <span title={displayBead.createdAt ? new Date(displayBead.createdAt).toLocaleString() : undefined}>
+          Created <Timestamp value={displayBead.createdAt} format="relative" />
+        </span>
+        <span title={displayBead.updatedAt ? new Date(displayBead.updatedAt).toLocaleString() : undefined}>
+          Updated <Timestamp value={displayBead.updatedAt} format="relative" />
+        </span>
         {displayBead.closedAt && (
-          <span>Closed: <Timestamp value={displayBead.closedAt} /></span>
+          <span title={new Date(displayBead.closedAt).toLocaleString()}>
+            Closed <Timestamp value={displayBead.closedAt} format="relative" />
+          </span>
         )}
       </div>
     </div>

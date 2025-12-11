@@ -50,24 +50,24 @@ Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/item
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `Beads: Switch Project` | Select active project |
-| `Beads: Open Issues Panel` | Open the issues panel |
-| `Beads: Open Issue Details` | Open the details panel |
-| `Beads: Refresh` | Refresh all views |
-| `Beads: Create New Issue` | Create issue via quick input |
-| `Beads: Start Daemon` | Start daemon for active project |
-| `Beads: Stop Daemon` | Stop daemon |
+| Command                     | Description                     |
+| --------------------------- | ------------------------------- |
+| `Beads: Switch Project`     | Select active project           |
+| `Beads: Open Issues Panel`  | Open the issues panel           |
+| `Beads: Open Issue Details` | Open the details panel          |
+| `Beads: Refresh`            | Refresh all views               |
+| `Beads: Create New Issue`   | Create issue via quick input    |
+| `Beads: Start Daemon`       | Start daemon for active project |
+| `Beads: Stop Daemon`        | Stop daemon                     |
 
 ## Settings
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `beads.pathToBd` | `"bd"` | Path to `bd` CLI |
-| `beads.autoStartDaemon` | `true` | Auto-start daemon on project switch |
+| Setting                 | Default | Description                               |
+| ----------------------- | ------- | ----------------------------------------- |
+| `beads.pathToBd`        | `"bd"`  | Path to `bd` CLI                          |
+| `beads.autoStartDaemon` | `true`  | Auto-start daemon on project switch       |
 | `beads.refreshInterval` | `30000` | Auto-refresh interval in ms (0 = disable) |
-| `beads.renderMarkdown` | `true` | Render markdown in text fields |
+| `beads.renderMarkdown`  | `true`  | Render markdown in text fields            |
 
 ## Troubleshooting
 
@@ -82,6 +82,8 @@ Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/item
 Built with 💜 using [Claude Code](https://claude.ai/code)
 
 Icon inspired by <a href="https://www.flaticon.com/free-icons/beads" title="Beads icons">Beads icons created by imaginationlol - Flaticon</a>
+
+Issue type icons from [Font Awesome Free](https://fontawesome.com) ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/))
 
 ## License
 
