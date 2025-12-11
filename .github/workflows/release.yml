@@ -54,8 +54,11 @@ jobs:
       - name: Package VSIX
         run: npx @vscode/vsce package --no-dependencies
 
-      - name: Publish to Marketplace
+      - name: Publish to VS Code Marketplace
         run: npx @vscode/vsce publish -p ${{ secrets.VSCE_PAT }} --no-dependencies
+
+      - name: Publish to Open VSX
+        run: npx ovsx publish *.vsix -p ${{ secrets.OVSX_PAT }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

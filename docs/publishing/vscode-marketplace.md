@@ -1,4 +1,4 @@
-# Publishing to VS Code Marketplace
+# VS Code Marketplace Publishing
 
 ## Prerequisites
 
@@ -106,6 +106,18 @@ vsce package                         # Create VSIX locally
 vsce publish                         # Publish to marketplace
 vsce unpublish planet57.vscode-beads # Remove from marketplace
 ```
+
+## Publisher Domain Verification (Optional)
+
+Adds a verified checkmark next to your publisher name on the marketplace.
+
+1. Go to [Publisher Management](https://marketplace.visualstudio.com/manage/publishers/planet57)
+2. Select publisher → Details
+3. Add your domain (e.g., `planet57.com`)
+4. Add the DNS TXT record they provide (e.g., `ms-verify=xxxxx`)
+5. Click verify
+
+**Requirements**: You must own the domain and be able to add DNS records.
 
 ## Links
 
