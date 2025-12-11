@@ -9,7 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Label filter option for Issues list with autocomplete and counts (`vsbeads-65h`)
+- FontAwesome icons for issue types and UI elements
+- Tag/label icon to label displays (`vsbeads-qlp`)
+- Time display in timestamps in Details panel footer (`vsbeads-ipb`)
+- Improved timestamp display formatting (`vsbeads-vq3`)
+
 ### Fixed
+
+- Typography inconsistency across dropdown menus (`vsbeads-efp`)
 
 ### Changed
 
