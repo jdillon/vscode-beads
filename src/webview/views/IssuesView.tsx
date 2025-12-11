@@ -41,6 +41,7 @@ import {
 import { StatusBadge } from "../common/StatusBadge";
 import { PriorityBadge } from "../common/PriorityBadge";
 import { TypeBadge } from "../common/TypeBadge";
+import { TypeIcon } from "../common/TypeIcon";
 import { LabelBadge } from "../common/LabelBadge";
 import { FilterChip } from "../common/FilterChip";
 import { ErrorMessage } from "../common/ErrorMessage";
@@ -143,6 +144,18 @@ export function IssuesView({
   // Column definitions
   const columns = useMemo(
     () => [
+      columnHelper.accessor("type", {
+        id: "icon",
+        header: "",
+        size: 28,
+        minSize: 28,
+        maxSize: 28,
+        enableResizing: false,
+        cell: (info) =>
+          info.getValue() ? (
+            <TypeIcon type={info.getValue() as BeadType} size={16} />
+          ) : null,
+      }),
       columnHelper.accessor("type", {
         header: "Type",
         size: 70,
