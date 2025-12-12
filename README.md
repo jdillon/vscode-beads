@@ -9,6 +9,7 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 ## Features
 
 **Issues Panel**
+
 - Sortable, filterable table with global search
 - Filter by status, priority, type, assignee, and labels
 - Multi-column sorting (shift+click for secondary sort)
@@ -17,12 +18,14 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 - Click-to-copy bead IDs
 
 **Details Panel**
+
 - View/edit title, description, status, priority, type, labels, assignee
 - Colored inline dropdowns for quick field editing
 - Markdown rendering in description/notes with timezone-aware timestamps
 - Dependency management with grouped relationship types (blocks, related, parent-child)
 
 **Multi-Project & Daemon**
+
 - Auto-detects `.beads` directories in workspace
 - Status bar indicator with daemon health
 - Auto-start daemon, auto-recover from stale sockets
@@ -67,24 +70,24 @@ Install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `Beads: Switch Project` | Select active project |
-| `Beads: Refresh` | Refresh all views |
-| `Beads: Create New Issue` | Create issue via quick input |
-| `Beads: Start Daemon` | Start daemon for active project |
-| `Beads: Stop Daemon` | Stop daemon |
-| `Beads: Restart Daemon` | Restart daemon |
+| Command                   | Description                     |
+| ------------------------- | ------------------------------- |
+| `Beads: Switch Project`   | Select active project           |
+| `Beads: Refresh`          | Refresh all views               |
+| `Beads: Create New Issue` | Create issue via quick input    |
+| `Beads: Start Daemon`     | Start daemon for active project |
+| `Beads: Stop Daemon`      | Stop daemon                     |
+| `Beads: Restart Daemon`   | Restart daemon                  |
 
 ## Settings
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `beads.pathToBd` | `"bd"` | Path to `bd` CLI |
-| `beads.autoStartDaemon` | `true` | Auto-start daemon on project switch |
-| `beads.refreshInterval` | `30000` | Auto-refresh interval in ms (0 = disable) |
-| `beads.renderMarkdown` | `true` | Render markdown in text fields |
-| `beads.userId` | `""` | Your user ID for "Assign to me" (defaults to $USER) |
+| Setting                 | Default | Description                                         |
+| ----------------------- | ------- | --------------------------------------------------- |
+| `beads.pathToBd`        | `"bd"`  | Path to `bd` CLI                                    |
+| `beads.autoStartDaemon` | `true`  | Auto-start daemon on project switch                 |
+| `beads.refreshInterval` | `30000` | Auto-refresh interval in ms (0 = disable)           |
+| `beads.renderMarkdown`  | `true`  | Render markdown in text fields                      |
+| `beads.userId`          | `""`    | Your user ID for "Assign to me" (defaults to $USER) |
 
 ## Troubleshooting
 
@@ -96,7 +99,7 @@ Install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
 
 ## Credits
 
-Built with 💜 using [Claude Code](https://claude.ai/code)
+Built with ❤️ using [Claude Code](https://claude.ai/code)
 
 Icon inspired by <a href="https://www.flaticon.com/free-icons/beads" title="Beads icons">Beads icons created by imaginationlol - Flaticon</a>
 
