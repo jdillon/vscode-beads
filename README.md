@@ -8,10 +8,25 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 
 ## Features
 
-- **Issues Panel**: Sortable, filterable table with search
-- **Details Panel**: View/edit individual issues with markdown rendering
-- **Multi-Project**: Auto-detects `.beads` directories, switch between projects
-- **Daemon Management**: Auto-start option, status monitoring
+**Issues Panel**
+- Sortable, filterable table with global search
+- Filter by status, priority, type, assignee, and labels
+- Multi-column sorting (shift+click for secondary sort)
+- Persistent column visibility, order, and sort preferences
+- Filter presets: Not Closed, Blocked, Epics
+- Click-to-copy bead IDs
+
+**Details Panel**
+- View/edit title, description, status, priority, type, labels, assignee
+- Colored inline dropdowns for quick field editing
+- Markdown rendering in description/notes with timezone-aware timestamps
+- Dependency management with grouped relationship types (blocks, related, parent-child)
+
+**Multi-Project & Daemon**
+- Auto-detects `.beads` directories in workspace
+- Status bar indicator with daemon health
+- Auto-start daemon, auto-recover from stale sockets
+- Windows TCP socket support
 
 ## Development
 
@@ -25,7 +40,7 @@ See [docs/development.md](docs/development.md) for build commands, architecture,
 
 ## Installation
 
-Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=planet57.vscode-beads) or search "Beads" in VS Code Extensions.
+Install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=planet57.vscode-beads) or [Open VSX](https://open-vsx.org/extension/planet57/vscode-beads), or search "Beads" in VS Code/Cursor/VSCodium Extensions.
 
 ## Usage
 
@@ -35,39 +50,41 @@ Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/item
 
 ### Issues Panel
 
-- Click column headers to sort
-- Search filters by title/description/ID
-- Filter by status, priority, type via filter bar
-- Show/hide columns via ⋮ menu
-- Click row to view details
+- Click column headers to sort (shift+click for multi-column)
+- Search by title, description, or bead ID
+- Filter by status, priority, type, assignee, labels
+- Use filter presets or create custom filter combinations
+- Show/hide and reorder columns via ⋮ menu
+- Click row to view details, click bead ID to copy
 
 ### Details Panel
 
-- View/edit title, description, status, priority, type, labels
-- Markdown rendering in description and notes fields
-- Manage dependencies
-- Click Edit to modify, Save to commit changes
+- Click badges to edit type/status/priority inline
+- "Assign to me" quick action for assignee
+- Add/remove labels with auto-generated colors
+- Markdown rendering in description/notes
+- View dependencies grouped by relationship type
 
 ## Commands
 
-| Command                     | Description                     |
-| --------------------------- | ------------------------------- |
-| `Beads: Switch Project`     | Select active project           |
-| `Beads: Open Issues Panel`  | Open the issues panel           |
-| `Beads: Open Issue Details` | Open the details panel          |
-| `Beads: Refresh`            | Refresh all views               |
-| `Beads: Create New Issue`   | Create issue via quick input    |
-| `Beads: Start Daemon`       | Start daemon for active project |
-| `Beads: Stop Daemon`        | Stop daemon                     |
+| Command | Description |
+|---------|-------------|
+| `Beads: Switch Project` | Select active project |
+| `Beads: Refresh` | Refresh all views |
+| `Beads: Create New Issue` | Create issue via quick input |
+| `Beads: Start Daemon` | Start daemon for active project |
+| `Beads: Stop Daemon` | Stop daemon |
+| `Beads: Restart Daemon` | Restart daemon |
 
 ## Settings
 
-| Setting                 | Default | Description                               |
-| ----------------------- | ------- | ----------------------------------------- |
-| `beads.pathToBd`        | `"bd"`  | Path to `bd` CLI                          |
-| `beads.autoStartDaemon` | `true`  | Auto-start daemon on project switch       |
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `beads.pathToBd` | `"bd"` | Path to `bd` CLI |
+| `beads.autoStartDaemon` | `true` | Auto-start daemon on project switch |
 | `beads.refreshInterval` | `30000` | Auto-refresh interval in ms (0 = disable) |
-| `beads.renderMarkdown`  | `true`  | Render markdown in text fields            |
+| `beads.renderMarkdown` | `true` | Render markdown in text fields |
+| `beads.userId` | `""` | Your user ID for "Assign to me" (defaults to $USER) |
 
 ## Troubleshooting
 
