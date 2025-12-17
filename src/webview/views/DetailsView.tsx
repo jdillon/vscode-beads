@@ -24,6 +24,40 @@ import {
   sortLabels,
 } from "../types";
 import { Timestamp } from "../common/Timestamp";
+import { Icon } from "../icons";
+
+/**
+ * Detects if a string looks like a URL
+ */
+function isUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value);
+}
+
+/**
+ * Renders external ref - as link if URL, plain text otherwise
+ */
+function ExternalRefValue({ value }: { value?: string }) {
+  if (!value) {
+    return <span className="value muted">-</span>;
+  }
+
+  if (isUrl(value)) {
+    return (
+      <a
+        href={value}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="external-link"
+        title={value}
+      >
+        <span className="external-link-text">{value}</span>
+        <Icon name="external-link" size={10} className="external-link-icon" />
+      </a>
+    );
+  }
+
+  return <span className="value">{value}</span>;
+}
 
 // Labels for dependency sections based on array (direction) and type
 const DEPENDENCY_LABELS: Record<"dependsOn" | "blocks", Record<DependencyType, string>> = {
@@ -465,41 +499,21 @@ export function DetailsView({
         )}
       </div>
 
-      {/* External Reference & Estimate row */}
-      {(displayBead.externalRef || displayBead.estimatedMinutes || editMode) && (
-        <div className="details-row">
-          <div className="details-field">
-            <span className="label">External Ref:</span>
-            {editMode ? (
-              <input
-                type="text"
-                value={displayBead.externalRef || ""}
-                onChange={(e) => handleFieldChange("externalRef", e.target.value)}
-                className="inline-input"
-                placeholder="e.g., gh-123, jira-ABC"
-              />
-            ) : (
-              <span className="value">{displayBead.externalRef || "-"}</span>
-            )}
-          </div>
-          <div className="details-field">
-            <span className="label">Estimate:</span>
-            {editMode ? (
-              <input
-                type="number"
-                value={displayBead.estimatedMinutes || ""}
-                onChange={(e) => handleFieldChange("estimatedMinutes", e.target.value ? parseInt(e.target.value) : undefined)}
-                className="inline-input short"
-                placeholder="mins"
-              />
-            ) : (
-              <span className="value">
-                {displayBead.estimatedMinutes
-                  ? `${Math.floor(displayBead.estimatedMinutes / 60)}h ${displayBead.estimatedMinutes % 60}m`
-                  : "-"}
-              </span>
-            )}
-          </div>
+      {/* External Reference - only show if has data */}
+      {displayBead.externalRef && (
+        <div className="details-section compact">
+          <h4>External Reference</h4>
+          <ExternalRefValue value={displayBead.externalRef} />
+        </div>
+      )}
+
+      {/* Estimate - only show if has data */}
+      {displayBead.estimatedMinutes && (
+        <div className="details-section compact">
+          <h4>Estimate</h4>
+          <span className="estimate-value">
+            {Math.floor(displayBead.estimatedMinutes / 60)}h {displayBead.estimatedMinutes % 60}m
+          </span>
         </div>
       )}
 

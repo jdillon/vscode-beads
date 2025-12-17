@@ -101,6 +101,7 @@ export interface CreateArgs {
   design?: string;
   acceptance_criteria?: string;
   assignee?: string;
+  external_ref?: string;
   labels?: string[];
   dependencies?: string[];
 }
@@ -115,6 +116,8 @@ export interface UpdateArgs {
   acceptance_criteria?: string;
   notes?: string;
   assignee?: string;
+  external_ref?: string;
+  estimated_minutes?: number;
   add_labels?: string[];
   remove_labels?: string[];
   set_labels?: string[];

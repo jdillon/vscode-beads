@@ -15,6 +15,7 @@ import wrenchSvg from "./wrench.svg";
 // UI icons
 import userSvg from "./user.svg";
 import tagSvg from "./tag.svg";
+import externalLinkSvg from "./external-link.svg";
 
 export const icons = {
   // Issue types
@@ -26,6 +27,7 @@ export const icons = {
   // UI
   user: userSvg,
   tag: tagSvg,
+  "external-link": externalLinkSvg,
 } as const;
 
 export type IconName = keyof typeof icons;

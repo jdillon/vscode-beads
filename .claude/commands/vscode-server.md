@@ -151,6 +151,8 @@ Compare with `$(pwd)`. If missing or pointing elsewhere, create/update it:
 ln -sf "$(pwd)" ~/.local/share/code-server/extensions/{publisher}.{name}-dev
 ```
 
+**Important**: The symlink must be created at the TARGET path (in `~/.local/share/code-server/extensions/`), NOT in the current directory. Never run `ln` with the project directory as both source and a relative target.
+
 ### Step 3: Build the extension
 
 Run a quick build to ensure dist/ is up to date:
