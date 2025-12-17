@@ -2014,6 +2014,50 @@ textarea {
   width: 60px;
 }
 
+/* Compact section variant */
+.details-section.compact {
+  margin-top: var(--spacing-sm);
+}
+
+.details-section.compact h4 {
+  margin-bottom: var(--spacing-xs);
+}
+
+.estimate-value {
+  font-size: 13px;
+  color: var(--vscode-foreground);
+}
+
+/* External link styling */
+.external-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--vscode-textLink-foreground);
+  text-decoration: none;
+  max-width: 100%;
+}
+
+.external-link:hover {
+  color: var(--vscode-textLink-activeForeground);
+  text-decoration: underline;
+}
+
+.external-link-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.external-link-icon {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.external-link:hover .external-link-icon {
+  opacity: 1;
+}
+
 /* Comments */
 .comments-list {
   display: flex;

@@ -131,8 +131,14 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
         this.log.debug(`Updating bead ${message.beadId}: ${JSON.stringify(message.updates)}`);
 
         try {
-          // Map webview field names to daemon API field names
-          const { labels, ...rest } = message.updates;
+          // Map webview field names (camelCase) to daemon API field names (snake_case)
+          const {
+            labels,
+            externalRef,
+            acceptanceCriteria,
+            estimatedMinutes,
+            ...rest
+          } = message.updates;
           const updateArgs: Record<string, unknown> = {
             id: message.beadId,
             ...rest,
@@ -140,6 +146,16 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
           // Daemon uses set_labels instead of labels
           if (labels !== undefined) {
             updateArgs.set_labels = labels;
+          }
+          // Map camelCase to snake_case
+          if (externalRef !== undefined) {
+            updateArgs.external_ref = externalRef;
+          }
+          if (acceptanceCriteria !== undefined) {
+            updateArgs.acceptance_criteria = acceptanceCriteria;
+          }
+          if (estimatedMinutes !== undefined) {
+            updateArgs.estimated_minutes = estimatedMinutes;
           }
           await client.update(updateArgs as Parameters<typeof client.update>[0]);
           // Data will refresh via mutation events
