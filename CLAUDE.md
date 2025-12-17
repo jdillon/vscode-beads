@@ -90,6 +90,8 @@ Use beads MCP tools for ALL issue tracking. Do NOT use TodoWrite or markdown TOD
 **Commit format**: Include `Resolves: vsbeads-xxx` or `Related: vsbeads-xxx` in commit messages.
 See `bd onboard` for more information.
 
+**Cross-link related beads**: When working on an issue, actively look for related beads and link them with `bd dep add <id> <related-id> --type related`. Examples: follow-up tasks, upstream contributions, discovered work. Don't leave beads orphaned when they're clearly related.
+
 **Hooks maintenance**: After updating `bd`, run `bd hooks install --force` to get latest hook templates.
 
 ## CHANGELOG
