@@ -9,3 +9,6 @@ tmp/
 # Local dev artifacts (code-server, openvscode-server)
 .cache/
 .openvscode-server/
+
+# Local environment notes (not committed)
+CLAUDE.local.md

@@ -232,6 +232,20 @@ export interface ClientOptions {
 
 const CLIENT_VERSION = "0.1.0";
 const DEFAULT_TIMEOUT = 30000;
+// Workaround for daemon race condition - remove after upstream fix
+// See: https://github.com/steveyegge/beads/issues/607
+const DEFAULT_RETRIES = 2;
+const RETRY_DELAY_MS = 100;
+const TRANSIENT_ERROR_PATTERNS = ["database is closed", "database is locked", "connection reset"];
+
+function isTransientError(error: Error): boolean {
+  const message = error.message.toLowerCase();
+  return TRANSIENT_ERROR_PATTERNS.some((pattern) => message.includes(pattern.toLowerCase()));
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 /**
  * BeadsDaemonClient connects directly to the daemon Unix socket
@@ -316,9 +330,38 @@ export class BeadsDaemonClient extends EventEmitter {
   }
 
   /**
-   * Execute an RPC request
+   * Execute an RPC request with retry for transient errors.
+   *
+   * HACK: Ugly bandaid - retries mask a daemon race condition where concurrent
+   * requests can fail with "database is closed" during FreshnessChecker reconnection.
+   * Remove after upstream fix: https://github.com/steveyegge/beads/issues/607
    */
   private async execute<T>(operation: string, args: unknown = {}): Promise<T> {
+    let lastError: Error | undefined;
+
+    for (let attempt = 0; attempt <= DEFAULT_RETRIES; attempt++) {
+      try {
+        return await this.executeOnce<T>(operation, args);
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+
+        // Only retry on transient errors
+        if (attempt < DEFAULT_RETRIES && isTransientError(lastError)) {
+          await delay(RETRY_DELAY_MS * (attempt + 1)); // Increasing delay
+          continue;
+        }
+
+        throw lastError;
+      }
+    }
+
+    throw lastError || new Error("Execute failed");
+  }
+
+  /**
+   * Execute a single RPC request (no retry)
+   */
+  private async executeOnce<T>(operation: string, args: unknown = {}): Promise<T> {
     return new Promise((resolve, reject) => {
       const socket = new net.Socket();
       let responseData = "";

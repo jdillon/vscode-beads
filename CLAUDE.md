@@ -16,6 +16,12 @@ bun run package          # Create VSIX package
 
 ## Development Workflow
 
+**Always branch before making changes.** Never commit directly to main. Create a feature branch before any code changes:
+```bash
+git checkout -b fix/descriptive-name   # or feat/, chore/, etc.
+```
+Exception: If already on a feature branch and told to continue on it (e.g., multiple beads under one PR).
+
 **Testing workflow with Chrome DevTools MCP**: After building, ask the user to reload code-server and test. Don't automate the reload/test cycle via browser tools - it wastes context.
 
 **code-server for testing**: See `docs/code-server-testing.md` - living document for agent reference. Keep it updated with working config and lessons learned.
