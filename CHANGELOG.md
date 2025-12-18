@@ -9,7 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Update activity bar icon with improved beads artwork (`vsbeads-94s`)
+
 ### Fixed
+
+- Eliminate excessive spacing in markdown lists (`vsbeads-l27`)
+- Edit mode now supports external_ref and estimate fields (`vsbeads-96o`, `vsbeads-7r2`)
+- Improve external_ref display with clickable URL links (`vsbeads-7ba`)
+- Normalize control heights to 20px across all panels (`vsbeads-cf6`)
+- Add retry resilience for transient daemon errors (database is closed) (`vsbeads-m98`)
 
 ### Changed
 
