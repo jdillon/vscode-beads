@@ -87,7 +87,9 @@ Use beads MCP tools for ALL issue tracking. Do NOT use TodoWrite or markdown TOD
 
 **When creating beads**: Add a category label (e.g., `ui`, `backend`, `daemon`, `docs`, `dx`).
 
-**Do NOT close issues prematurely.** Wait for explicit user verification that the work is complete before closing. Build succeeding is not enough - the user must confirm the feature works as expected.
+**Working on a bead**: When user says "work on", "activate", "look at", or similar for an issue, set it to `in_progress` and assign to `jdillon`. Keep beads `in_progress` until user explicitly closes or requests close.
+
+**NEVER close issues without explicit permission.** Even after user verification, DO NOT close beads until the full workflow is complete: branch created, code committed, pushed, and user explicitly says "close" or "done". User verification that something works is NOT permission to close - that's just testing. Ask "ready to close?" if unsure.
 
 **Updating notes**: Append new information, don't replace existing content. Use `---` separator for dated updates. Only replace if explicitly asked.
 
