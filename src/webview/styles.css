@@ -1503,6 +1503,16 @@ textarea {
   padding: 4px 8px;
 }
 
+.text-input {
+  width: 100%;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.estimate-input {
+  width: 120px;
+}
+
 .details-badges {
   display: flex;
   flex-wrap: wrap;

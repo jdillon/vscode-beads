@@ -499,21 +499,42 @@ export function DetailsView({
         )}
       </div>
 
-      {/* External Reference - only show if has data */}
-      {displayBead.externalRef && (
+      {/* External Reference */}
+      {(displayBead.externalRef || editMode) && (
         <div className="details-section compact">
           <h4>External Reference</h4>
-          <ExternalRefValue value={displayBead.externalRef} />
+          {editMode ? (
+            <input
+              type="text"
+              value={displayBead.externalRef || ""}
+              onChange={(e) => handleFieldChange("externalRef", e.target.value || null)}
+              className="text-input"
+              placeholder="URL or reference ID"
+            />
+          ) : (
+            <ExternalRefValue value={displayBead.externalRef} />
+          )}
         </div>
       )}
 
-      {/* Estimate - only show if has data */}
-      {displayBead.estimatedMinutes && (
+      {/* Estimate */}
+      {(displayBead.estimatedMinutes || editMode) && (
         <div className="details-section compact">
-          <h4>Estimate</h4>
-          <span className="estimate-value">
-            {Math.floor(displayBead.estimatedMinutes / 60)}h {displayBead.estimatedMinutes % 60}m
-          </span>
+          <h4>Estimate (minutes)</h4>
+          {editMode ? (
+            <input
+              type="number"
+              value={displayBead.estimatedMinutes || ""}
+              onChange={(e) => handleFieldChange("estimatedMinutes", e.target.value ? parseInt(e.target.value, 10) : null)}
+              className="text-input estimate-input"
+              placeholder="Minutes"
+              min="0"
+            />
+          ) : (
+            <span className="estimate-value">
+              {Math.floor(displayBead.estimatedMinutes! / 60)}h {displayBead.estimatedMinutes! % 60}m
+            </span>
+          )}
         </div>
       )}
 
