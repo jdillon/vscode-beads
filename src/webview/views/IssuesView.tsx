@@ -35,6 +35,8 @@ import {
   PRIORITY_COLORS,
   TYPE_LABELS,
   TYPE_COLORS,
+  TYPE_SORT_ORDER,
+  getTypeSortOrder,
   sortLabels,
   vscode,
 } from "../types";
@@ -67,7 +69,17 @@ interface IssuesViewProps {
   onRetry: () => void;
 }
 
-const ISSUE_TYPES = ["bug", "feature", "task", "epic", "chore"];
+// Issue types sorted by TYPE_SORT_ORDER (epic first)
+const ISSUE_TYPES = Object.keys(TYPE_SORT_ORDER).sort(
+  (a, b) => getTypeSortOrder(a) - getTypeSortOrder(b)
+);
+
+// Custom sorting function for type columns (epic first)
+const typeSortingFn = (rowA: { getValue: (id: string) => unknown }, rowB: { getValue: (id: string) => unknown }) => {
+  const a = getTypeSortOrder(rowA.getValue("type") as string | undefined);
+  const b = getTypeSortOrder(rowB.getValue("type") as string | undefined);
+  return a - b;
+};
 
 // Filter presets
 interface FilterPreset {
@@ -157,6 +169,7 @@ export function IssuesView({
           info.getValue() ? (
             <TypeIcon type={info.getValue() as BeadType} size={16} />
           ) : null,
+        sortingFn: typeSortingFn,
       }),
       columnHelper.accessor("type", {
         header: "Type",
@@ -166,6 +179,7 @@ export function IssuesView({
           info.getValue() ? (
             <TypeBadge type={info.getValue() as BeadType} size="small" />
           ) : null,
+        sortingFn: typeSortingFn,
         filterFn: (row, columnId, filterValue: string[]) => {
           if (!filterValue || filterValue.length === 0) return true;
           const val = row.getValue(columnId) as string | undefined;

@@ -21,6 +21,8 @@ import {
   STATUS_COLORS,
   TYPE_COLORS,
   TYPE_LABELS,
+  TYPE_SORT_ORDER,
+  getTypeSortOrder,
   sortLabels,
 } from "../types";
 import { Timestamp } from "../common/Timestamp";
@@ -123,12 +125,14 @@ import { useToast } from "../common/Toast";
 import { ColoredSelect, ColoredSelectOption } from "../common/ColoredSelect";
 import { Dropdown, DropdownItem } from "../common/Dropdown";
 
-// Build options for ColoredSelect dropdowns
-const TYPE_OPTIONS: ColoredSelectOption<BeadType>[] = (Object.keys(TYPE_LABELS) as BeadType[]).map((t) => ({
-  value: t,
-  label: TYPE_LABELS[t],
-  color: TYPE_COLORS[t],
-}));
+// Build options for ColoredSelect dropdowns (sorted by TYPE_SORT_ORDER)
+const TYPE_OPTIONS: ColoredSelectOption<BeadType>[] = (Object.keys(TYPE_LABELS) as BeadType[])
+  .sort((a, b) => getTypeSortOrder(a) - getTypeSortOrder(b))
+  .map((t) => ({
+    value: t,
+    label: TYPE_LABELS[t],
+    color: TYPE_COLORS[t],
+  }));
 
 const STATUS_OPTIONS: ColoredSelectOption<BeadStatus>[] = (Object.keys(STATUS_LABELS) as BeadStatus[]).map((s) => ({
   value: s,
