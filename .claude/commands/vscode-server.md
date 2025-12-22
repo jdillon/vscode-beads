@@ -1,6 +1,6 @@
 ---
-description: "Manage code-server for extension testing: start|stop|status"
-allowed-tools: Bash, Read, mcp__chrome-devtools__new_page, mcp__chrome-devtools__list_pages, mcp__chrome-devtools__navigate_page, mcp__chrome-devtools__close_page
+description: "Manage code-server for extension testing: start|stop|status (project)"
+allowed-tools: Bash, Read, TaskOutput, mcp__chrome-devtools__new_page, mcp__chrome-devtools__list_pages, mcp__chrome-devtools__navigate_page, mcp__chrome-devtools__close_page
 ---
 
 Manage code-server development environment for testing VS Code extensions.
@@ -13,6 +13,20 @@ Manage code-server development environment for testing VS Code extensions.
 - `status` - Show current status of processes
 
 **Arguments**: $ARGUMENTS
+
+## Temp Directory
+
+Temp files are stored in `/tmp/vscode-dev-<hash>/` where hash is derived from project path:
+
+```bash
+PROJECT_HASH=$(echo "$(pwd)" | md5sum | cut -c1-8)
+TMP_DIR="/tmp/vscode-dev-${PROJECT_HASH}"
+```
+
+Files:
+- `$TMP_DIR/port` - code-server port
+- `$TMP_DIR/watch.pid` - watch mode PID
+- `$TMP_DIR/watch.log` - watch mode output
 
 ## Note: Opening DevTools Manually
 
@@ -33,8 +47,6 @@ Chrome only allows one DevTools client at a time. If you manually open DevTools 
 
 This launches Chrome with DevTools already open, avoiding the conflict.
 
-See: `~/Documents/Obsidian/Wonderland/VSCode/chrome-devtools-mcp-crash-when-opening-devtools.md`
-
 ## Instructions
 
 Parse the argument (default to "start" if empty or not provided).
@@ -48,11 +60,24 @@ Check the status of all processes without starting anything.
 ### Check processes
 
 ```bash
+PROJECT_HASH=$(echo "$(pwd)" | md5sum | cut -c1-8)
+TMP_DIR="/tmp/vscode-dev-${PROJECT_HASH}"
+
 echo "=== Watch Mode ==="
-pgrep -f "bun run watch" && echo "Running" || echo "Not running"
+if pgrep -f "bun run watch" > /dev/null; then
+  PID=$(cat "$TMP_DIR/watch.pid" 2>/dev/null || pgrep -f "bun run watch" | head -1)
+  echo "Running (PID: $PID)"
+else
+  echo "Not running"
+fi
 
 echo "=== code-server ==="
-pgrep -f "code-server" && echo "Running" || echo "Not running"
+if pgrep -f "code-server" > /dev/null; then
+  PORT=$(cat "$TMP_DIR/port" 2>/dev/null || echo "unknown")
+  echo "Running (Port: $PORT)"
+else
+  echo "Not running"
+fi
 ```
 
 ### Report status
@@ -60,7 +85,7 @@ pgrep -f "code-server" && echo "Running" || echo "Not running"
 Tell the user the current state of:
 
 - Watch mode: running/not running (with PID if running)
-- code-server: running/not running (with PID if running)
+- code-server: running/not running (with port if running)
 
 Then stop (don't execute start or stop commands).
 
@@ -68,18 +93,19 @@ Then stop (don't execute start or stop commands).
 
 ## Command: stop
 
-Stop all running processes.
+Stop all running processes and clean up temp files.
 
-### Stop watch mode
+### Stop processes and cleanup
 
 ```bash
+PROJECT_HASH=$(echo "$(pwd)" | md5sum | cut -c1-8)
+TMP_DIR="/tmp/vscode-dev-${PROJECT_HASH}"
+
 pkill -f "bun run watch" && echo "Watch mode stopped" || echo "Watch mode was not running"
-```
-
-### Stop code-server
-
-```bash
 pkill -f "code-server" && echo "code-server stopped" || echo "code-server was not running"
+
+# Clean up temp files
+rm -rf "$TMP_DIR" && echo "Temp files cleaned up"
 ```
 
 ### Report
@@ -106,11 +132,16 @@ This bypasses browser cache, ensuring the latest extension code is loaded.
 
 If the `--devtools` flag is present, do a full page close/reopen instead of just reload. This recovers from MCP disconnection (e.g., if you opened DevTools manually).
 
-1. First, try to close the existing page using `mcp__chrome-devtools__close_page` (ignore errors if it fails)
-2. Then open a fresh page using `mcp__chrome-devtools__new_page` with URL `http://127.0.0.1:8080/`
-3. Do a hard reload with `mcp__chrome-devtools__navigate_page` (type: reload, ignoreCache: true)
+1. First, get the code-server port:
+   ```bash
+   PROJECT_HASH=$(echo "$(pwd)" | md5sum | cut -c1-8)
+   cat "/tmp/vscode-dev-${PROJECT_HASH}/port"
+   ```
+2. Try to close the existing page using `mcp__chrome-devtools__close_page` (ignore errors if it fails)
+3. Open a fresh page using `mcp__chrome-devtools__new_page` with URL `http://127.0.0.1:{PORT}/`
+4. Do a hard reload with `mcp__chrome-devtools__navigate_page` (type: reload, ignoreCache: true)
 
-**Note**: The `--devtools` flag name is a hint that this is useful when DevTools caused the disconnect. The actual DevTools panel opening depends on your MCP server config (see "Opening DevTools Manually" section above).
+**Note**: The `--devtools` flag name is a hint that this is useful when DevTools caused the disconnect. The actual DevTools panel opening depends on your MCP server config.
 
 ---
 
@@ -118,87 +149,38 @@ If the `--devtools` flag is present, do a full page close/reopen instead of just
 
 Start code-server development environment for testing the current VS Code extension.
 
-### Step 1: Validate this is a VS Code extension
+### Step 1: Run the startup script
 
-Read `package.json` and verify it's a VS Code extension by checking:
-
-- Has `engines.vscode` field
-- Has `publisher` field
-- Has `name` field
-
-If any are missing, stop with error: "This project doesn't appear to be a VS Code extension (missing engines.vscode, publisher, or name in package.json)"
-
-Extract and save:
-
-- `publisher` (e.g., "planet57")
-- `name` (e.g., "vscode-beads")
-
-The extension ID is: `{publisher}.{name}-dev` (e.g., "planet57.vscode-beads-dev")
-
-### Step 2: Check/create extension symlink
-
-The symlink path is: `~/.local/share/code-server/extensions/{publisher}.{name}-dev`
-
-Check if the symlink exists and points to the current directory:
+Run the comprehensive startup script:
 
 ```bash
-readlink ~/.local/share/code-server/extensions/{publisher}.{name}-dev 2>/dev/null
-```
-
-Compare with `$(pwd)`. If missing or pointing elsewhere, create/update it:
-
-```bash
-ln -sf "$(pwd)" ~/.local/share/code-server/extensions/{publisher}.{name}-dev
-```
-
-**Important**: The symlink must be created at the TARGET path (in `~/.local/share/code-server/extensions/`), NOT in the current directory. Never run `ln` with the project directory as both source and a relative target.
-
-### Step 3: Build the extension
-
-Run a quick build to ensure dist/ is up to date:
-
-```bash
-bun run compile:quiet
-```
-
-If build fails, stop and report the error.
-
-### Step 4: Check for existing processes
-
-Check if watch mode or code-server are already running:
-
-```bash
-pgrep -f "bun run watch" || echo "not running"
-pgrep -f "code-server" || echo "not running"
-```
-
-### Step 5: Start watch mode (if not running)
-
-If watch mode is not running, start it in background:
-
-```bash
-bun run watch
+.claude/scripts/start-dev-environment.sh
 ```
 
 Use `run_in_background: true` for this command.
 
-### Step 6: Start code-server (if not running)
+Wait 4 seconds for everything to start up.
 
-If code-server is not running, start it in background:
+### Step 2: Get results from script output
 
-```bash
-code-server --auth none .
-```
+Read the background task output using `TaskOutput` with `block: false`. Parse the structured output:
 
-Use `run_in_background: true` for this command.
+- `EXTENSION_ID:<id>` - The extension identifier
+- `SYMLINK:<created|verified>` - Symlink status
+- `BUILD:<success|failed>` - Build result
+- `WATCH_PID:<pid>` - Watch mode process ID
+- `CODE_SERVER_PORT:<port>` - The port to use for browser
+- `ERROR:<message>` - If present, something failed
 
-Wait 2-3 seconds for code-server to start up.
+If `ERROR:` is present, report the error and stop.
 
-### Step 7: Open browser with Chrome DevTools MCP
+If `CODE_SERVER_PORT:` not found yet, wait another second and retry (up to 3 retries).
+
+### Step 3: Open browser with Chrome DevTools MCP
 
 Use the `mcp__chrome-devtools__new_page` tool to open:
 
-- URL: `http://127.0.0.1:8080/`
+- URL: `http://127.0.0.1:{PORT}/` (use the port from step 2)
 
 Then immediately do a hard reload to bypass cache:
 
@@ -206,18 +188,18 @@ Use `mcp__chrome-devtools__navigate_page` with:
 - `type`: `"reload"`
 - `ignoreCache`: `true`
 
-### Step 8: Report status
+### Step 4: Report status
 
 Tell the user:
 
-- Extension: `{publisher}.{name}`
-- Symlink: created/verified at `~/.local/share/code-server/extensions/{publisher}.{name}-dev`
-- Watch mode: running/started
-- code-server: running/started
-- Browser: opened
+- Extension: `{EXTENSION_ID}`
+- Symlink: {SYMLINK status}
+- Build: {BUILD status}
+- Watch mode: running (PID: {WATCH_PID})
+- code-server: running on port {PORT}
+- Browser: opened at `http://127.0.0.1:{PORT}/`
 
 Remind them:
 
-- After code changes, reload the browser window (Cmd+R or Cmd+Shift+P → "Developer: Reload Window")
+- After code changes, reload the browser (Cmd+R or `/vscode-server reload`)
 - Watch mode auto-rebuilds on save
-- Use `bun run compile:quiet` if watch gets confused
