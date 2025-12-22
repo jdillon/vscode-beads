@@ -141,6 +141,10 @@ export const PRIORITY_TEXT_COLORS: Record<BeadPriority, string> = {
   4: "#ffffff", // white on gray
 };
 
+// Colors for unknown/undefined priority (shown as "P?")
+export const UNKNOWN_PRIORITY_COLOR = "#6b7280"; // gray
+export const UNKNOWN_PRIORITY_TEXT_COLOR = "#ffffff"; // white
+
 export const STATUS_COLORS: Record<BeadStatus, string> = {
   open: "#10b981",      // green - ready to work
   in_progress: "#3b82f6", // blue

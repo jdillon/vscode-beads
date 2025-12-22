@@ -18,6 +18,8 @@ import {
   STATUS_LABELS,
   PRIORITY_COLORS,
   PRIORITY_TEXT_COLORS,
+  UNKNOWN_PRIORITY_COLOR,
+  UNKNOWN_PRIORITY_TEXT_COLOR,
   STATUS_COLORS,
   TYPE_COLORS,
   TYPE_LABELS,
@@ -623,8 +625,8 @@ export function DetailsView({
               <span
                 className="dep-priority"
                 style={{
-                  backgroundColor: dep.priority !== undefined ? PRIORITY_COLORS[dep.priority] : "#6b7280",
-                  color: dep.priority !== undefined ? PRIORITY_TEXT_COLORS[dep.priority] : "#ffffff"
+                  backgroundColor: dep.priority !== undefined ? PRIORITY_COLORS[dep.priority] : UNKNOWN_PRIORITY_COLOR,
+                  color: dep.priority !== undefined ? PRIORITY_TEXT_COLORS[dep.priority] : UNKNOWN_PRIORITY_TEXT_COLOR
                 }}
               >
                 {dep.priority !== undefined ? `P${dep.priority}` : "P?"}
