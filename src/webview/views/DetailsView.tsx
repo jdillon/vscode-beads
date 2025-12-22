@@ -18,6 +18,8 @@ import {
   STATUS_LABELS,
   PRIORITY_COLORS,
   PRIORITY_TEXT_COLORS,
+  UNKNOWN_PRIORITY_COLOR,
+  UNKNOWN_PRIORITY_TEXT_COLOR,
   STATUS_COLORS,
   TYPE_COLORS,
   TYPE_LABELS,
@@ -624,17 +626,15 @@ export function DetailsView({
                   {STATUS_LABELS[dep.status]}
                 </span>
               )}
-              {dep.priority !== undefined && (
-                <span
-                  className="dep-priority"
-                  style={{
-                    backgroundColor: PRIORITY_COLORS[dep.priority],
-                    color: PRIORITY_TEXT_COLORS[dep.priority]
-                  }}
-                >
-                  p{dep.priority}
-                </span>
-              )}
+              <span
+                className="dep-priority"
+                style={{
+                  backgroundColor: dep.priority !== undefined ? PRIORITY_COLORS[dep.priority] : UNKNOWN_PRIORITY_COLOR,
+                  color: dep.priority !== undefined ? PRIORITY_TEXT_COLORS[dep.priority] : UNKNOWN_PRIORITY_TEXT_COLOR
+                }}
+              >
+                {dep.priority !== undefined ? `P${dep.priority}` : "P?"}
+              </span>
             </span>
             {allowRemove && editMode && (
               <button
