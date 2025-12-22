@@ -620,17 +620,15 @@ export function DetailsView({
                   {STATUS_LABELS[dep.status]}
                 </span>
               )}
-              {dep.priority !== undefined && (
-                <span
-                  className="dep-priority"
-                  style={{
-                    backgroundColor: PRIORITY_COLORS[dep.priority],
-                    color: PRIORITY_TEXT_COLORS[dep.priority]
-                  }}
-                >
-                  p{dep.priority}
-                </span>
-              )}
+              <span
+                className="dep-priority"
+                style={{
+                  backgroundColor: dep.priority !== undefined ? PRIORITY_COLORS[dep.priority] : "#6b7280",
+                  color: dep.priority !== undefined ? PRIORITY_TEXT_COLORS[dep.priority] : "#ffffff"
+                }}
+              >
+                {dep.priority !== undefined ? `P${dep.priority}` : "P?"}
+              </span>
             </span>
             {allowRemove && editMode && (
               <button
