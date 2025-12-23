@@ -17,9 +17,6 @@ import {
   BeadType,
   STATUS_LABELS,
   PRIORITY_COLORS,
-  PRIORITY_TEXT_COLORS,
-  UNKNOWN_PRIORITY_COLOR,
-  UNKNOWN_PRIORITY_TEXT_COLOR,
   STATUS_COLORS,
   TYPE_COLORS,
   TYPE_LABELS,
@@ -28,6 +25,7 @@ import {
   sortLabels,
 } from "../types";
 import { Timestamp } from "../common/Timestamp";
+import { StatusPriorityPill } from "../common/StatusPriorityPill";
 import { Icon } from "../icons";
 
 /**
@@ -617,25 +615,7 @@ export function DetailsView({
           >
             <span className="dep-id">{dep.id}</span>
             {dep.title && <span className="dep-title">{dep.title}</span>}
-            <span className="dep-indicators">
-              {dep.status && (
-                <span
-                  className="dep-status"
-                  style={{ backgroundColor: STATUS_COLORS[dep.status] }}
-                >
-                  {STATUS_LABELS[dep.status]}
-                </span>
-              )}
-              <span
-                className="dep-priority"
-                style={{
-                  backgroundColor: dep.priority !== undefined ? PRIORITY_COLORS[dep.priority] : UNKNOWN_PRIORITY_COLOR,
-                  color: dep.priority !== undefined ? PRIORITY_TEXT_COLORS[dep.priority] : UNKNOWN_PRIORITY_TEXT_COLOR
-                }}
-              >
-                {dep.priority !== undefined ? `P${dep.priority}` : "P?"}
-              </span>
-            </span>
+            <StatusPriorityPill status={dep.status} priority={dep.priority} />
             {allowRemove && editMode && (
               <button
                 className="dep-remove"
