@@ -1,6 +1,6 @@
 ---
 name: vscode-server
-description: Manage code-server for VS Code extension testing
+description: "USE THIS SKILL for all /vscode-server:* commands"
 allowed-tools: Bash, Read, TaskOutput, mcp__chrome-devtools__new_page, mcp__chrome-devtools__list_pages, mcp__chrome-devtools__navigate_page, mcp__chrome-devtools__close_page
 ---
 
@@ -10,25 +10,23 @@ Manage code-server development environment for testing VS Code extensions.
 
 ## Action Routing
 
-| Action     | File         |
-| ---------- | ------------ |
-| **start**  | `start.md`   |
-| **stop**   | `stop.md`    |
-| **reload** | `reload.md`  |
-| **status** | `status.md`  |
+| Action     | File        |
+| ---------- | ----------- |
+| **start**  | `start.md`  |
+| **stop**   | `stop.md`   |
+| **reload** | `reload.md` |
+| **status** | `status.md` |
 
 Read the file, then follow its instructions.
 
 ## Commands
 
-| Command                        | Action |
-| ------------------------------ | ------ |
-| `/vscode-server`               | start  |
-| `/vscode-server start`         | start  |
-| `/vscode-server stop`          | stop   |
-| `/vscode-server reload`        | reload |
-| `/vscode-server reload --devtools` | reload |
-| `/vscode-server status`        | status |
+| Command                              | Action |
+| ------------------------------------ | ------ |
+| `/vscode-server:start`               | start  |
+| `/vscode-server:stop`                | stop   |
+| `/vscode-server:reload [--devtools]` | reload |
+| `/vscode-server:status`              | status |
 
 ## Temp Directory
 
@@ -40,6 +38,7 @@ TMP_DIR="/tmp/vscode-dev-${PROJECT_HASH}"
 ```
 
 Files:
+
 - `$TMP_DIR/port` - code-server port
 - `$TMP_DIR/watch.pid` - watch mode PID
 - `$TMP_DIR/watch.log` - watch mode output
@@ -47,6 +46,9 @@ Files:
 ## Helper Scripts
 
 - `scripts/start-dev-environment.sh` - Start symlink, build, watch, and code-server
+- `scripts/status.sh` - Show status of watch mode and code-server
+- `scripts/stop.sh` - Stop all processes and clean up temp files
+- `scripts/get-port.sh` - Get the code-server port from temp file
 
 ## DevTools Note
 

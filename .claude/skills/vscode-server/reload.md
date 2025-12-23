@@ -20,8 +20,7 @@ If the `--devtools` flag is present, do a full page close/reopen instead of just
 
 1. First, get the code-server port:
    ```bash
-   PROJECT_HASH=$(echo "$(pwd)" | md5sum | cut -c1-8)
-   cat "/tmp/vscode-dev-${PROJECT_HASH}/port"
+   .claude/skills/vscode-server/scripts/get-port.sh
    ```
 2. Try to close the existing page using `mcp__chrome-devtools__close_page` (ignore errors if it fails)
 3. Open a fresh page using `mcp__chrome-devtools__new_page` with URL `http://127.0.0.1:{PORT}/`
