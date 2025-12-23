@@ -356,7 +356,7 @@ textarea {
 /* ==================== Status & Priority Badges ==================== */
 /*
  * Keep font-variant in sync with:
- * - .dep-status, .dep-priority (dependency list inline badges)
+ * - .status-priority-pill (dependency list joined pill)
  * - .filter-chip, .colored-select-label (filter UI)
  * - .type-badge, .label-badge (other badge types)
  */
@@ -389,6 +389,47 @@ textarea {
   height: var(--badge-height-md);
   line-height: 1;
   font-variant: small-caps;
+}
+
+/* Joined status+priority pill - used in dependency lists */
+.status-priority-pill {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 1px;
+  height: 20px;
+  line-height: 1;
+}
+
+.status-priority-pill .pill-status,
+.status-priority-pill .pill-priority {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  font-variant: small-caps;
+}
+
+.status-priority-pill .pill-status {
+  color: #fff;
+  border-radius: var(--border-radius) 0 0 var(--border-radius);
+}
+
+.status-priority-pill .pill-priority {
+  font-weight: 600;
+  border-radius: 0 var(--border-radius) var(--border-radius) 0;
+}
+
+/* When only priority is shown (no status), use full border-radius */
+.status-priority-pill .pill-priority:only-child {
+  border-radius: var(--border-radius);
+}
+
+/* Position pill at end of dependency item */
+.dep-item .status-priority-pill {
+  margin-left: auto;
 }
 
 /* Small badges - used in list view and detail panel */
@@ -1936,35 +1977,6 @@ textarea {
   white-space: nowrap;
   flex: 1;
   min-width: 0;
-}
-
-.dep-indicators {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  margin-left: auto;
-}
-
-/*
- * Dependency item badges - inline "joined pill" variant
- * Keep font-variant in sync with: .status-badge, .priority-badge (styles.css)
- * See also: StatusBadge.tsx, PriorityBadge.tsx
- */
-.dep-status {
-  font-size: 10px;
-  font-weight: 500;
-  padding: 2px 6px;
-  color: #fff;
-  border-radius: var(--border-radius) 0 0 var(--border-radius);
-  font-variant: small-caps;
-}
-
-.dep-priority {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 0 var(--border-radius) var(--border-radius) 0;
-  font-variant: small-caps;
 }
 
 /* Type-based coloring for dependency items (matches filter chips) */
