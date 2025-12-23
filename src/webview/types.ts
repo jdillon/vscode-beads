@@ -178,6 +178,10 @@ export const TYPE_TEXT_COLORS: Record<BeadType, string> = {
   chore: "#ffffff",
 };
 
+// Colors for unknown/undefined type (shown with question mark icon)
+export const UNKNOWN_TYPE_COLOR = "#888888"; // gray
+export const UNKNOWN_TYPE_TEXT_COLOR = "#ffffff"; // white
+
 // Sort order for type display (lower = first)
 // Epic first, then feature (story), bug, task, chore, then newer workflow types
 export const TYPE_SORT_ORDER: Record<string, number> = {
