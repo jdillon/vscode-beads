@@ -141,6 +141,10 @@ export const PRIORITY_TEXT_COLORS: Record<BeadPriority, string> = {
   4: "#ffffff", // white on gray
 };
 
+// Colors for unknown/undefined priority (shown as "P?")
+export const UNKNOWN_PRIORITY_COLOR = "#6b7280"; // gray
+export const UNKNOWN_PRIORITY_TEXT_COLOR = "#ffffff"; // white
+
 export const STATUS_COLORS: Record<BeadStatus, string> = {
   open: "#10b981",      // green - ready to work
   in_progress: "#3b82f6", // blue
@@ -173,6 +177,31 @@ export const TYPE_TEXT_COLORS: Record<BeadType, string> = {
   epic: "#ffffff",
   chore: "#ffffff",
 };
+
+// Colors for unknown/undefined type (shown with question mark icon)
+export const UNKNOWN_TYPE_COLOR = "#888888"; // gray
+export const UNKNOWN_TYPE_TEXT_COLOR = "#ffffff"; // white
+
+// Sort order for type display (lower = first)
+// Epic first, then feature (story), bug, task, chore, then newer workflow types
+export const TYPE_SORT_ORDER: Record<string, number> = {
+  epic: 0,
+  feature: 1,
+  bug: 2,
+  task: 3,
+  chore: 4,
+  "merge-request": 5,
+  molecule: 6,
+};
+
+// Default sort order for unknown types (sorts after known types)
+export const UNKNOWN_TYPE_SORT_ORDER = 99;
+
+/** Get sort order for a type (handles unknown types) */
+export function getTypeSortOrder(type: string | undefined): number {
+  if (!type) return UNKNOWN_TYPE_SORT_ORDER;
+  return TYPE_SORT_ORDER[type] ?? UNKNOWN_TYPE_SORT_ORDER;
+}
 
 /** Sort labels alphabetically (case-insensitive) */
 export function sortLabels(labels: string[] | undefined): string[] {

@@ -17,13 +17,15 @@ import {
   BeadType,
   STATUS_LABELS,
   PRIORITY_COLORS,
-  PRIORITY_TEXT_COLORS,
   STATUS_COLORS,
   TYPE_COLORS,
   TYPE_LABELS,
+  TYPE_SORT_ORDER,
+  getTypeSortOrder,
   sortLabels,
 } from "../types";
 import { Timestamp } from "../common/Timestamp";
+import { StatusPriorityPill } from "../common/StatusPriorityPill";
 import { Icon } from "../icons";
 
 /**
@@ -123,12 +125,14 @@ import { useToast } from "../common/Toast";
 import { ColoredSelect, ColoredSelectOption } from "../common/ColoredSelect";
 import { Dropdown, DropdownItem } from "../common/Dropdown";
 
-// Build options for ColoredSelect dropdowns
-const TYPE_OPTIONS: ColoredSelectOption<BeadType>[] = (Object.keys(TYPE_LABELS) as BeadType[]).map((t) => ({
-  value: t,
-  label: TYPE_LABELS[t],
-  color: TYPE_COLORS[t],
-}));
+// Build options for ColoredSelect dropdowns (sorted by TYPE_SORT_ORDER)
+const TYPE_OPTIONS: ColoredSelectOption<BeadType>[] = (Object.keys(TYPE_LABELS) as BeadType[])
+  .sort((a, b) => getTypeSortOrder(a) - getTypeSortOrder(b))
+  .map((t) => ({
+    value: t,
+    label: TYPE_LABELS[t],
+    color: TYPE_COLORS[t],
+  }));
 
 const STATUS_OPTIONS: ColoredSelectOption<BeadStatus>[] = (Object.keys(STATUS_LABELS) as BeadStatus[]).map((s) => ({
   value: s,
@@ -611,27 +615,7 @@ export function DetailsView({
           >
             <span className="dep-id">{dep.id}</span>
             {dep.title && <span className="dep-title">{dep.title}</span>}
-            <span className="dep-indicators">
-              {dep.status && (
-                <span
-                  className="dep-status"
-                  style={{ backgroundColor: STATUS_COLORS[dep.status] }}
-                >
-                  {STATUS_LABELS[dep.status]}
-                </span>
-              )}
-              {dep.priority !== undefined && (
-                <span
-                  className="dep-priority"
-                  style={{
-                    backgroundColor: PRIORITY_COLORS[dep.priority],
-                    color: PRIORITY_TEXT_COLORS[dep.priority]
-                  }}
-                >
-                  p{dep.priority}
-                </span>
-              )}
-            </span>
+            <StatusPriorityPill status={dep.status} priority={dep.priority} />
             {allowRemove && editMode && (
               <button
                 className="dep-remove"

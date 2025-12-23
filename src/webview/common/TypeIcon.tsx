@@ -1,15 +1,16 @@
 /**
  * TypeIcon Component
  *
- * Displays an SVG icon for bead issue types using FontAwesome Free icons
+ * Displays an SVG icon for bead issue types using FontAwesome Free icons.
+ * Shows a notdef (missing glyph) icon for unknown types.
  */
 
 import React from "react";
-import { BeadType, TYPE_COLORS } from "../types";
+import { TYPE_COLORS, UNKNOWN_TYPE_COLOR } from "../types";
 import { icons } from "../icons";
 
 interface TypeIconProps {
-  type: BeadType;
+  type: string;
   size?: number;
   colored?: boolean;
 }
@@ -18,11 +19,14 @@ export function TypeIcon({
   type,
   size = 16,
   colored = true,
-}: TypeIconProps): React.ReactElement | null {
-  const svgContent = icons[type];
-  if (!svgContent) return null;
+}: TypeIconProps): React.ReactElement {
+  // Use known icon or fallback to notdef (missing glyph)
+  const svgContent = icons[type as keyof typeof icons] || icons.notdef;
 
-  const color = colored ? TYPE_COLORS[type] : "currentColor";
+  // Use known color or fallback to gray
+  const color = colored
+    ? (TYPE_COLORS[type as keyof typeof TYPE_COLORS] || UNKNOWN_TYPE_COLOR)
+    : "currentColor";
 
   // Inject fill color into SVG
   const coloredSvg = svgContent
