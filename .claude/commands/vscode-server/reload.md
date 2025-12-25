@@ -4,4 +4,8 @@ argument-hint: [--devtools]
 allowed-tools: Skill(vscode-server)
 ---
 
-Invoke: Skill(skill="vscode-server", args="reload $ARGUMENTS")
+IMPORTANT: Call the Skill tool with these EXACT parameters:
+- skill: "vscode-server"
+- args: "reload $ARGUMENTS"
+
+Do NOT use "vscode-server:reload" as the skill name.
