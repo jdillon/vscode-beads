@@ -69,6 +69,7 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 - Webview↔Extension communication via typed messages (`ExtensionToWebviewMessage`, `WebviewToExtensionMessage`)
 - Single webview bundle at `dist/webview/main.js` serves all 5 views; view type determines which component renders
 - **Prefer components over ad-hoc markup**: Extract reusable UI elements into `src/webview/common/` components (e.g., `StatusBadge`, `FilterChip`) rather than inline spans with class names
+- **No native HTML controls**: Don't use native `<select>`, `<input type="checkbox">`, etc. Use custom components (`Dropdown`, `ColoredSelect`) for consistent VS Code-themed styling
 
 ### Build System
 

@@ -2010,6 +2010,37 @@ textarea {
   border-radius: var(--border-radius);
 }
 
+.add-dependency-row {
+  display: flex;
+  gap: var(--spacing-xs);
+  align-items: center;
+}
+
+.dep-type-dropdown {
+  position: relative;
+}
+
+.dep-type-dropdown .dropdown-trigger {
+  padding: 2px 6px;
+  font-size: 11px;
+  border-radius: var(--border-radius);
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+  border: 1px solid var(--vscode-dropdown-border);
+  height: 20px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dep-type-trigger {
+  min-width: 60px;
+}
+
+.dep-type-menu {
+  min-width: 100px;
+}
+
 .muted {
   font-size: 11px;
   color: var(--vscode-descriptionForeground);

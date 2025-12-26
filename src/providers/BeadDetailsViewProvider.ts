@@ -166,10 +166,13 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
 
       case "addDependency":
         try {
+          // When reverse=true, swap direction: target depends on current bead
+          const fromId = message.reverse ? message.targetId : message.beadId;
+          const toId = message.reverse ? message.beadId : message.targetId;
           await client.addDependency({
-            from_id: message.beadId,
-            to_id: message.dependsOnId,
-            dep_type: "blocks",
+            from_id: fromId,
+            to_id: toId,
+            dep_type: message.dependencyType,
           });
           // Data will refresh via mutation events
         } catch (err) {
