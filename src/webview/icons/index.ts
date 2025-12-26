@@ -11,6 +11,8 @@ import lightbulbSvg from "./lightbulb.svg";
 import squareCheckSvg from "./square-check.svg";
 import boltSvg from "./bolt.svg";
 import wrenchSvg from "./wrench.svg";
+import codeMergeSvg from "./code-merge.svg";
+import flaskSvg from "./flask.svg";
 
 // UI icons
 import userSvg from "./user.svg";
@@ -25,6 +27,8 @@ export const icons = {
   task: squareCheckSvg,
   epic: boltSvg,
   chore: wrenchSvg,
+  "merge-request": codeMergeSvg,
+  molecule: flaskSvg,
   // UI
   user: userSvg,
   tag: tagSvg,

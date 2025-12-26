@@ -122,3 +122,13 @@ At release time, `[Unreleased]` content moves to `## [x.y.z] - date`.
 ## Icons
 
 Use [Font Awesome Free](https://fontawesome.com) icons unless there's a good reason not to. Icons are stored as SVG files in `src/webview/icons/` and imported via the `Icon` component or `icons` object. See `src/webview/icons/index.ts` for available icons.
+
+## Upstream Sync
+
+Periodically check [steveyegge/beads](https://github.com/steveyegge/beads) for changes that affect this extension:
+
+- **Daemon API**: Check `internal/rpc/protocol.go` and `internal/types/types.go` for new operations, fields, or type changes. Update `BeadsDaemonClient.ts` and `docs/reference/beads-daemon-api.md`.
+- **Bead types**: Check for new `issue_type` values (e.g., `merge-request`, `molecule`). Update `BeadType`, `TYPE_LABELS`, `TYPE_COLORS`, `TYPE_SORT_ORDER` in `src/webview/types.ts` and add icons.
+- **CLI changes**: Check for new commands or flags that should be exposed in the extension.
+
+Reference repo: `~/ws/reference/beads` - refresh with `git fetch && git pull` before investigating.
