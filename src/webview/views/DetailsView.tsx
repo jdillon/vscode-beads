@@ -61,6 +61,20 @@ function ExternalRefValue({ value }: { value?: string }) {
   return <span className="value">{value}</span>;
 }
 
+// Dependency direction: "forward" = this bead depends on target, "reverse" = target depends on this bead
+type DependencyDirection = "forward" | "reverse";
+
+// Options for adding dependencies (type + direction)
+const DEPENDENCY_TYPE_OPTIONS: { value: DependencyType; direction: DependencyDirection; label: string }[] = [
+  { value: "blocks", direction: "forward", label: "Blocked By" },
+  { value: "blocks", direction: "reverse", label: "Blocks" },
+  { value: "parent-child", direction: "forward", label: "Parent" },
+  { value: "parent-child", direction: "reverse", label: "Child" },
+  { value: "related", direction: "forward", label: "Related" },
+  { value: "discovered-from", direction: "forward", label: "Discovered From" },
+  { value: "discovered-from", direction: "reverse", label: "Spawned" },
+];
+
 // Labels for dependency sections based on array (direction) and type
 const DEPENDENCY_LABELS: Record<"dependsOn" | "blocks", Record<DependencyType, string>> = {
   dependsOn: {
@@ -154,7 +168,7 @@ interface DetailsViewProps {
   userId?: string;
   knownAssignees?: string[];
   onUpdateBead: (beadId: string, updates: Partial<Bead>) => void;
-  onAddDependency: (beadId: string, dependsOnId: string) => void;
+  onAddDependency: (beadId: string, targetId: string, dependencyType: DependencyType, reverse: boolean) => void;
   onRemoveDependency: (beadId: string, dependsOnId: string) => void;
   onAddComment?: (beadId: string, text: string) => void;
   onViewInGraph: (beadId: string) => void;
@@ -192,6 +206,7 @@ export function DetailsView({
   const [editedBead, setEditedBead] = useState<Partial<Bead>>({});
   const [newLabel, setNewLabel] = useState("");
   const [newDependency, setNewDependency] = useState("");
+  const [newDepOptionIndex, setNewDepOptionIndex] = useState(0); // Index into DEPENDENCY_TYPE_OPTIONS
   const [newComment, setNewComment] = useState("");
 
   // Reset edit state when bead ID changes
@@ -265,10 +280,11 @@ export function DetailsView({
 
   const handleAddDependency = useCallback(() => {
     if (newDependency.trim() && bead) {
-      onAddDependency(bead.id, newDependency.trim());
+      const option = DEPENDENCY_TYPE_OPTIONS[newDepOptionIndex];
+      onAddDependency(bead.id, newDependency.trim(), option.value, option.direction === "reverse");
       setNewDependency("");
     }
-  }, [newDependency, bead, onAddDependency]);
+  }, [newDependency, newDepOptionIndex, bead, onAddDependency]);
 
   if (loading && !bead) {
     return <div className="details-loading">Loading...</div>;
@@ -667,7 +683,26 @@ export function DetailsView({
             {editMode && (
               <div className="details-section">
                 <h4>Add Dependency</h4>
-                <div className="add-inline">
+                <div className="add-inline add-dependency-row">
+                  <Dropdown
+                    trigger={
+                      <span className="dep-type-trigger">
+                        {DEPENDENCY_TYPE_OPTIONS[newDepOptionIndex].label}
+                      </span>
+                    }
+                    className="dep-type-dropdown"
+                    menuClassName="dep-type-menu"
+                  >
+                    {DEPENDENCY_TYPE_OPTIONS.map((opt, idx) => (
+                      <DropdownItem
+                        key={`${opt.value}-${opt.direction}`}
+                        onClick={() => setNewDepOptionIndex(idx)}
+                        active={idx === newDepOptionIndex}
+                      >
+                        {opt.label}
+                      </DropdownItem>
+                    ))}
+                  </Dropdown>
                   <input
                     type="text"
                     value={newDependency}

@@ -189,8 +189,8 @@ export function App(): React.ReactElement {
             onUpdateBead={(beadId, updates) =>
               vscode.postMessage({ type: "updateBead", beadId, updates })
             }
-            onAddDependency={(beadId, dependsOnId) =>
-              vscode.postMessage({ type: "addDependency", beadId, dependsOnId })
+            onAddDependency={(beadId, targetId, dependencyType, reverse) =>
+              vscode.postMessage({ type: "addDependency", beadId, targetId, dependencyType, reverse })
             }
             onRemoveDependency={(beadId, dependsOnId) =>
               vscode.postMessage({ type: "removeDependency", beadId, dependsOnId })

@@ -100,7 +100,7 @@ export type WebviewMessage =
   | { type: "updateBead"; beadId: string; updates: Partial<Bead> }
   | { type: "createBead"; data: Partial<Bead> }
   | { type: "deleteBead"; beadId: string }
-  | { type: "addDependency"; beadId: string; dependsOnId: string }
+  | { type: "addDependency"; beadId: string; targetId: string; dependencyType: DependencyType; reverse: boolean }
   | { type: "removeDependency"; beadId: string; dependsOnId: string }
   | { type: "addComment"; beadId: string; text: string }
   | { type: "openBeadDetails"; beadId: string }
