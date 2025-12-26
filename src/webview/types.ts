@@ -152,7 +152,7 @@ export const STATUS_COLORS: Record<BeadStatus, string> = {
   closed: "#6b7280",    // gray
 };
 
-export type BeadType = "bug" | "feature" | "task" | "epic" | "chore";
+export type BeadType = "bug" | "feature" | "task" | "epic" | "chore" | "merge-request" | "molecule";
 
 export const TYPE_LABELS: Record<BeadType, string> = {
   bug: "bug",
@@ -160,22 +160,28 @@ export const TYPE_LABELS: Record<BeadType, string> = {
   task: "task",
   epic: "epic",
   chore: "chore",
+  "merge-request": "merge-request",
+  molecule: "molecule",
 };
 
 export const TYPE_COLORS: Record<BeadType, string> = {
-  bug: "#dc2626",      // red
-  feature: "#16a34a",  // green
-  task: "#eab308",     // yellow
-  epic: "#9333ea",     // purple
-  chore: "#2563eb",    // blue
+  bug: "#dc2626",           // red
+  feature: "#16a34a",       // green
+  task: "#eab308",          // yellow
+  epic: "#9333ea",          // purple
+  chore: "#2563eb",         // blue
+  "merge-request": "#0ea5e9", // sky blue
+  molecule: "#14b8a6",      // teal
 };
 
 export const TYPE_TEXT_COLORS: Record<BeadType, string> = {
   bug: "#ffffff",
   feature: "#ffffff",
-  task: "#1a1a1a",     // dark on yellow
+  task: "#1a1a1a",          // dark on yellow
   epic: "#ffffff",
   chore: "#ffffff",
+  "merge-request": "#ffffff",
+  molecule: "#ffffff",
 };
 
 // Colors for unknown/undefined type (shown with question mark icon)
