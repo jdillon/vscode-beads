@@ -652,31 +652,30 @@ export function DetailsView({
 
         return (
           <>
-            {/* Render dependsOn groups (outgoing edges) */}
+            {/* Render dependencies interleaved by type: parent→children, then blocked by→blocks, etc. */}
             {typeOrder.map((depType) => {
-              const deps = dependsOnGroups[depType];
-              if (deps.length === 0) return null;
+              const dependsOnDeps = dependsOnGroups[depType];
+              const blocksDeps = blocksGroups[depType];
+              if (dependsOnDeps.length === 0 && blocksDeps.length === 0) return null;
               return (
-                <div key={`dependsOn-${depType}`} className="details-section">
-                  <h4>{DEPENDENCY_LABELS.dependsOn[depType]}</h4>
-                  <div className="deps-list">
-                    {sortDependencies(deps).map((dep) => renderDepItem(dep, "dependsOn", true))}
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Render blocks groups (incoming edges) */}
-            {typeOrder.map((depType) => {
-              const deps = blocksGroups[depType];
-              if (deps.length === 0) return null;
-              return (
-                <div key={`blocks-${depType}`} className="details-section">
-                  <h4>{DEPENDENCY_LABELS.blocks[depType]}</h4>
-                  <div className="deps-list">
-                    {sortDependencies(deps).map((dep) => renderDepItem(dep, "blocks", false))}
-                  </div>
-                </div>
+                <React.Fragment key={depType}>
+                  {dependsOnDeps.length > 0 && (
+                    <div className="details-section">
+                      <h4>{DEPENDENCY_LABELS.dependsOn[depType]}</h4>
+                      <div className="deps-list">
+                        {sortDependencies(dependsOnDeps).map((dep) => renderDepItem(dep, "dependsOn", true))}
+                      </div>
+                    </div>
+                  )}
+                  {blocksDeps.length > 0 && (
+                    <div className="details-section">
+                      <h4>{DEPENDENCY_LABELS.blocks[depType]}</h4>
+                      <div className="deps-list">
+                        {sortDependencies(blocksDeps).map((dep) => renderDepItem(dep, "blocks", false))}
+                      </div>
+                    </div>
+                  )}
+                </React.Fragment>
               );
             })}
 
