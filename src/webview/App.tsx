@@ -19,12 +19,13 @@ import { IssuesView } from "./views/IssuesView";
 import { DetailsView } from "./views/DetailsView";
 import { Loading } from "./common/Loading";
 import { ToastProvider, triggerToast } from "./common/Toast";
+import { useBeadsStore, useBeadsList } from "./store/beads-query";
 
 interface AppState {
   viewType: string;
   project: BeadsProject | null;
   projects: BeadsProject[];
-  beads: Bead[];
+  // beads now managed by TanStack Query via useBeadsList
   selectedBead: Bead | null;
   selectedBeadId: string | null;
   summary: BeadsSummary | null;
@@ -37,7 +38,6 @@ const initialState: AppState = {
   viewType: "",
   project: null,
   projects: [],
-  beads: [],
   selectedBead: null,
   selectedBeadId: null,
   summary: null,
@@ -48,6 +48,8 @@ const initialState: AppState = {
 
 export function App(): React.ReactElement {
   const [state, setState] = useState<AppState>(initialState);
+  const { setBeads } = useBeadsStore();
+  const beads = useBeadsList();
 
   // Handle messages from the extension
   const handleMessage = useCallback((event: MessageEvent<ExtensionMessage>) => {
@@ -64,7 +66,8 @@ export function App(): React.ReactElement {
         setState((prev) => ({ ...prev, projects: message.projects }));
         break;
       case "setBeads":
-        setState((prev) => ({ ...prev, beads: message.beads }));
+        // Populate TanStack Query cache
+        setBeads(message.beads);
         break;
       case "setBead":
         setState((prev) => ({ ...prev, selectedBead: message.bead }));
@@ -91,7 +94,7 @@ export function App(): React.ReactElement {
         triggerToast(message.text, "top-right");
         break;
     }
-  }, []);
+  }, [setBeads]);
 
   useEffect(() => {
     // Listen for messages from the extension
@@ -108,7 +111,7 @@ export function App(): React.ReactElement {
   // Render the appropriate view
   const renderView = () => {
     // Only show loading for beadsPanel when loading initial data
-    if (state.viewType === "beadsPanel" && state.loading && state.beads.length === 0) {
+    if (state.viewType === "beadsPanel" && state.loading && beads.length === 0) {
       return <Loading />;
     }
 
@@ -117,7 +120,7 @@ export function App(): React.ReactElement {
         return (
           <DashboardView
             summary={state.summary}
-            beads={state.beads}
+            beads={beads}
             loading={state.loading}
             error={state.error}
             projects={state.projects}
@@ -140,7 +143,7 @@ export function App(): React.ReactElement {
       case "beadsPanel":
         return (
           <IssuesView
-            beads={state.beads}
+            beads={beads}
             loading={state.loading}
             error={state.error}
             selectedBeadId={state.selectedBeadId}
@@ -177,7 +180,7 @@ export function App(): React.ReactElement {
         }
         // Extract unique assignees from beads list
         const knownAssignees = Array.from(
-          new Set(state.beads.map((b) => b.assignee).filter((a): a is string => !!a))
+          new Set(beads.map((b) => b.assignee).filter((a): a is string => !!a))
         ).sort();
         return (
           <DetailsView

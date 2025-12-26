@@ -17,6 +17,8 @@ import userSvg from "./user.svg";
 import tagSvg from "./tag.svg";
 import externalLinkSvg from "./external-link.svg";
 import notdefSvg from "./notdef.svg";
+import listSvg from "./list.svg";
+import sitemapSvg from "./sitemap.svg";
 
 export const icons = {
   // Issue types
@@ -30,6 +32,8 @@ export const icons = {
   tag: tagSvg,
   "external-link": externalLinkSvg,
   notdef: notdefSvg,
+  list: listSvg,
+  sitemap: sitemapSvg,
 } as const;
 
 export type IconName = keyof typeof icons;

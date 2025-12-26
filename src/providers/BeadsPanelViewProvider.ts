@@ -46,8 +46,21 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
     this.setError(null);
 
     try {
+      // Get list of IDs first
       const issues = await client.list();
-      const beads = issues.map(issueToWebviewBead).filter((b): b is Bead => b !== null);
+
+      // Fetch full details for each (includes dependencies for tree view)
+      const beads: Bead[] = [];
+      for (const issue of issues) {
+        const fullIssue = await client.show(issue.id);
+        if (fullIssue) {
+          const bead = issueToWebviewBead(fullIssue);
+          if (bead) {
+            beads.push(bead);
+          }
+        }
+      }
+
       this.postMessage({ type: "setBeads", beads });
     } catch (err) {
       this.setError(String(err));
@@ -84,6 +97,7 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
           "Delete functionality is not yet implemented"
         );
         break;
+
     }
   }
 }
