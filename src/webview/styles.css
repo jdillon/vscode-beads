@@ -2256,3 +2256,161 @@ textarea {
 .toast.fading {
   opacity: 0;
 }
+
+/* ==================== View Mode Menu ==================== */
+
+.view-mode-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.view-mode-menu-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground);
+  opacity: 0.6;
+  cursor: pointer;
+  border-radius: var(--border-radius);
+  transition: opacity var(--transition-fast), background-color var(--transition-fast);
+}
+
+.view-mode-menu-trigger:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+.view-mode-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 100;
+  min-width: 100px;
+  margin-top: 2px;
+  padding: 4px 0;
+  background: var(--vscode-dropdown-background);
+  border: 1px solid var(--vscode-dropdown-border);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.view-mode-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 12px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--vscode-dropdown-foreground);
+  cursor: pointer;
+}
+
+.view-mode-menu-item:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.view-mode-menu-item.active {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+.view-mode-menu-icon {
+  display: flex;
+  align-items: center;
+  opacity: 0.8;
+}
+
+.view-mode-menu-label {
+  flex: 1;
+}
+
+.view-mode-menu-check {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+/* ==================== Tree View ==================== */
+
+.tree-cell {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.tree-expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  border-radius: 2px;
+  opacity: 0.6;
+  transition: opacity var(--transition-fast), background-color var(--transition-fast);
+}
+
+.tree-expand-btn:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+.tree-expand-icon {
+  flex-shrink: 0;
+}
+
+/* Leaf node indicator - shows for children without their own children */
+.tree-leaf-indicator {
+  display: inline-block;
+  width: 12px;
+  text-align: center;
+  color: var(--vscode-foreground);
+  opacity: 0.3;
+  font-size: 10px;
+  font-family: monospace;
+}
+
+/* Hide expand column header and keep it narrow */
+.beads-table th:first-child,
+.beads-table td:first-child {
+  padding-left: 4px;
+  padding-right: 0;
+}
+
+/* Tree row indentation indicator - subtle left border for children */
+.bead-row.tree-child {
+  position: relative;
+}
+
+.bead-row.tree-child::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--vscode-textLink-foreground);
+  opacity: 0.3;
+}
+
+.bead-row.tree-child:hover::before {
+  opacity: 0.5;
+}
+
+/* Expand cell styling */
+.expand-cell {
+  padding: 0 !important;
+  width: 32px;
+  text-align: left;
+}

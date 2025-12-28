@@ -107,7 +107,8 @@ export type WebviewMessage =
   | { type: "viewInGraph"; beadId: string }
   | { type: "startDaemon" }
   | { type: "stopDaemon" }
-  | { type: "copyBeadId"; beadId: string };
+  | { type: "copyBeadId"; beadId: string }
+  | { type: "requestEnrichedData" };
 
 // Human-readable labels
 export const PRIORITY_LABELS: Record<BeadPriority, string> = {

@@ -11,7 +11,7 @@
  * - State persistence (sort order, column visibility, column order survive reloads)
  */
 
-import React, { useState, useMemo, useCallback, useRef } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -19,10 +19,12 @@ import {
   getFilteredRowModel,
   getFacetedRowModel,
   getFacetedUniqueValues,
+  getExpandedRowModel,
   flexRender,
   createColumnHelper,
   ColumnFiltersState,
   ColumnResizeMode,
+  ExpandedState,
 } from "@tanstack/react-table";
 import {
   Bead,
@@ -54,6 +56,9 @@ import { AutocompleteInput, AutocompleteOption } from "../common/AutocompleteInp
 import { getLabelColorStyle } from "../utils/label-colors";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useColumnState } from "../hooks/useColumnState";
+import { ViewModeToggle, ViewMode } from "../common/ViewModeToggle";
+import { buildTree, TreeBead } from "../utils/build-tree";
+import { TreeExpandIcon } from "../common/TreeExpandIcon";
 
 interface IssuesViewProps {
   beads: Bead[];
@@ -96,7 +101,7 @@ const FILTER_PRESETS: FilterPreset[] = [
   { id: "closed", label: "Closed", statuses: ["closed"] },
 ];
 
-const columnHelper = createColumnHelper<Bead>();
+const columnHelper = createColumnHelper<TreeBead>();
 
 export function IssuesView({
   beads,
@@ -142,6 +147,18 @@ export function IssuesView({
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [isResizing, setIsResizing] = useState(false);
 
+  // View mode state
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [expanded, setExpanded] = useState<ExpandedState>({});
+
+  // Hide expand column in list mode
+  useEffect(() => {
+    setColumnVisibility((prev) => ({
+      ...prev,
+      expand: viewMode === "tree",
+    }));
+  }, [viewMode, setColumnVisibility]);
+
   // UI state
   const [activePreset, setActivePreset] = useState<string>("not-closed");
   const [filterBarOpen, setFilterBarOpen] = useState(true);
@@ -155,9 +172,53 @@ export function IssuesView({
   useClickOutside(filterMenuRef, () => setFilterMenuOpen(null), !!filterMenuOpen);
   useClickOutside(columnMenuRef, () => setColumnMenuOpen(false), columnMenuOpen);
 
+  // Build tree data when in tree mode
+  const tableData = useMemo((): TreeBead[] => {
+    if (viewMode === "tree") {
+      return buildTree(beads);
+    }
+    // In list mode, just cast to TreeBead (same shape, no subRows)
+    return beads as TreeBead[];
+  }, [beads, viewMode]);
+
   // Column definitions
   const columns = useMemo(
     () => [
+      // Expand column - only functional in tree mode
+      columnHelper.display({
+        id: "expand",
+        header: "",
+        size: 32,
+        minSize: 32,
+        maxSize: 32,
+        enableResizing: false,
+        cell: ({ row }) => {
+          if (viewMode !== "tree") return null;
+          const depth = row.original.depth ?? 0;
+          const canExpand = row.getCanExpand();
+          const indent = depth * 16;
+
+          return (
+            <span className="tree-cell" style={{ paddingLeft: indent }}>
+              {canExpand ? (
+                <button
+                  className="tree-expand-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    row.toggleExpanded();
+                  }}
+                  title={row.getIsExpanded() ? "Collapse" : "Expand"}
+                >
+                  <TreeExpandIcon expanded={row.getIsExpanded()} size={10} />
+                </button>
+              ) : depth > 0 ? (
+                // Leaf node indicator (child without children)
+                <span className="tree-leaf-indicator">─</span>
+              ) : null}
+            </span>
+          );
+        },
+      }),
       columnHelper.accessor("type", {
         id: "icon",
         header: "",
@@ -291,11 +352,11 @@ export function IssuesView({
         sortingFn: timestampSortingFn,
       }),
     ],
-    [copiedId]
+    [copiedId, viewMode]
   );
 
   const table = useReactTable({
-    data: beads,
+    data: tableData,
     columns,
     state: {
       sorting,
@@ -303,12 +364,15 @@ export function IssuesView({
       globalFilter,
       columnVisibility,
       columnOrder,
+      expanded,
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnOrderChange: setColumnOrder,
+    onExpandedChange: setExpanded,
+    getSubRows: viewMode === "tree" ? (row) => row.subRows : undefined,
     globalFilterFn: (row, _columnId, filterValue: string) => {
       const search = filterValue.toLowerCase();
       const bead = row.original;
@@ -324,6 +388,7 @@ export function IssuesView({
     getFilteredRowModel: getFilteredRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
+    getExpandedRowModel: getExpandedRowModel(),
     columnResizeMode: "onChange" as ColumnResizeMode,
     enableColumnResizing: true,
   });
@@ -582,6 +647,7 @@ export function IssuesView({
             <path d="M6 10.5v-1h4v1H6zm-2-3v-1h8v1H4zm-2-3v-1h12v1H2z" />
           </svg>
         </button>
+        <ViewModeToggle value={viewMode} onChange={setViewMode} />
       </div>
 
       {/* Row 2: Filter bar */}
@@ -917,11 +983,13 @@ export function IssuesView({
                     </td>
                   </tr>
                 ) : (
-                  table.getRowModel().rows.map((row) => (
+                  table.getRowModel().rows.map((row) => {
+                    const isTreeChild = viewMode === "tree" && (row.original.depth ?? 0) > 0;
+                    return (
                     <tr
                       key={row.id}
                       onClick={() => onSelectBead(row.original.id)}
-                      className={`bead-row ${row.original.id === selectedBeadId ? "selected" : ""}`}
+                      className={`bead-row ${row.original.id === selectedBeadId ? "selected" : ""} ${isTreeChild ? "tree-child" : ""}`}
                       title={row.original.description || row.original.title}
                     >
                       {row.getVisibleCells().map((cell) => (
@@ -935,7 +1003,8 @@ export function IssuesView({
                       ))}
                       <td className="row-spacer" />
                     </tr>
-                  ))
+                    );
+                  })
                 )}
               </tbody>
             </table>

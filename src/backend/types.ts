@@ -179,7 +179,8 @@ export type WebviewToExtensionMessage =
   | { type: "viewInGraph"; beadId: string }
   | { type: "copyBeadId"; beadId: string }
   | { type: "startDaemon" }
-  | { type: "stopDaemon" };
+  | { type: "stopDaemon" }
+  | { type: "requestEnrichedData" };
 
 // CLI command result
 export interface CommandResult<T = unknown> {
