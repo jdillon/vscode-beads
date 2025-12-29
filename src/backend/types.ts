@@ -178,6 +178,7 @@ export type WebviewToExtensionMessage =
   | { type: "openBeadDetails"; beadId: string }
   | { type: "viewInGraph"; beadId: string }
   | { type: "copyBeadId"; beadId: string }
+  | { type: "openFile"; filePath: string; line?: number }
   | { type: "startDaemon" }
   | { type: "stopDaemon" };
 
