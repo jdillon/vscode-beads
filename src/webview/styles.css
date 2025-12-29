@@ -2256,3 +2256,36 @@ textarea {
 .toast.fading {
   opacity: 0;
 }
+
+/* ==================== Markdown Tooltip ==================== */
+
+.markdown-tooltip-trigger {
+  display: contents;
+}
+
+.markdown-tooltip {
+  position: fixed;
+  z-index: 10000;
+  width: 300px;
+  max-height: 200px;
+  overflow: hidden;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--vscode-editorHoverWidget-background, var(--vscode-editor-background));
+  border: 1px solid var(--vscode-editorHoverWidget-border, var(--vscode-panel-border));
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.markdown-tooltip-content {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.markdown-tooltip-content p:first-child {
+  margin-top: 0;
+}
+
+.markdown-tooltip-content p:last-child {
+  margin-bottom: 0;
+}
