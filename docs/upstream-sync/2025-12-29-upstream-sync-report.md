@@ -1,4 +1,4 @@
-# Upstream Sync Report: v0.38.0 -> v0.40.0
+# Upstream Sync Report: v0.37.0 -> v0.40.0
 
 **Generated**: 2025-12-29
 **Reference repo**: `~/ws/reference/beads` at v0.40.0
@@ -8,17 +8,42 @@
 
 ## Summary
 
-The upstream beads repo has 80+ commits since v0.38.0, introducing significant new features around agent identity, swarm coordination, and CLI consolidation. Most changes are internal refactoring or CLI-only features that don't impact vscode-beads directly. The key changes requiring updates are:
+The upstream beads repo has significant changes since v0.37.0, introducing agent identity, swarm coordination, and API refinements. Key changes requiring updates:
 
-1. **New status**: `hooked` - for GUPP work assignment
-2. **New types**: `agent`, `role` - for agent identity beads
-3. **New fields**: Agent state, molecule type, reparenting support
-4. **New dependency types**: Several new edge types for graph relationships
-5. **New RPC operations**: Agent slot management, parent reparenting
+1. **Field rename**: `wisp` → `ephemeral` (API change)
+2. **New field**: `created_by` - track issue creator
+3. **New status**: `hooked` - for GUPP work assignment
+4. **New types**: `agent`, `role` - for agent identity beads
+5. **New fields**: Agent state, molecule type, reparenting support
+6. **New dependency types**: Several new edge types for graph relationships
+7. **New RPC operations**: Agent slot management, parent reparenting
 
 ---
 
 ## Detailed Changes by Area
+
+### 0. API Changes (v0.37.0 → v0.38.0)
+
+**Field Rename: `wisp` → `ephemeral`**
+
+The `wisp` field was renamed to `ephemeral` across all APIs:
+- [types.go](~/ws/reference/beads/internal/types/types.go): `Issue.Wisp` → `Issue.Ephemeral`
+- [protocol.go](~/ws/reference/beads/internal/rpc/protocol.go): CreateArgs, UpdateArgs, ListArgs
+
+This is an API change - vscode-beads doesn't currently use this field, but should track the new name.
+
+**New Field: `created_by`**
+
+New field to track who created an issue (GH#748):
+```go
+CreatedBy string `json:"created_by,omitempty"` // Who created this issue
+```
+
+Added to Issue struct and CreateArgs. Useful for audit trails.
+
+**vscode-beads Impact**:
+- `BeadsDaemonClient.ts`: Use `ephemeral` not `wisp` if implementing ephemeral issue support
+- Consider exposing `created_by` in issue details view
 
 ### 1. Types & Status (`internal/types/types.go`)
 
@@ -236,6 +261,8 @@ No breaking changes detected.
 
 ## Sync Checklist
 
+- [ ] Track `wisp` → `ephemeral` rename (if using ephemeral issues)
+- [ ] Consider exposing `created_by` in issue details
 - [ ] Add `hooked` status to types.ts
 - [ ] Add `agent`, `role` types to types.ts
 - [ ] Update BeadsDaemonClient with new fields
@@ -243,7 +270,7 @@ No breaking changes detected.
 - [ ] Add icons for new types (optional)
 - [ ] Update beads-daemon-api.md
 - [ ] Create beads for identified work
-- [ ] Record sync point: v0.40.0 / a6bba83f
+- [ ] Record sync point: v0.40.0 / 64d5f20b
 
 ---
 
