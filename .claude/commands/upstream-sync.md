@@ -111,6 +111,8 @@ git diff <last-sync>..HEAD -- cmd/bd/daemon*.go cmd/bd/main_daemon.go
 The report should include:
 - Summary of what changed
 - Detailed analysis by area (only areas with relevant changes)
+- **For each changed upstream file, include a markdown link** like `[types.go](~/ws/reference/beads/internal/types/types.go)` for easy navigation
+- **For new concepts** (types, statuses, fields), explain what they're for and the use-case - check commit messages, code comments, and docs for context
 - Proposed plan with priorities (P1: breaking, P2: new types, P3: enhancements, P4: docs)
 - Outstanding questions needing answers
 - Sync checklist
