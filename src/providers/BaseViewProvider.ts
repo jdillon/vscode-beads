@@ -55,15 +55,16 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
       await this.handleMessage(message);
     });
 
-    // Initialize the view when it becomes visible
+    // Refresh data when the view becomes visible again (e.g., after being hidden)
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
         this.initializeView();
       }
     });
 
-    // Initial setup
-    this.initializeView();
+    // Note: We don't call initializeView() here because the webview's React app
+    // hasn't loaded yet. Instead, we wait for the "ready" message from the webview
+    // (handled in handleMessage) which indicates the app is ready to receive data.
   }
 
   /**
