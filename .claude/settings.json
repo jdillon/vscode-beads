@@ -1,11 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Read(**)",
-      "Write(**)",
-      "Edit(**)",
-      "SlashCommand(/beads:*)",
-      "mcp__plugin_beads_beads",
       "mcp__chrome_devtools"
     ],
     "deny": [],
