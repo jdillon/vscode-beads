@@ -55,15 +55,16 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
       await this.handleMessage(message);
     });
 
-    // Initialize the view when it becomes visible
+    // Refresh data when the view becomes visible again (e.g., after being hidden)
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
         this.initializeView();
       }
     });
 
-    // Initial setup
-    this.initializeView();
+    // Note: We don't call initializeView() here because the webview's React app
+    // hasn't loaded yet. Instead, we wait for the "ready" message from the webview
+    // (handled in handleMessage) which indicates the app is ready to receive data.
   }
 
   /**
@@ -152,6 +153,10 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
         }
         break;
 
+      case "openFile":
+        await this.handleOpenFile(message.filePath, message.line);
+        break;
+
       default:
         await this.handleCustomMessage(message);
     }
@@ -164,6 +169,46 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
     _message: WebviewToExtensionMessage
   ): Promise<void> {
     // Default: do nothing
+  }
+
+  /**
+   * Opens a file in the editor, optionally at a specific line
+   */
+  private async handleOpenFile(filePath: string, line?: number): Promise<void> {
+    const project = this.projectManager.getActiveProject();
+    if (!project) {
+      vscode.window.showWarningMessage("No active project");
+      return;
+    }
+
+    // Resolve path relative to project root
+    const resolvedPath = filePath.startsWith("/")
+      ? filePath
+      : vscode.Uri.joinPath(vscode.Uri.file(project.rootPath), filePath).fsPath;
+
+    const fileUri = vscode.Uri.file(resolvedPath);
+
+    try {
+      // Check if file exists
+      await vscode.workspace.fs.stat(fileUri);
+
+      // Open the file
+      const doc = await vscode.workspace.openTextDocument(fileUri);
+      const editor = await vscode.window.showTextDocument(doc);
+
+      // If line specified, scroll to it
+      if (line !== undefined && line > 0) {
+        const lineIndex = line - 1; // VS Code uses 0-based line numbers
+        const position = new vscode.Position(lineIndex, 0);
+        editor.selection = new vscode.Selection(position, position);
+        editor.revealRange(
+          new vscode.Range(position, position),
+          vscode.TextEditorRevealType.InCenter
+        );
+      }
+    } catch (err) {
+      vscode.window.showWarningMessage(`File not found: ${filePath}`);
+    }
   }
 
   /**

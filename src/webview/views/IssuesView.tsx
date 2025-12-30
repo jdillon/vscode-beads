@@ -11,7 +11,8 @@
  * - State persistence (sort order, column visibility, column order survive reloads)
  */
 
-import React, { useState, useMemo, useCallback, useRef } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   useReactTable,
   getCoreRowModel,
@@ -51,6 +52,7 @@ import { ProjectDropdown } from "../common/ProjectDropdown";
 import { Dropdown, DropdownItem } from "../common/Dropdown";
 import { Timestamp, timestampSortingFn } from "../common/Timestamp";
 import { AutocompleteInput, AutocompleteOption } from "../common/AutocompleteInput";
+import { Markdown } from "../common/Markdown";
 import { getLabelColorStyle } from "../utils/label-colors";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useColumnState } from "../hooks/useColumnState";
@@ -150,6 +152,66 @@ export function IssuesView({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const filterMenuRef = useRef<HTMLDivElement>(null);
   const columnMenuRef = useRef<HTMLDivElement>(null);
+
+  // Tooltip state
+  const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number } | null>(null);
+  const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Get hovered bead content for tooltip
+  const hoveredBead = useMemo(() => {
+    if (!hoveredRowId) return null;
+    return beads.find((b) => b.id === hoveredRowId);
+  }, [hoveredRowId, beads]);
+
+  const handleRowMouseEnter = useCallback((e: React.MouseEvent<HTMLTableRowElement>, beadId: string) => {
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const tooltipWidth = 300;
+    const padding = 8;
+
+    // Position below the row, left-aligned with some offset
+    let left = rect.left + 20;
+    let top = rect.bottom + padding;
+
+    // Keep tooltip within viewport horizontally
+    if (left + tooltipWidth > window.innerWidth - padding) {
+      left = window.innerWidth - tooltipWidth - padding;
+    }
+
+    // If tooltip would go below viewport, show above instead
+    if (top + 150 > window.innerHeight) {
+      top = rect.top - 150 - padding;
+      if (top < padding) {
+        top = rect.bottom + padding;
+      }
+    }
+
+    tooltipTimeoutRef.current = setTimeout(() => {
+      setHoveredRowId(beadId);
+      setTooltipPosition({ top, left });
+    }, 400);
+  }, []);
+
+  const handleRowMouseLeave = useCallback(() => {
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+      tooltipTimeoutRef.current = null;
+    }
+    setHoveredRowId(null);
+    setTooltipPosition(null);
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (tooltipTimeoutRef.current) {
+        clearTimeout(tooltipTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Click outside to close menus
   useClickOutside(filterMenuRef, () => setFilterMenuOpen(null), !!filterMenuOpen);
@@ -922,7 +984,8 @@ export function IssuesView({
                       key={row.id}
                       onClick={() => onSelectBead(row.original.id)}
                       className={`bead-row ${row.original.id === selectedBeadId ? "selected" : ""}`}
-                      title={row.original.description || row.original.title}
+                      onMouseEnter={(e) => handleRowMouseEnter(e, row.original.id)}
+                      onMouseLeave={handleRowMouseLeave}
                     >
                       {row.getVisibleCells().map((cell) => (
                         <td
@@ -948,6 +1011,24 @@ export function IssuesView({
           )}
         </div>
       )}
+
+      {/* Markdown tooltip */}
+      {hoveredBead && tooltipPosition && (hoveredBead.description || hoveredBead.title) &&
+        createPortal(
+          <div
+            className="markdown-tooltip"
+            style={{
+              top: tooltipPosition.top,
+              left: tooltipPosition.left,
+            }}
+          >
+            <Markdown
+              content={hoveredBead.description || hoveredBead.title}
+              className="markdown-tooltip-content"
+            />
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

@@ -18,6 +18,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsDetails";
   private currentBeadId: string | null = null;
   private currentProjectId: string | null = null;
+  private loadSequence = 0; // Tracks request order to prevent stale responses
 
   constructor(
     extensionUri: vscode.Uri,
@@ -63,6 +64,10 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
   }
 
   protected async loadData(): Promise<void> {
+    // Increment sequence to track this request - prevents stale responses from
+    // overwriting newer data when multiple refreshes occur in rapid succession
+    const thisRequest = ++this.loadSequence;
+
     const client = this.projectManager.getClient();
     const activeProjectId = this.projectManager.getActiveProject()?.id;
 
@@ -90,6 +95,13 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
           return [];
         }),
       ]);
+
+      // Check if a newer request has started - if so, discard this stale response
+      if (thisRequest !== this.loadSequence) {
+        this.log.debug(`Discarding stale response (request ${thisRequest}, current ${this.loadSequence})`);
+        return;
+      }
+
       const commentsArray = comments || [];
       this.log.debug(`Loaded ${commentsArray.length} comments for ${this.currentBeadId}`);
       if (issue) {
@@ -110,11 +122,18 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
         this.postMessage({ type: "setBead", bead: null });
       }
     } catch (err) {
+      // Only handle error if this is still the current request
+      if (thisRequest !== this.loadSequence) {
+        return;
+      }
       this.setError(String(err));
       this.postMessage({ type: "setBead", bead: null });
       this.handleDaemonError("Failed to load bead details", err);
     } finally {
-      this.setLoading(false);
+      // Only update loading state if this is still the current request
+      if (thisRequest === this.loadSequence) {
+        this.setLoading(false);
+      }
     }
   }
 
