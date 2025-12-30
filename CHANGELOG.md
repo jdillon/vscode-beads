@@ -13,6 +13,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [0.11.0] - 2025-12-30
+
+### Added
+
+- Support for merge-request and molecule bead types (`vsbeads-rt9j`)
+- Dependency type selector with direction support when editing (`vsbeads-hw6t`)
+- Fallback handling for unknown bead types (`vsbeads-madg`)
+- Type sort order for consistent epic-first display (`vsbeads-6d1`)
+- Markdown links to relative files open in VS Code editor (`vsbeads-2byn`)
+
+### Fixed
+
+- Labels column empty on fresh VS Code startup (`vsbeads-re92`)
+- Details panel children list vanishes when bead is updated (`vsbeads-u5xh`)
+- Tooltip content shows raw markdown instead of rendered (`vsbeads-79pr`)
+- Dependency display reordered: parent first, then children (`vsbeads-ifcn`)
+- Show P? badge for dependencies with undefined priority (`vsbeads-mwr`)
+
 ## [0.10.0] - 2025-12-17
 
 ### Added
