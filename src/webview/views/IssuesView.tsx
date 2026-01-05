@@ -56,6 +56,7 @@ import { Markdown } from "../common/Markdown";
 import { getLabelColorStyle } from "../utils/label-colors";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useColumnState } from "../hooks/useColumnState";
+import { KanbanBoard } from "./KanbanBoard";
 
 interface IssuesViewProps {
   beads: Bead[];
@@ -145,6 +146,7 @@ export function IssuesView({
   const [isResizing, setIsResizing] = useState(false);
 
   // UI state
+  const [viewMode, setViewMode] = useState<"table" | "board">("table");
   const [activePreset, setActivePreset] = useState<string>("not-closed");
   const [filterBarOpen, setFilterBarOpen] = useState(true);
   const [filterMenuOpen, setFilterMenuOpen] = useState<string | null>(null);
@@ -644,6 +646,22 @@ export function IssuesView({
             <path d="M6 10.5v-1h4v1H6zm-2-3v-1h8v1H4zm-2-3v-1h12v1H2z" />
           </svg>
         </button>
+        <div className="view-toggle">
+          <button
+            className={viewMode === "table" ? "active" : ""}
+            onClick={() => setViewMode("table")}
+            title="Table view"
+          >
+            Table
+          </button>
+          <button
+            className={viewMode === "board" ? "active" : ""}
+            onClick={() => setViewMode("board")}
+            title="Board view"
+          >
+            Board
+          </button>
+        </div>
       </div>
 
       {/* Row 2: Filter bar */}
@@ -840,7 +858,7 @@ export function IssuesView({
       )}
 
       {/* Table */}
-      {!error && (
+      {!error && viewMode === "table" && (
         <div className="beads-table-wrapper">
           <div className={`beads-table-container ${table.getState().columnSizingInfo.isResizingColumn ? "resizing" : ""}`}>
             <table
@@ -1010,6 +1028,15 @@ export function IssuesView({
             </div>
           )}
         </div>
+      )}
+
+      {/* Kanban Board */}
+      {!error && viewMode === "board" && (
+        <KanbanBoard
+          beads={table.getFilteredRowModel().rows.map((r) => r.original)}
+          selectedBeadId={selectedBeadId}
+          onSelectBead={onSelectBead}
+        />
       )}
 
       {/* Markdown tooltip */}
