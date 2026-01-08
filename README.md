@@ -8,6 +8,16 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 
 ## Features
 
+**Kanban Board View**
+
+- Toggle between Table and Board views for issues
+- See status distribution at a glance (Open, In Progress, Blocked, Closed)
+- Closed column collapsed by default to focus on active work
+- Cards show title, type, priority, and assignee
+- Click any card to open details
+
+![Kanban Board View](https://github.com/user-attachments/assets/e1d742bc-186a-448a-83cd-4578a0b984f3)
+
 **Issues Panel**
 
 - Sortable, filterable table with global search
