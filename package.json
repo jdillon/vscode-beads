@@ -169,6 +169,12 @@
           "type": "string",
           "default": "",
           "description": "Your user ID for 'Assign to me'. Defaults to $USER if not set."
+        },
+        "beads.tooltipHoverDelay": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 0,
+          "description": "Delay in milliseconds before showing bead description tooltip on hover. Set to 0 to disable tooltips."
         }
       }
     }

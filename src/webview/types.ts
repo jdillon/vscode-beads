@@ -74,6 +74,7 @@ export interface BeadsSummary {
 export interface WebviewSettings {
   renderMarkdown: boolean;
   userId: string;
+  tooltipHoverDelay: number; // 0 = disabled
 }
 
 // Messages from extension to webview

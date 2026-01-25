@@ -95,6 +95,7 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
       settings: {
         renderMarkdown: config.get<boolean>("renderMarkdown", true),
         userId,
+        tooltipHoverDelay: config.get<number>("tooltipHoverDelay", 1000),
       },
     });
 
