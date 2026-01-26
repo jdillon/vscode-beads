@@ -43,7 +43,7 @@ const initialState: AppState = {
   summary: null,
   loading: true,
   error: null,
-  settings: { renderMarkdown: true, userId: "" },
+  settings: { renderMarkdown: true, userId: "", tooltipHoverDelay: 1000 },
 };
 
 export function App(): React.ReactElement {
@@ -146,6 +146,7 @@ export function App(): React.ReactElement {
             selectedBeadId={state.selectedBeadId}
             projects={state.projects}
             activeProject={state.project}
+            tooltipHoverDelay={state.settings.tooltipHoverDelay}
             onSelectProject={(projectId) =>
               vscode.postMessage({ type: "selectProject", projectId })
             }

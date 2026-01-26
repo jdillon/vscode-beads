@@ -64,6 +64,7 @@ interface IssuesViewProps {
   selectedBeadId: string | null;
   projects: BeadsProject[];
   activeProject: BeadsProject | null;
+  tooltipHoverDelay: number; // 0 = disabled
   onSelectProject: (projectId: string) => void;
   onSelectBead: (beadId: string) => void;
   onUpdateBead: (beadId: string, updates: Partial<Bead>) => void;
@@ -107,6 +108,7 @@ export function IssuesView({
   selectedBeadId,
   projects,
   activeProject,
+  tooltipHoverDelay,
   onSelectProject,
   onSelectBead,
   onUpdateBead: _onUpdateBead,
@@ -165,11 +167,15 @@ export function IssuesView({
   }, [hoveredRowId, beads]);
 
   const handleRowMouseEnter = useCallback((e: React.MouseEvent<HTMLTableRowElement>, beadId: string) => {
+    // Skip if tooltips are disabled
+    if (tooltipHoverDelay === 0) return;
+
     if (tooltipTimeoutRef.current) {
       clearTimeout(tooltipTimeoutRef.current);
     }
     const rect = e.currentTarget.getBoundingClientRect();
     const tooltipWidth = 300;
+    const tooltipMaxHeight = 200;
     const padding = 8;
 
     // Position below the row, left-aligned with some offset
@@ -181,19 +187,24 @@ export function IssuesView({
       left = window.innerWidth - tooltipWidth - padding;
     }
 
-    // If tooltip would go below viewport, show above instead
-    if (top + 150 > window.innerHeight) {
-      top = rect.top - 150 - padding;
+    // Check if tooltip would overflow below viewport
+    const spaceBelow = window.innerHeight - rect.bottom - padding;
+    const spaceAbove = rect.top - padding;
+
+    if (spaceBelow < tooltipMaxHeight && spaceAbove > spaceBelow) {
+      // Position above the row when there's more space above
+      top = rect.top - tooltipMaxHeight - padding;
+      // Clamp to viewport top
       if (top < padding) {
-        top = rect.bottom + padding;
+        top = padding;
       }
     }
 
     tooltipTimeoutRef.current = setTimeout(() => {
       setHoveredRowId(beadId);
       setTooltipPosition({ top, left });
-    }, 400);
-  }, []);
+    }, tooltipHoverDelay);
+  }, [tooltipHoverDelay]);
 
   const handleRowMouseLeave = useCallback(() => {
     if (tooltipTimeoutRef.current) {
