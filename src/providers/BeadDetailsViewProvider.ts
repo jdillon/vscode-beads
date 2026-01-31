@@ -176,7 +176,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
           if (estimatedMinutes !== undefined) {
             updateArgs.estimated_minutes = estimatedMinutes;
           }
-          await client.update(updateArgs as Parameters<typeof client.update>[0]);
+          await client.update(updateArgs as unknown as Parameters<typeof client.update>[0]);
           // Data will refresh via mutation events
         } catch (err) {
           vscode.window.showErrorMessage(`Failed to update bead: ${err}`);

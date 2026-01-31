@@ -155,7 +155,7 @@ export function IssuesView({
   const [columnMenuOpen, setColumnMenuOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const filterMenuRef = useRef<HTMLDivElement>(null);
-  const columnMenuRef = useRef<HTMLDivElement>(null);
+  const columnMenuRef = useRef<HTMLTableCellElement>(null);
 
   // Tooltip state
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
@@ -760,7 +760,7 @@ export function IssuesView({
             {filterMenuOpen === "status" && (
               <div className="filter-menu">
                 {(Object.keys(STATUS_LABELS) as BeadStatus[])
-                  .filter((s) => s !== "unknown" && !statusFilter.includes(s))
+                  .filter((s) => !statusFilter.includes(s))
                   .map((status) => {
                     const count = statusFacets.get(status) ?? 0;
                     return (

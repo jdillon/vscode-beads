@@ -146,7 +146,14 @@ export interface BeadsSummary {
 // Settings that can be passed to webview
 export interface WebviewSettings {
   renderMarkdown: boolean;
+  userId: string;
   tooltipHoverDelay: number; // 0 = disabled
+}
+
+// Placeholder for graph view (not yet implemented)
+export interface DependencyGraph {
+  nodes: Bead[];
+  edges: { from: string; to: string; type: DependencyType }[];
 }
 
 // Messages sent from extension to webview
