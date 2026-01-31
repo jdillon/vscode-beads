@@ -26,7 +26,6 @@ import {
 } from "../types";
 import { Timestamp } from "../common/Timestamp";
 import { StatusPriorityPill } from "../common/StatusPriorityPill";
-import { Icon } from "../icons";
 
 /**
  * Detects if a string looks like a URL
