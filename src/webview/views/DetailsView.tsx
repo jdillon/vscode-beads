@@ -101,7 +101,12 @@ function groupDependenciesByType(deps: BeadDependency[]): Record<DependencyType,
   };
   for (const dep of deps) {
     const depType = dep.dependencyType || "blocks"; // fallback to blocks if unknown
-    groups[depType].push(dep);
+    if (groups[depType]) {
+      groups[depType].push(dep);
+    } else {
+      // Unknown dependency type - fallback to related
+      groups["related"].push(dep);
+    }
   }
   return groups;
 }
