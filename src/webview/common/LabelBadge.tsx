@@ -21,7 +21,7 @@ export function LabelBadge({
   const colorStyle = useMemo(() => getLabelColorStyle(label), [label]);
 
   return (
-    <span className={`label-badge label-badge-${size}`} style={colorStyle}>
+    <span className={`label-badge label-badge-${size}`} style={colorStyle} title={label}>
       {label}
       {onRemove && (
         <button className="label-remove" onClick={onRemove} title="Remove label">

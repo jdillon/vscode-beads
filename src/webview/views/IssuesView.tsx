@@ -47,6 +47,7 @@ import { TypeBadge } from "../common/TypeBadge";
 import { TypeIcon } from "../common/TypeIcon";
 import { LabelBadge } from "../common/LabelBadge";
 import { FilterChip } from "../common/FilterChip";
+import { Table, Kanban } from "lucide-react";
 import { ErrorMessage } from "../common/ErrorMessage";
 import { ProjectDropdown } from "../common/ProjectDropdown";
 import { Dropdown, DropdownItem } from "../common/Dropdown";
@@ -112,11 +113,10 @@ export function IssuesView({
   tooltipHoverDelay,
   onSelectProject,
   onSelectBead,
-  onUpdateBead: _onUpdateBead,
+  onUpdateBead,
   onStartDaemon,
   onRetry,
 }: IssuesViewProps): React.ReactElement {
-  void _onUpdateBead;
   const isSocketError = error?.includes("ENOENT") || error?.includes("socket");
 
   // Persisted column state (sorting, visibility, order)
@@ -155,7 +155,7 @@ export function IssuesView({
   const [columnMenuOpen, setColumnMenuOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const filterMenuRef = useRef<HTMLDivElement>(null);
-  const columnMenuRef = useRef<HTMLDivElement>(null);
+  const columnMenuRef = useRef<HTMLTableCellElement>(null);
 
   // Tooltip state
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
@@ -554,6 +554,17 @@ export function IssuesView({
   const typeFacets = table.getColumn("type")?.getFacetedUniqueValues() ?? new Map();
   const assigneeFacets = table.getColumn("assignee")?.getFacetedUniqueValues() ?? new Map();
 
+  // Unfiltered counts per status (for kanban empty state messaging)
+  const unfilteredStatusCounts = useMemo(() => {
+    const counts: Record<BeadStatus, number> = { open: 0, in_progress: 0, blocked: 0, closed: 0 };
+    for (const bead of beads) {
+      if (bead.status in counts) {
+        counts[bead.status as BeadStatus]++;
+      }
+    }
+    return counts;
+  }, [beads]);
+
   // Get unique assignees from facets for filter menu
   const uniqueAssignees = useMemo(() => {
     const assignees = Array.from(assigneeFacets.keys()).filter((a): a is string => typeof a === "string" && a !== "");
@@ -663,14 +674,14 @@ export function IssuesView({
             onClick={() => setViewMode("table")}
             title="Table view"
           >
-            Table
+            <Table size={14} />
           </button>
           <button
             className={viewMode === "board" ? "active" : ""}
             onClick={() => setViewMode("board")}
             title="Board view"
           >
-            Board
+            <Kanban size={14} />
           </button>
         </div>
       </div>
@@ -760,7 +771,7 @@ export function IssuesView({
             {filterMenuOpen === "status" && (
               <div className="filter-menu">
                 {(Object.keys(STATUS_LABELS) as BeadStatus[])
-                  .filter((s) => s !== "unknown" && !statusFilter.includes(s))
+                  .filter((s) => !statusFilter.includes(s))
                   .map((status) => {
                     const count = statusFacets.get(status) ?? 0;
                     return (
@@ -1047,6 +1058,9 @@ export function IssuesView({
           beads={table.getFilteredRowModel().rows.map((r) => r.original)}
           selectedBeadId={selectedBeadId}
           onSelectBead={onSelectBead}
+          onUpdateBead={onUpdateBead}
+          hasActiveFilters={hasActiveFilters}
+          unfilteredCounts={unfilteredStatusCounts}
         />
       )}
 

@@ -26,7 +26,6 @@ import {
 } from "../types";
 import { Timestamp } from "../common/Timestamp";
 import { StatusPriorityPill } from "../common/StatusPriorityPill";
-import { Icon } from "../icons";
 
 /**
  * Detects if a string looks like a URL
@@ -101,7 +100,12 @@ function groupDependenciesByType(deps: BeadDependency[]): Record<DependencyType,
   };
   for (const dep of deps) {
     const depType = dep.dependencyType || "blocks"; // fallback to blocks if unknown
-    groups[depType].push(dep);
+    if (groups[depType]) {
+      groups[depType].push(dep);
+    } else {
+      // Unknown dependency type - fallback to related
+      groups["related"].push(dep);
+    }
   }
   return groups;
 }
