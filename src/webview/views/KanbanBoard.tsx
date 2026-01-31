@@ -5,7 +5,7 @@
  * Supports drag-and-drop to change status.
  */
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Bead, BeadStatus, BeadType, STATUS_LABELS, STATUS_COLORS } from "../types";
 import { TypeIcon } from "../common/TypeIcon";
 import { PriorityBadge } from "../common/PriorityBadge";
@@ -26,6 +26,28 @@ export function KanbanBoard({ beads, selectedBeadId, onSelectBead, onUpdateBead 
   const [collapsedColumns, setCollapsedColumns] = useState<Set<BeadStatus>>(new Set(["closed"]));
   // Track which column is being dragged over
   const [dragOverColumn, setDragOverColumn] = useState<BeadStatus | null>(null);
+  // Optimistic status overrides for instant visual feedback
+  const [optimisticStatus, setOptimisticStatus] = useState<Map<string, BeadStatus>>(new Map());
+
+  // Apply optimistic overrides to beads
+  const effectiveBeads = useMemo(() => {
+    if (optimisticStatus.size === 0) return beads;
+    return beads.map((bead) => {
+      const override = optimisticStatus.get(bead.id);
+      if (override && bead.status !== override) {
+        return { ...bead, status: override };
+      }
+      // Clear optimistic override once real data catches up
+      if (override && bead.status === override) {
+        setOptimisticStatus((prev) => {
+          const next = new Map(prev);
+          next.delete(bead.id);
+          return next;
+        });
+      }
+      return bead;
+    });
+  }, [beads, optimisticStatus]);
 
   const toggleColumn = (status: BeadStatus) => {
     setCollapsedColumns((prev) => {
@@ -64,13 +86,15 @@ export function KanbanBoard({ beads, selectedBeadId, onSelectBead, onUpdateBead 
 
     // Only update if status actually changed
     if (bead && bead.status !== newStatus && onUpdateBead) {
+      // Optimistic update - move card immediately
+      setOptimisticStatus((prev) => new Map(prev).set(beadId, newStatus));
       onUpdateBead(beadId, { status: newStatus });
     }
   };
 
-  // Group beads by status
+  // Group beads by status (using effective beads with optimistic overrides)
   const grouped = COLUMNS.reduce((acc, status) => {
-    acc[status] = beads.filter((b) => b.status === status);
+    acc[status] = effectiveBeads.filter((b) => b.status === status);
     return acc;
   }, {} as Record<BeadStatus, Bead[]>);
 
@@ -86,9 +110,9 @@ export function KanbanBoard({ beads, selectedBeadId, onSelectBead, onUpdateBead 
             key={status}
             className={`kanban-column ${isCollapsed ? "collapsed" : ""} ${isDragOver ? "drag-over" : ""}`}
             style={{ "--column-color": STATUS_COLORS[status] } as React.CSSProperties}
-            onDragOver={(e) => !isCollapsed && handleDragOver(e, status)}
+            onDragOver={(e) => handleDragOver(e, status)}
             onDragLeave={handleDragLeave}
-            onDrop={(e) => !isCollapsed && handleDrop(e, status)}
+            onDrop={(e) => handleDrop(e, status)}
           >
             <div
               className="kanban-column-header"
