@@ -6,10 +6,11 @@
  */
 
 import React, { useState } from "react";
-import { Bead, BeadStatus, STATUS_LABELS, STATUS_COLORS } from "../types";
-import { TypeBadge } from "../common/TypeBadge";
+import { Bead, BeadStatus, BeadType, STATUS_LABELS, STATUS_COLORS } from "../types";
+import { TypeIcon } from "../common/TypeIcon";
 import { PriorityBadge } from "../common/PriorityBadge";
 import { LabelBadge } from "../common/LabelBadge";
+import { Icon } from "../common/Icon";
 
 interface KanbanBoardProps {
   beads: Bead[];
@@ -68,23 +69,32 @@ export function KanbanBoard({ beads, selectedBeadId, onSelectBead }: KanbanBoard
                     className={`kanban-card ${bead.id === selectedBeadId ? "selected" : ""}`}
                     onClick={() => onSelectBead(bead.id)}
                   >
-                    <div className="kanban-card-id">{bead.id}</div>
+                    <div className="kanban-card-header">
+                      <TypeIcon type={(bead.type || "task") as BeadType} size={12} />
+                      <span className="kanban-card-id">{bead.id}</span>
+                    </div>
                     <div className="kanban-card-title">{bead.title}</div>
                     <div className="kanban-card-meta">
-                      {bead.type && <TypeBadge type={bead.type} size="small" />}
                       {bead.priority !== undefined && <PriorityBadge priority={bead.priority} size="small" />}
-                      {bead.assignee && <span className="kanban-card-assignee">{bead.assignee}</span>}
+                      {bead.assignee && (
+                        <>
+                          <Icon name="user" size={10} className="kanban-card-icon" />
+                          <span className="kanban-card-assignee">{bead.assignee}</span>
+                        </>
+                      )}
+                      {bead.labels && bead.labels.length > 0 && (
+                        <>
+                          <span className="kanban-card-spacer" />
+                          <Icon name="tag" size={10} className="kanban-card-icon" />
+                          {bead.labels.slice(0, 3).map((label) => (
+                            <LabelBadge key={label} label={label} />
+                          ))}
+                          {bead.labels.length > 3 && (
+                            <span className="kanban-card-labels-more">+{bead.labels.length - 3}</span>
+                          )}
+                        </>
+                      )}
                     </div>
-                    {bead.labels && bead.labels.length > 0 && (
-                      <div className="kanban-card-labels">
-                        {bead.labels.slice(0, 3).map((label) => (
-                          <LabelBadge key={label} label={label} />
-                        ))}
-                        {bead.labels.length > 3 && (
-                          <span className="kanban-card-labels-more">+{bead.labels.length - 3}</span>
-                        )}
-                      </div>
-                    )}
                   </div>
                 ))}
                 {items.length === 0 && <div className="kanban-empty">No items</div>}

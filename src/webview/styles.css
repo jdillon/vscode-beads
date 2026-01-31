@@ -2352,6 +2352,11 @@ textarea {
   font-size: 10px;
 }
 
+.kanban-column.collapsed .kanban-column-count {
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+}
+
 .kanban-column-body {
   flex: 1;
   overflow-y: auto;
@@ -2397,9 +2402,10 @@ textarea {
 
 .kanban-card-meta {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
   align-items: center;
+  overflow: hidden;
 }
 
 .kanban-card-assignee {
@@ -2415,11 +2421,26 @@ textarea {
   font-style: italic;
 }
 
+.kanban-card-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+
 .kanban-card-id {
   font-size: 10px;
   font-family: var(--vscode-editor-font-family), monospace;
   color: var(--vscode-descriptionForeground);
-  margin-bottom: 2px;
+}
+
+.kanban-card-icon {
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.kanban-card-spacer {
+  flex: 1;
 }
 
 .kanban-card-labels {
@@ -2433,6 +2454,16 @@ textarea {
   font-size: 10px;
   color: var(--vscode-descriptionForeground);
   padding: 1px 4px;
+}
+
+/* Truncate long labels in kanban cards */
+.kanban-card .label-badge {
+  display: inline-block;
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 /* View toggle */
