@@ -2,7 +2,7 @@
  * KanbanBoard
  *
  * Status-based board view for issues.
- * Read-only visualization - no drag/drop.
+ * Supports drag-and-drop to change status.
  */
 
 import React, { useState } from "react";
@@ -16,13 +16,16 @@ interface KanbanBoardProps {
   beads: Bead[];
   selectedBeadId: string | null;
   onSelectBead: (beadId: string) => void;
+  onUpdateBead?: (beadId: string, updates: Partial<Bead>) => void;
 }
 
 const COLUMNS: BeadStatus[] = ["open", "in_progress", "blocked", "closed"];
 
-export function KanbanBoard({ beads, selectedBeadId, onSelectBead }: KanbanBoardProps): React.ReactElement {
+export function KanbanBoard({ beads, selectedBeadId, onSelectBead, onUpdateBead }: KanbanBoardProps): React.ReactElement {
   // Track which columns are collapsed (closed is collapsed by default)
   const [collapsedColumns, setCollapsedColumns] = useState<Set<BeadStatus>>(new Set(["closed"]));
+  // Track which column is being dragged over
+  const [dragOverColumn, setDragOverColumn] = useState<BeadStatus | null>(null);
 
   const toggleColumn = (status: BeadStatus) => {
     setCollapsedColumns((prev) => {
@@ -36,6 +39,35 @@ export function KanbanBoard({ beads, selectedBeadId, onSelectBead }: KanbanBoard
     });
   };
 
+  // Drag handlers
+  const handleDragStart = (e: React.DragEvent, beadId: string) => {
+    e.dataTransfer.setData("text/plain", beadId);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, status: BeadStatus) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverColumn(status);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverColumn(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, newStatus: BeadStatus) => {
+    e.preventDefault();
+    setDragOverColumn(null);
+
+    const beadId = e.dataTransfer.getData("text/plain");
+    const bead = beads.find((b) => b.id === beadId);
+
+    // Only update if status actually changed
+    if (bead && bead.status !== newStatus && onUpdateBead) {
+      onUpdateBead(beadId, { status: newStatus });
+    }
+  };
+
   // Group beads by status
   const grouped = COLUMNS.reduce((acc, status) => {
     acc[status] = beads.filter((b) => b.status === status);
@@ -47,12 +79,16 @@ export function KanbanBoard({ beads, selectedBeadId, onSelectBead }: KanbanBoard
       {COLUMNS.map((status) => {
         const isCollapsed = collapsedColumns.has(status);
         const items = grouped[status] || [];
+        const isDragOver = dragOverColumn === status;
 
         return (
           <div
             key={status}
-            className={`kanban-column ${isCollapsed ? "collapsed" : ""}`}
+            className={`kanban-column ${isCollapsed ? "collapsed" : ""} ${isDragOver ? "drag-over" : ""}`}
             style={{ "--column-color": STATUS_COLORS[status] } as React.CSSProperties}
+            onDragOver={(e) => !isCollapsed && handleDragOver(e, status)}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => !isCollapsed && handleDrop(e, status)}
           >
             <div
               className="kanban-column-header"
@@ -67,6 +103,8 @@ export function KanbanBoard({ beads, selectedBeadId, onSelectBead }: KanbanBoard
                   <div
                     key={bead.id}
                     className={`kanban-card ${bead.id === selectedBeadId ? "selected" : ""}`}
+                    draggable={!!onUpdateBead}
+                    onDragStart={(e) => handleDragStart(e, bead.id)}
                     onClick={() => onSelectBead(bead.id)}
                   >
                     <div className="kanban-card-header">

@@ -2318,6 +2318,11 @@ textarea {
   min-width: 40px;
 }
 
+.kanban-column.drag-over {
+  background: var(--vscode-list-hoverBackground);
+  border-style: dashed;
+}
+
 .kanban-column-header {
   display: flex;
   align-items: center;
@@ -2371,8 +2376,12 @@ textarea {
   background: var(--vscode-editor-background);
   border: 1px solid var(--vscode-panel-border);
   border-radius: var(--border-radius);
-  cursor: pointer;
+  cursor: grab;
   transition: background-color var(--transition-fast);
+}
+
+.kanban-card:active {
+  cursor: grabbing;
 }
 
 .kanban-card:hover {

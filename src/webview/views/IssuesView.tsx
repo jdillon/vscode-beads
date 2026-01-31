@@ -113,11 +113,10 @@ export function IssuesView({
   tooltipHoverDelay,
   onSelectProject,
   onSelectBead,
-  onUpdateBead: _onUpdateBead,
+  onUpdateBead,
   onStartDaemon,
   onRetry,
 }: IssuesViewProps): React.ReactElement {
-  void _onUpdateBead;
   const isSocketError = error?.includes("ENOENT") || error?.includes("socket");
 
   // Persisted column state (sorting, visibility, order)
@@ -1048,6 +1047,7 @@ export function IssuesView({
           beads={table.getFilteredRowModel().rows.map((r) => r.original)}
           selectedBeadId={selectedBeadId}
           onSelectBead={onSelectBead}
+          onUpdateBead={onUpdateBead}
         />
       )}
 
