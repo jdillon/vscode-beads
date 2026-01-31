@@ -47,6 +47,7 @@ import { TypeBadge } from "../common/TypeBadge";
 import { TypeIcon } from "../common/TypeIcon";
 import { LabelBadge } from "../common/LabelBadge";
 import { FilterChip } from "../common/FilterChip";
+import { Table, Kanban } from "lucide-react";
 import { ErrorMessage } from "../common/ErrorMessage";
 import { ProjectDropdown } from "../common/ProjectDropdown";
 import { Dropdown, DropdownItem } from "../common/Dropdown";
@@ -663,14 +664,14 @@ export function IssuesView({
             onClick={() => setViewMode("table")}
             title="Table view"
           >
-            Table
+            <Table size={14} />
           </button>
           <button
             className={viewMode === "board" ? "active" : ""}
             onClick={() => setViewMode("board")}
             title="Board view"
           >
-            Board
+            <Kanban size={14} />
           </button>
         </div>
       </div>

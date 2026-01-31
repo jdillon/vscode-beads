@@ -2328,10 +2328,15 @@ textarea {
   text-transform: uppercase;
   color: var(--vscode-descriptionForeground);
   border-bottom: 1px solid var(--vscode-panel-border);
+  cursor: pointer;
+  user-select: none;
+}
+
+.kanban-column-header:hover {
+  background: var(--vscode-list-hoverBackground);
 }
 
 .kanban-column.collapsed .kanban-column-header {
-  cursor: pointer;
   writing-mode: vertical-rl;
   text-orientation: mixed;
   padding: var(--spacing-md) var(--spacing-xs);
@@ -2410,6 +2415,26 @@ textarea {
   font-style: italic;
 }
 
+.kanban-card-id {
+  font-size: 10px;
+  font-family: var(--vscode-editor-font-family), monospace;
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 2px;
+}
+
+.kanban-card-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: var(--spacing-xs);
+}
+
+.kanban-card-labels-more {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  padding: 1px 4px;
+}
+
 /* View toggle */
 .view-toggle {
   display: flex;
@@ -2419,8 +2444,10 @@ textarea {
 }
 
 .view-toggle button {
-  padding: 2px 8px;
-  font-size: 11px;
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   color: var(--vscode-descriptionForeground);
   border: none;
