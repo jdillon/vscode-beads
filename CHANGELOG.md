@@ -9,11 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Kanban board view toggle for Issues panel ([#56](https://github.com/jdillon/vscode-beads/pull/56) by [@micahbrich](https://github.com/micahbrich)) (`vsbeads-h5f`)
-
 ### Fixed
 
 ### Changed
+
+## [0.12.0] - 2026-01-31
+
+### Added
+
+- Kanban board view toggle for Issues panel ([#56](https://github.com/jdillon/vscode-beads/pull/56) by [@micahbrich](https://github.com/micahbrich)) (`vsbeads-h5f`)
+- Display bead IDs directly on kanban cards for quick reference (`vsbeads-zsz`)
+- Display labels on kanban cards with truncation for long label lists (`vsbeads-89u`)
+- Make all kanban columns collapsible, including the closed column (`vsbeads-cjh`)
+- Use Lucide icons for kanban/table view toggle instead of Font Awesome (`vsbeads-uvh`)
+- Improved filter state visibility: show "3/5" count when filters hide items
+- Configurable tooltip delay on bead hover (set to 0 to disable) (`vsbeads-uvh`)
+
+### Fixed
+
+- DetailsView crashes when encountering unknown dependency types (`vsbeads-e74`)
 
 ## [0.11.0] - 2025-12-30
 

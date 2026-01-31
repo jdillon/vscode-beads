@@ -11,9 +11,11 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 **Kanban Board View**
 
 - Toggle between Table and Board views for issues
+- Drag cards between columns to change status
 - See status distribution at a glance (Open, In Progress, Blocked, Closed)
-- Closed column collapsed by default to focus on active work
-- Cards show title, type, priority, and assignee
+- All columns collapsible for focused workflow (closed by default)
+- Cards show title, ID, type, priority, assignee, and labels
+- Filter-aware: shows "3/5" count when filters hide items
 - Click any card to open details
 
 ![Kanban Board View](https://github.com/user-attachments/assets/e1d742bc-186a-448a-83cd-4578a0b984f3)
@@ -98,6 +100,7 @@ Install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
 | `beads.refreshInterval` | `30000` | Auto-refresh interval in ms (0 = disable)           |
 | `beads.renderMarkdown`  | `true`  | Render markdown in text fields                      |
 | `beads.userId`          | `""`    | Your user ID for "Assign to me" (defaults to $USER) |
+| `beads.tooltipHoverDelay` | `1000` | Delay in ms before showing tooltip on hover (0 = disable) |
 
 ## Troubleshooting
 
