@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Kanban board view toggle for Issues panel ([#56](https://github.com/jdillon/vscode-beads/pull/56) by [@micahbrich](https://github.com/micahbrich)) (`vsbeads-h5f`)
+
 ### Fixed
 
 ### Changed
