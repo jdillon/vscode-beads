@@ -554,6 +554,17 @@ export function IssuesView({
   const typeFacets = table.getColumn("type")?.getFacetedUniqueValues() ?? new Map();
   const assigneeFacets = table.getColumn("assignee")?.getFacetedUniqueValues() ?? new Map();
 
+  // Unfiltered counts per status (for kanban empty state messaging)
+  const unfilteredStatusCounts = useMemo(() => {
+    const counts: Record<BeadStatus, number> = { open: 0, in_progress: 0, blocked: 0, closed: 0 };
+    for (const bead of beads) {
+      if (bead.status in counts) {
+        counts[bead.status as BeadStatus]++;
+      }
+    }
+    return counts;
+  }, [beads]);
+
   // Get unique assignees from facets for filter menu
   const uniqueAssignees = useMemo(() => {
     const assignees = Array.from(assigneeFacets.keys()).filter((a): a is string => typeof a === "string" && a !== "");
@@ -1048,6 +1059,8 @@ export function IssuesView({
           selectedBeadId={selectedBeadId}
           onSelectBead={onSelectBead}
           onUpdateBead={onUpdateBead}
+          hasActiveFilters={hasActiveFilters}
+          unfilteredCounts={unfilteredStatusCounts}
         />
       )}
 

@@ -17,11 +17,15 @@ interface KanbanBoardProps {
   selectedBeadId: string | null;
   onSelectBead: (beadId: string) => void;
   onUpdateBead?: (beadId: string, updates: Partial<Bead>) => void;
+  /** Whether any filters are active (affects empty state messaging) */
+  hasActiveFilters?: boolean;
+  /** Unfiltered counts per status (to show "0 of N" when filtering) */
+  unfilteredCounts?: Record<BeadStatus, number>;
 }
 
 const COLUMNS: BeadStatus[] = ["open", "in_progress", "blocked", "closed"];
 
-export function KanbanBoard({ beads, selectedBeadId, onSelectBead, onUpdateBead }: KanbanBoardProps): React.ReactElement {
+export function KanbanBoard({ beads, selectedBeadId, onSelectBead, onUpdateBead, hasActiveFilters, unfilteredCounts }: KanbanBoardProps): React.ReactElement {
   // Track which columns are collapsed (closed is collapsed by default)
   const [collapsedColumns, setCollapsedColumns] = useState<Set<BeadStatus>>(new Set(["closed"]));
   // Track which column is being dragged over
@@ -119,7 +123,11 @@ export function KanbanBoard({ beads, selectedBeadId, onSelectBead, onUpdateBead 
               onClick={() => toggleColumn(status)}
             >
               <span className="kanban-column-title">{STATUS_LABELS[status]}</span>
-              <span className="kanban-column-count">{items.length}</span>
+              <span className="kanban-column-count">
+                {hasActiveFilters && unfilteredCounts && unfilteredCounts[status] !== items.length
+                  ? `${items.length}/${unfilteredCounts[status]}`
+                  : items.length}
+              </span>
             </div>
             {!isCollapsed && (
               <div className="kanban-column-body">
@@ -159,7 +167,13 @@ export function KanbanBoard({ beads, selectedBeadId, onSelectBead, onUpdateBead 
                     </div>
                   </div>
                 ))}
-                {items.length === 0 && <div className="kanban-empty">No items</div>}
+                {items.length === 0 && (
+                  <div className="kanban-empty">
+                    {hasActiveFilters && unfilteredCounts && unfilteredCounts[status] > 0
+                      ? `No matches (${unfilteredCounts[status]} filtered)`
+                      : "No items"}
+                  </div>
+                )}
               </div>
             )}
           </div>
