@@ -1,0 +1,4 @@
+{"created_at":"2026-03-05T16:54:21Z","created_by":"Jason Dillon","depends_on_id":"ex-p69.1","issue_id":"ex-c3v","type":"blocks"}
+{"created_at":"2026-03-05T16:54:21Z","created_by":"Jason Dillon","depends_on_id":"ex-z3p","issue_id":"ex-mtd","type":"related"}
+{"created_at":"2026-03-05T16:54:20Z","created_by":"Jason Dillon","depends_on_id":"ex-p69","issue_id":"ex-p69.1","type":"parent-child"}
+{"created_at":"2026-03-05T16:54:21Z","created_by":"Jason Dillon","depends_on_id":"ex-p69.1","issue_id":"ex-z3p","type":"blocks"}
