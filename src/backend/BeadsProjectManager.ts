@@ -1,33 +1,27 @@
-/**
- * BeadsProjectManager - Project Discovery and Active Project Management
- *
- * This service handles:
- * - Discovering Beads projects in the current VS Code workspace
- * - Managing the currently active project
- * - Connecting to the daemon via Unix socket RPC
- * - Real-time mutation tracking via daemon events
- */
-
-import * as vscode from "vscode";
-import * as path from "path";
-import * as fs from "fs";
 import * as crypto from "crypto";
-import { BeadsProject } from "./types";
-import { BeadsDaemonClient, MutationEvent } from "./BeadsDaemonClient";
+import * as fs from "fs";
+import * as path from "path";
+import * as vscode from "vscode";
 import { Logger } from "../utils/logger";
+import { BeadsBackend } from "./BeadsBackend";
+import { BeadsCLIBackend } from "./BeadsCLIBackend";
+import { BeadsProject } from "./types";
 
 const ACTIVE_PROJECT_KEY = "beads.activeProjectId";
 
+type DaemonStatusState = "running" | "stopped" | "zombie" | "not_initialized" | "unknown";
+
 export class BeadsProjectManager implements vscode.Disposable {
+  private readonly context: vscode.ExtensionContext;
+  private readonly log: Logger;
   private projects: BeadsProject[] = [];
   private activeProject: BeadsProject | null = null;
-  private client: BeadsDaemonClient | null = null;
-  private log: Logger;
-  private context: vscode.ExtensionContext;
+  private backend: BeadsBackend | null = null;
 
-  // Dedupe daemon error notifications
-  private lastDaemonErrorTime = 0;
-  private static readonly DAEMON_ERROR_DEDUPE_MS = 5000;
+  private readonly projectWatchers = new Map<string, vscode.FileSystemWatcher>();
+  private readonly projectRefreshTimers = new Map<string, NodeJS.Timeout>();
+  private readonly discoveryWatchers: vscode.Disposable[] = [];
+  private activePollTimer: NodeJS.Timeout | null = null;
 
   private readonly _onProjectsChanged = new vscode.EventEmitter<BeadsProject[]>();
   public readonly onProjectsChanged = this._onProjectsChanged.event;
@@ -38,605 +32,188 @@ export class BeadsProjectManager implements vscode.Disposable {
   private readonly _onDataChanged = new vscode.EventEmitter<void>();
   public readonly onDataChanged = this._onDataChanged.event;
 
-  private readonly _onMutation = new vscode.EventEmitter<MutationEvent>();
-  public readonly onMutation = this._onMutation.event;
-
   constructor(context: vscode.ExtensionContext, logger: Logger) {
     this.context = context;
     this.log = logger.child("ProjectManager");
   }
 
-  /**
-   * Initializes the project manager by discovering all projects
-   */
   async initialize(): Promise<void> {
     await this.discoverProjects();
+    this.setupDiscoveryWatchers();
 
-    // Restore previously selected project, or default to first
     if (this.projects.length > 0 && !this.activeProject) {
       const savedProjectId = this.context.workspaceState.get<string>(ACTIVE_PROJECT_KEY);
       const targetProject = savedProjectId
         ? this.projects.find((p) => p.id === savedProjectId)
-        : null;
-
-      await this.setActiveProject(targetProject?.id || this.projects[0].id);
+        : undefined;
+      await this.setActiveProject(targetProject?.id ?? this.projects[0].id);
     }
   }
 
-  /**
-   * Discovers Beads projects in all workspace folders
-   */
   async discoverProjects(): Promise<void> {
-    this.log.info("Discovering Beads projects...");
+    const discoveredById = new Map<string, BeadsProject>();
 
-    const discoveredProjects: BeadsProject[] = [];
-    const workspaceFolders = vscode.workspace.workspaceFolders || [];
+    for (const explicitPath of this.getConfiguredProjectPaths()) {
+      const project = await this.createProjectFromInputPath(explicitPath, "setting");
+      if (project) discoveredById.set(project.id, project);
+    }
 
-    // Check each workspace folder for a .beads directory
-    for (const folder of workspaceFolders) {
-      const beadsDir = path.join(folder.uri.fsPath, ".beads");
+    const envBeadsDir = process.env.BEADS_DIR?.trim();
+    if (envBeadsDir) {
+      const project = await this.createProjectFromInputPath(envBeadsDir, "env");
+      if (project) discoveredById.set(project.id, project);
+    }
 
-      try {
-        const stats = await fs.promises.stat(beadsDir);
-        if (stats.isDirectory()) {
-          const project = await this.createProjectFromPath(
-            folder.uri.fsPath,
-            beadsDir,
-            folder.name
-          );
-          discoveredProjects.push(project);
-          this.log.info(`Found project: ${project.name} at ${project.rootPath}`);
-        }
-      } catch {
-        // .beads directory doesn't exist in this folder, skip
+    const depth = Math.max(0, vscode.workspace.getConfiguration("beads").get<number>("discoveryDepth", 1));
+    for (const folder of vscode.workspace.workspaceFolders ?? []) {
+      const roots = await this.getCandidateRoots(folder.uri.fsPath, depth);
+      for (const root of roots) {
+        const project = await this.createProjectFromInputPath(root, "workspace");
+        if (project) discoveredById.set(project.id, project);
       }
     }
 
+    const discoveredProjects = Array.from(discoveredById.values()).sort((a, b) => a.name.localeCompare(b.name));
     this.projects = discoveredProjects;
     this._onProjectsChanged.fire(this.projects);
-
-    this.log.info(`Discovered ${this.projects.length} project(s)`);
+    this.syncProjectWatchers();
   }
 
-  /**
-   * Creates a BeadsProject from a discovered path
-   */
-  private async createProjectFromPath(
-    rootPath: string,
-    beadsDir: string,
-    folderName: string
-  ): Promise<BeadsProject> {
-    const project: BeadsProject = {
-      id: this.generateProjectId(beadsDir),
-      name: folderName,
-      rootPath,
-      beadsDir,
-      daemonStatus: "unknown",
-    };
-
-    // Check for database file
-    const dbPath = path.join(beadsDir, "beads.db");
-    try {
-      await fs.promises.access(dbPath);
-      project.dbPath = dbPath;
-    } catch {
-      // Database might not exist yet
-    }
-
-    // Check daemon status by checking socket existence
-    const socketPath = path.join(beadsDir, "bd.sock");
-    try {
-      await fs.promises.access(socketPath);
-      project.daemonStatus = "running";
-    } catch {
-      project.daemonStatus = "stopped";
-    }
-
-    return project;
-  }
-
-  /**
-   * Generates a stable ID for a project based on its beads directory path
-   */
-  private generateProjectId(beadsDir: string): string {
-    return crypto.createHash("sha256").update(beadsDir).digest("hex").slice(0, 12);
-  }
-
-  /**
-   * Gets all discovered projects
-   */
   getProjects(): BeadsProject[] {
     return this.projects;
   }
 
-  /**
-   * Gets the currently active project
-   */
   getActiveProject(): BeadsProject | null {
     return this.activeProject;
   }
 
-  /**
-   * Gets the daemon client for the active project
-   */
-  getClient(): BeadsDaemonClient | null {
-    return this.client;
+  getBackend(): BeadsBackend | null {
+    return this.backend;
   }
 
-  /**
-   * Sets the active project by ID
-   */
+  getClient(): BeadsBackend | null {
+    return this.backend;
+  }
+
   async setActiveProject(projectId: string): Promise<boolean> {
     const project = this.projects.find((p) => p.id === projectId);
-    if (!project) {
-      this.log.warn(`Project not found: ${projectId}`);
-      return false;
-    }
-
-    // Clean up previous client
-    if (this.client) {
-      this.client.stopMutationWatch();
-      this.client.dispose();
-    }
+    if (!project) return false;
 
     this.activeProject = project;
-
-    // Save selection to workspace state
     await this.context.workspaceState.update(ACTIVE_PROJECT_KEY, project.id);
 
-    // Create new daemon client
-    this.client = new BeadsDaemonClient(project.beadsDir, {
+    const config = vscode.workspace.getConfiguration("beads");
+    const bdPath = config.get<string>("pathToBd", "bd");
+
+    this.backend = new BeadsCLIBackend({
+      bdPath,
       cwd: project.rootPath,
-      expectedDb: project.dbPath,
+      log: this.log,
+      minSupportedVersion: "0.51.0",
     });
 
-    this.log.info(`Active project set to: ${project.name}`);
-
-    // Check if daemon is running and connect
-    let needsAutoStart = false;
-
-    if (this.client.socketExists()) {
+    const compatibility = await this.backend.checkCompatibility();
+    if (compatibility.supported) {
       try {
-        const health = await this.client.health();
-        project.daemonStatus = health.status === "healthy" ? "running" : "stopped";
-        this.log.info(`Daemon status: ${health.status} (v${health.version})`);
-
-        // Start mutation watching for real-time updates
-        this.setupMutationWatching();
-      } catch (err) {
-        // Socket exists but connection failed (stale socket from reboot, etc.)
-        this.log.warn(`Stale socket detected, daemon not responding: ${err}`);
-        project.daemonStatus = "stopped";
-        needsAutoStart = true;
+        await this.backend.info();
+        project.daemonStatus = "running";
+      } catch (error) {
+        project.daemonStatus = this.isNotInitializedError(error) ? "stopped" : "unknown";
       }
     } else {
       project.daemonStatus = "stopped";
-      needsAutoStart = true;
     }
 
-    // Auto-start daemon if needed and configured
-    if (needsAutoStart) {
-      const config = vscode.workspace.getConfiguration("beads");
-      const autoStart = config.get<boolean>("autoStartDaemon", true);
-
-      if (autoStart) {
-        await this.ensureDaemonRunning();
-      }
-    }
-
-    this._onActiveProjectChanged.fire(this.activeProject);
+    this._onActiveProjectChanged.fire(project);
+    this.syncActiveProjectPolling();
     this._onDataChanged.fire();
-
     return true;
   }
 
-  /**
-   * Ensures the daemon is running for the active project
-   */
-  async ensureDaemonRunning(): Promise<boolean> {
-    if (!this.activeProject) {
-      return false;
-    }
+  async refresh(): Promise<void> {
+    await this.discoverProjects();
 
-    // Check if already running and healthy
-    if (this.client?.socketExists()) {
-      try {
-        await this.client.health();
-        this.activeProject.daemonStatus = "running";
-        return true;
-      } catch {
-        // Socket exists but daemon not responding - try restart
-        this.log.warn("Daemon socket exists but not responding, attempting restart...");
-        await this.restartDaemon();
-        return this.activeProject.daemonStatus === "running";
-      }
-    }
-
-    // Try to start daemon
-    const result = await this.startDaemonProcess();
-
-    if (!result.success && result.notInitialized) {
-      // Project has .beads directory but no database
-      this.log.warn("Project not fully initialized - no database found");
-      const action = await vscode.window.showWarningMessage(
-        `The project "${this.activeProject.name}" has not been initialized. Run 'bd init' to set up the database.`,
-        "Open Terminal",
-        "Dismiss"
-      );
-
-      if (action === "Open Terminal") {
-        const terminal = vscode.window.createTerminal({
-          name: `Beads Init: ${this.activeProject.name}`,
-          cwd: this.activeProject.rootPath,
-        });
-        terminal.show();
-        terminal.sendText("bd init");
-      }
-      return false;
-    }
-
-    if (!result.success && result.alreadyRunning) {
-      // Daemon claims to be running but we couldn't connect
-      // This usually means zombie daemon - offer restart
-      this.log.warn("Daemon reports already running but socket not accessible");
-      const action = await vscode.window.showWarningMessage(
-        `The daemon for "${this.activeProject.name}" appears to be in a bad state. Restart it?`,
-        "Restart Daemon",
-        "Cancel"
-      );
-
-      if (action === "Restart Daemon") {
-        return this.restartDaemon();
-      }
-      return false;
-    }
-
-    return result.success;
-  }
-
-  /**
-   * Starts the daemon process and waits for it to be ready
-   */
-  private async startDaemonProcess(): Promise<{
-    success: boolean;
-    alreadyRunning: boolean;
-    notInitialized: boolean;
-  }> {
-    if (!this.activeProject) {
-      return { success: false, alreadyRunning: false, notInitialized: false };
-    }
-
-    const cwd = this.activeProject.rootPath;
-    this.log.info(`Starting daemon for ${this.activeProject.name}...`);
-
-    const { spawn } = await import("child_process");
-    return new Promise((resolve) => {
-      const proc = spawn("bd", ["daemon", "--start"], {
-        cwd,
-        shell: true,
-        detached: true,
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-
-      let stderr = "";
-      proc.stderr?.on("data", (data) => {
-        stderr += data.toString();
-      });
-
-      proc.on("error", (err) => {
-        this.log.error(`Spawn error: ${err.message}`);
-      });
-
-      let exitCode: number | null = null;
-      proc.on("exit", (code) => {
-        exitCode = code;
-        if (code !== 0 && code !== null) {
-          this.log.error(`bd daemon --start exited with code ${code}`);
-          if (stderr) {
-            this.log.error(`stderr: ${stderr.trim()}`);
-          }
-        }
-      });
-
-      proc.unref();
-
-      // Wait for daemon to start
-      setTimeout(async () => {
-        const alreadyRunning = stderr.includes("daemon already running");
-        const notInitialized = stderr.includes("no database path configured") ||
-                              stderr.includes("bd init");
-
-        if (this.client?.socketExists()) {
-          try {
-            await this.client.health();
-            this.activeProject!.daemonStatus = "running";
-            this.log.info("Daemon started successfully");
-            this.setupMutationWatching();
-            resolve({ success: true, alreadyRunning: false, notInitialized: false });
-          } catch (err) {
-            this.log.errorNotify(`Daemon health check failed: ${err}`);
-            resolve({ success: false, alreadyRunning, notInitialized });
-          }
-        } else {
-          if (!alreadyRunning && !notInitialized) {
-            this.log.errorNotify(
-              `Daemon failed to start - socket not found at ${path.join(this.activeProject!.beadsDir, "bd.sock")}`
-            );
-          }
-          resolve({ success: false, alreadyRunning, notInitialized });
-        }
-      }, 2000);
-    });
-  }
-
-  /**
-   * Sets up mutation watching after daemon connection
-   */
-  private setupMutationWatching(): void {
-    if (!this.client) return;
-
-    // Register event listeners for mutation events
-    this.client.on("mutation", (mutation: MutationEvent) => {
-      this.log.debug(`Mutation: ${mutation.Type} on ${mutation.IssueID}`);
-      this._onMutation.fire(mutation);
+    const activeId = this.activeProject?.id;
+    if (!activeId) {
       this._onDataChanged.fire();
-    });
+      return;
+    }
 
-    this.client.on("disconnected", (err: Error) => {
-      if (this.activeProject) {
-        this.log.warn(
-          `Lost connection to daemon for "${this.activeProject.name}": ${err.message}`
-        );
-        this.activeProject.daemonStatus = "stopped";
-        this._onActiveProjectChanged.fire(this.activeProject);
-        vscode.window.setStatusBarMessage("$(warning) Beads daemon disconnected", 3000);
-      }
-    });
+    const stillExists = this.projects.some((p) => p.id === activeId);
+    if (!stillExists) {
+      this.activeProject = null;
+      this.backend = null;
+      this._onActiveProjectChanged.fire(null);
+    }
 
-    this.client.on("reconnected", () => {
-      if (this.activeProject) {
-        this.log.info(`Reconnected to daemon for "${this.activeProject.name}"`);
-        this.activeProject.daemonStatus = "running";
-        this._onActiveProjectChanged.fire(this.activeProject);
-        this._onDataChanged.fire();
-        vscode.window.setStatusBarMessage("$(check) Beads daemon connected", 3000);
-      }
-    });
-
-    this.client.startMutationWatch(1000);
-    this._onActiveProjectChanged.fire(this.activeProject);
     this._onDataChanged.fire();
   }
 
-  /**
-   * Restarts the daemon (stop + start)
-   */
-  async restartDaemon(): Promise<boolean> {
-    if (!this.activeProject) {
-      return false;
-    }
-
-    this.log.info(`Restarting daemon for ${this.activeProject.name}...`);
-    await this.stopDaemon();
-
-    // Brief pause to ensure cleanup
-    await new Promise((r) => setTimeout(r, 500));
-
-    const result = await this.startDaemonProcess();
-    return result.success;
+  async ensureDaemonRunning(): Promise<boolean> {
+    await this.refresh();
+    return this.backend !== null;
   }
 
-  /**
-   * Stops the daemon for the active project
-   */
   async stopDaemon(): Promise<boolean> {
-    if (!this.activeProject) {
-      return false;
-    }
-
-    this.log.info(`Stopping daemon for ${this.activeProject.name}...`);
-
-    // Stop daemon via CLI
-    const { spawn } = await import("child_process");
-    return new Promise((resolve) => {
-      const proc = spawn("bd", ["daemon", "--stop"], {
-        cwd: this.activeProject!.rootPath,
-        shell: true,
-      });
-
-      proc.on("close", (code) => {
-        if (code === 0) {
-          this.activeProject!.daemonStatus = "stopped";
-          if (this.client) {
-            this.client.stopMutationWatch();
-          }
-          this.log.info("Daemon stopped");
-          resolve(true);
-        } else {
-          this.log.errorNotify(`Failed to stop daemon (exit code ${code})`);
-          resolve(false);
-        }
-      });
-    });
+    return true;
   }
 
-  /**
-   * Detailed daemon status check with edge case detection
-   */
-  async getDaemonStatus(): Promise<{
-    state: "running" | "stopped" | "zombie" | "not_initialized" | "unknown";
-    message: string;
-    details: {
-      hasDatabase: boolean;
-      hasSocket: boolean;
-      hasPidFile: boolean;
-      pidFileValue: number | null;
-      processRunning: boolean;
-      healthCheckPassed: boolean;
-    };
-  }> {
-    if (!this.activeProject) {
+  async restartDaemon(): Promise<boolean> {
+    await this.refresh();
+    return this.backend !== null;
+  }
+
+  async getDaemonStatus(): Promise<{ state: DaemonStatusState; message: string; details?: Record<string, unknown> }> {
+    if (!this.activeProject || !this.backend) {
+      return { state: "unknown", message: "No active project" };
+    }
+
+    const compatibility = await this.backend.checkCompatibility();
+    if (!compatibility.supported) {
       return {
-        state: "unknown",
-        message: "No active project",
+        state: "stopped",
+        message: compatibility.message,
         details: {
-          hasDatabase: false,
-          hasSocket: false,
-          hasPidFile: false,
-          pidFileValue: null,
-          processRunning: false,
-          healthCheckPassed: false,
+          detectedVersion: compatibility.detectedVersion,
+          minimumVersion: compatibility.minimumVersion,
         },
       };
     }
 
-    const beadsDir = this.activeProject.beadsDir;
-    const details = {
-      hasDatabase: false,
-      hasSocket: false,
-      hasPidFile: false,
-      pidFileValue: null as number | null,
-      processRunning: false,
-      healthCheckPassed: false,
-    };
-
-    // Check for database
     try {
-      await fs.promises.access(path.join(beadsDir, "beads.db"));
-      details.hasDatabase = true;
-    } catch {
-      // No database
-    }
-
-    // Check for socket
-    try {
-      await fs.promises.access(path.join(beadsDir, "bd.sock"));
-      details.hasSocket = true;
-    } catch {
-      // No socket
-    }
-
-    // Check PID file
-    try {
-      const pidContent = await fs.promises.readFile(
-        path.join(beadsDir, "daemon.pid"),
-        "utf-8"
-      );
-      details.hasPidFile = true;
-      details.pidFileValue = parseInt(pidContent.trim(), 10);
-
-      // Check if process is actually running
-      if (details.pidFileValue) {
-        try {
-          process.kill(details.pidFileValue, 0); // Signal 0 = check existence
-          details.processRunning = true;
-        } catch {
-          // Process not running
-        }
+      await this.backend.info();
+    } catch (error) {
+      if (this.isNotInitializedError(error)) {
+        return {
+          state: "not_initialized",
+          message: "Beads project is not initialized. Run `bd init` in this project.",
+        };
       }
-    } catch {
-      // No PID file
+
+      const message = error instanceof Error ? error.message : String(error);
+      return { state: "unknown", message };
     }
 
-    // Try health check if socket exists
-    if (details.hasSocket && this.client) {
-      try {
-        await this.client.health();
-        details.healthCheckPassed = true;
-      } catch {
-        // Health check failed
-      }
-    }
-
-    // Determine state based on checks
-    if (!details.hasDatabase) {
-      return {
-        state: "not_initialized",
-        message: "Database not found. Run 'bd init' to initialize.",
-        details,
-      };
-    }
-
-    if (details.hasSocket && details.healthCheckPassed) {
-      this.activeProject.daemonStatus = "running";
-      return {
-        state: "running",
-        message: `Healthy (PID: ${details.pidFileValue || "unknown"})`,
-        details,
-      };
-    }
-
-    if (details.processRunning && !details.hasSocket) {
-      // Zombie: process running but no socket
-      return {
-        state: "zombie",
-        message: `Process running (PID: ${details.pidFileValue}) but socket missing. Daemon crashed?`,
-        details,
-      };
-    }
-
-    if (details.processRunning && details.hasSocket && !details.healthCheckPassed) {
-      // Zombie: socket exists but health check fails
-      return {
-        state: "zombie",
-        message: `Process running (PID: ${details.pidFileValue}) but not responding. Daemon unhealthy.`,
-        details,
-      };
-    }
-
-    if (details.hasPidFile && !details.processRunning) {
-      // Stale PID file
-      this.activeProject.daemonStatus = "stopped";
-      return {
-        state: "stopped",
-        message: `Stale PID file (was PID: ${details.pidFileValue}). Daemon not running.`,
-        details,
-      };
-    }
-
-    // Clean stopped state
-    this.activeProject.daemonStatus = "stopped";
     return {
-      state: "stopped",
-      message: "Daemon not running",
-      details,
+      state: "running",
+      message: compatibility.message,
+      details: {
+        beadsDir: this.activeProject.beadsDir,
+        watchMode: this.activeProject.storageMode,
+      },
     };
   }
 
-  /**
-   * Refreshes data for the active project
-   */
-  async refresh(): Promise<void> {
-    if (!this.activeProject || !this.client) {
-      return;
-    }
-
-    // Re-check daemon status using detailed check
-    const status = await this.getDaemonStatus();
-    if (status.state === "running") {
-      this.activeProject.daemonStatus = "running";
-    } else {
-      this.activeProject.daemonStatus = "stopped";
-    }
-
-    this._onDataChanged.fire();
-  }
-
-  /**
-   * Shows a quick pick to select a project
-   */
   async showProjectPicker(): Promise<BeadsProject | undefined> {
     if (this.projects.length === 0) {
-      vscode.window.showWarningMessage(
-        "No Beads projects found. Initialize a project with `bd init` first."
-      );
+      vscode.window.showWarningMessage("No Beads projects found. Initialize a project with `bd init` first.");
       return undefined;
     }
 
     const items = this.projects.map((project) => ({
       label: project.name,
       description: project.rootPath,
-      detail: `Daemon: ${project.daemonStatus}${project.daemonPid ? ` (PID: ${project.daemonPid})` : ""}`,
+      detail: `${project.storageMode ?? "embedded"} mode`,
       project,
     }));
 
@@ -645,79 +222,273 @@ export class BeadsProjectManager implements vscode.Disposable {
       title: "Switch Beads Project",
     });
 
-    if (selected) {
-      await this.setActiveProject(selected.project.id);
-      return selected.project;
-    }
-
-    return undefined;
+    if (!selected) return undefined;
+    await this.setActiveProject(selected.project.id);
+    return selected.project;
   }
 
-  /**
-   * Prompts the user to start the daemon if it's not running
-   */
-  async promptDaemonStart(): Promise<boolean> {
-    if (!this.activeProject) {
-      return false;
-    }
-
-    if (this.activeProject.daemonStatus === "running") {
-      return true;
-    }
-
-    const action = await vscode.window.showWarningMessage(
-      `The Beads daemon is not running for "${this.activeProject.name}". Start it now?`,
-      "Start Daemon",
-      "Cancel"
-    );
-
-    if (action === "Start Daemon") {
-      return this.ensureDaemonRunning();
-    }
-
-    return false;
-  }
-
-  /**
-   * Centralized daemon error notification - dedupes across all callers
-   * Called by views when they encounter daemon connection errors
-   */
   async notifyDaemonError(err: unknown): Promise<void> {
-    // Dedupe: only show one notification within time window
-    const now = Date.now();
-    if (now - this.lastDaemonErrorTime < BeadsProjectManager.DAEMON_ERROR_DEDUPE_MS) {
-      return;
-    }
-    this.lastDaemonErrorTime = now;
-
-    const projectName = this.activeProject?.name || "unknown";
-    const action = await vscode.window.showErrorMessage(
-      `Beads: Failed to connect to daemon for "${projectName}"`,
-      "Restart Daemon",
-      "Show Output"
-    );
-
-    if (action === "Restart Daemon") {
-      const restarted = await this.restartDaemon();
-      if (restarted) {
-        vscode.window.setStatusBarMessage("$(check) Daemon restarted", 3000);
-        this._onDataChanged.fire();
-      } else {
-        vscode.window.showErrorMessage("Failed to restart daemon");
-      }
-    } else if (action === "Show Output") {
-      this.log.show();
-    }
+    const message = err instanceof Error ? err.message : String(err);
+    this.log.warn(`Backend error: ${message}`);
   }
 
   dispose(): void {
-    if (this.client) {
-      this.client.stopMutationWatch();
-      this.client.dispose();
+    for (const watcher of this.projectWatchers.values()) watcher.dispose();
+    for (const watcher of this.discoveryWatchers) watcher.dispose();
+    for (const timer of this.projectRefreshTimers.values()) clearTimeout(timer);
+    this.projectWatchers.clear();
+    this.discoveryWatchers.length = 0;
+    this.projectRefreshTimers.clear();
+    if (this.activePollTimer) {
+      clearInterval(this.activePollTimer);
+      this.activePollTimer = null;
     }
     this._onProjectsChanged.dispose();
     this._onActiveProjectChanged.dispose();
     this._onDataChanged.dispose();
-    this._onMutation.dispose();
+  }
+
+  private getConfiguredProjectPaths(): string[] {
+    const config = vscode.workspace.getConfiguration("beads");
+    const configured = config.get<string[]>("projects", []);
+    return configured.filter((value) => typeof value === "string" && value.trim().length > 0);
+  }
+
+  private async getCandidateRoots(workspaceRoot: string, depth: number): Promise<string[]> {
+    const roots = [workspaceRoot];
+    if (depth <= 0) return roots;
+
+    try {
+      const children = await fs.promises.readdir(workspaceRoot, { withFileTypes: true });
+      for (const child of children) {
+        if (child.isDirectory()) roots.push(path.join(workspaceRoot, child.name));
+      }
+    } catch {
+      // Ignore unreadable workspace roots.
+    }
+
+    return roots;
+  }
+
+  private async createProjectFromInputPath(inputPath: string, source: BeadsProject["source"]): Promise<BeadsProject | null> {
+    const resolvedInput = path.resolve(inputPath);
+    const stats = await this.tryStat(resolvedInput);
+    if (!stats) return null;
+
+    const explicitBeadsDir = path.basename(resolvedInput) === ".beads" ? resolvedInput : path.join(resolvedInput, ".beads");
+    const beadsStats = await this.tryStat(explicitBeadsDir);
+    if (!beadsStats?.isDirectory()) return null;
+
+    const resolvedBeadsDir = await this.resolveBeadsDir(explicitBeadsDir);
+    if (!(await this.isBeadsProject(resolvedBeadsDir))) return null;
+
+    const rootPath = path.basename(resolvedInput) === ".beads" ? path.dirname(resolvedInput) : resolvedInput;
+    const folderName = path.basename(rootPath) || rootPath;
+
+    return {
+      id: this.generateProjectId(resolvedBeadsDir),
+      name: folderName,
+      rootPath,
+      beadsDir: resolvedBeadsDir,
+      daemonStatus: "running",
+      source,
+      storageMode: await this.detectStorageMode(resolvedBeadsDir),
+    };
+  }
+
+  private async resolveBeadsDir(initialBeadsDir: string): Promise<string> {
+    const redirectPath = path.join(initialBeadsDir, "redirect");
+    try {
+      const content = (await fs.promises.readFile(redirectPath, "utf8")).trim();
+      if (!content) return initialBeadsDir;
+      return path.resolve(initialBeadsDir, content);
+    } catch {
+      return initialBeadsDir;
+    }
+  }
+
+  private async isBeadsProject(beadsDir: string): Promise<boolean> {
+    if (await this.pathExists(path.join(beadsDir, "metadata.json"))) return true;
+    if (await this.pathExists(path.join(beadsDir, "config.yaml"))) return true;
+
+    const doltStats = await this.tryStat(path.join(beadsDir, "dolt"));
+    if (doltStats?.isDirectory()) return true;
+
+    try {
+      const entries = await fs.promises.readdir(beadsDir);
+      return entries.some((entry) => entry.endsWith(".db"));
+    } catch {
+      return false;
+    }
+  }
+
+  private async detectStorageMode(beadsDir: string): Promise<"embedded" | "server"> {
+    const metadataPath = path.join(beadsDir, "metadata.json");
+    try {
+      const raw = await fs.promises.readFile(metadataPath, "utf8");
+      const metadata = JSON.parse(raw) as { dolt_mode?: string; backend?: string };
+      if (metadata.dolt_mode === "server") return "server";
+      if (metadata.backend === "sqlite") return "embedded";
+    } catch {
+      // Ignore parse failures and default to embedded.
+    }
+    return "embedded";
+  }
+
+  private generateProjectId(beadsDir: string): string {
+    return crypto.createHash("sha256").update(beadsDir).digest("hex").slice(0, 12);
+  }
+
+  private syncProjectWatchers(): void {
+    const validIds = new Set(this.projects.map((p) => p.id));
+
+    for (const [projectId, watcher] of this.projectWatchers.entries()) {
+      if (validIds.has(projectId)) continue;
+      watcher.dispose();
+      this.projectWatchers.delete(projectId);
+      const timer = this.projectRefreshTimers.get(projectId);
+      if (timer) clearTimeout(timer);
+      this.projectRefreshTimers.delete(projectId);
+    }
+
+    for (const project of this.projects) {
+      if (this.projectWatchers.has(project.id)) continue;
+      const pattern = new vscode.RelativePattern(project.beadsDir, "**/*");
+      const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+      const onFileEvent = (uri: vscode.Uri) => this.onProjectFileChange(project.id, uri.fsPath);
+
+      watcher.onDidCreate(onFileEvent);
+      watcher.onDidChange(onFileEvent);
+      watcher.onDidDelete(onFileEvent);
+
+      this.projectWatchers.set(project.id, watcher);
+    }
+  }
+
+  private setupDiscoveryWatchers(): void {
+    for (const watcher of this.discoveryWatchers) watcher.dispose();
+    this.discoveryWatchers.length = 0;
+
+    for (const folder of vscode.workspace.workspaceFolders ?? []) {
+      const metadataWatcher = vscode.workspace.createFileSystemWatcher(
+        new vscode.RelativePattern(folder, "**/.beads/metadata.json")
+      );
+      metadataWatcher.onDidCreate(() => this.scheduleRediscovery());
+      metadataWatcher.onDidDelete(() => this.scheduleRediscovery());
+
+      const configWatcher = vscode.workspace.createFileSystemWatcher(
+        new vscode.RelativePattern(folder, "**/.beads/config.yaml")
+      );
+      configWatcher.onDidCreate(() => this.scheduleRediscovery());
+      configWatcher.onDidDelete(() => this.scheduleRediscovery());
+
+      this.discoveryWatchers.push(metadataWatcher, configWatcher);
+    }
+  }
+
+  private onProjectFileChange(projectId: string, filePath: string): void {
+    if (!this.shouldTriggerRefresh(filePath)) return;
+
+    const existing = this.projectRefreshTimers.get(projectId);
+    if (existing) clearTimeout(existing);
+
+    const timer = setTimeout(() => {
+      this.projectRefreshTimers.delete(projectId);
+      if (this.activeProject?.id === projectId) {
+        this._onDataChanged.fire();
+      }
+    }, 500);
+
+    this.projectRefreshTimers.set(projectId, timer);
+  }
+
+  private shouldTriggerRefresh(filePath: string): boolean {
+    const fileName = path.basename(filePath);
+    const normalizedPath = filePath.split(path.sep).join("/");
+
+    if (normalizedPath.includes("/.beads/dolt/")) {
+      const ignoredDoltFiles = new Set(["LOCK", "log.txt"]);
+      return !ignoredDoltFiles.has(fileName);
+    }
+
+    const definitiveFiles = new Set([
+      "metadata.json",
+      "config.yaml",
+      "redirect",
+      "interactions.jsonl",
+      "dolt-server.port",
+      "dolt-server.activity",
+    ]);
+    if (definitiveFiles.has(fileName)) return true;
+
+    const ignoredFiles = new Set([
+      ".DS_Store",
+      "dolt-server.log",
+      "dolt-server.pid",
+      "dolt-monitor.pid",
+      "dolt-server.lock",
+      ".local_version",
+      ".gitignore",
+    ]);
+
+    if (ignoredFiles.has(fileName)) return false;
+    if (filePath.includes(`${path.sep}.git${path.sep}`)) return false;
+    return false;
+  }
+
+  private syncActiveProjectPolling(): void {
+    if (this.activePollTimer) {
+      clearInterval(this.activePollTimer);
+      this.activePollTimer = null;
+    }
+
+    const project = this.activeProject;
+    if (!project || project.storageMode !== "server") return;
+
+    const intervalMs = Math.max(
+      0,
+      vscode.workspace.getConfiguration("beads").get<number>("refreshInterval", 30000)
+    );
+    if (intervalMs === 0) return;
+
+    this.activePollTimer = setInterval(() => {
+      if (this.activeProject?.id === project.id) {
+        this._onDataChanged.fire();
+      }
+    }, intervalMs);
+  }
+
+  private scheduleRediscovery(): void {
+    const existing = this.projectRefreshTimers.get("__discovery__");
+    if (existing) clearTimeout(existing);
+    const timer = setTimeout(async () => {
+      this.projectRefreshTimers.delete("__discovery__");
+      await this.discoverProjects();
+      this._onDataChanged.fire();
+    }, 500);
+    this.projectRefreshTimers.set("__discovery__", timer);
+  }
+
+  private async pathExists(filePath: string): Promise<boolean> {
+    try {
+      await fs.promises.access(filePath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private async tryStat(target: string): Promise<fs.Stats | null> {
+    try {
+      return await fs.promises.stat(target);
+    } catch {
+      return null;
+    }
+  }
+
+  private isNotInitializedError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    const normalized = message.toLowerCase();
+    return normalized.includes("not initialized") || normalized.includes("failed to open database");
   }
 }

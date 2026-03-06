@@ -108,6 +108,8 @@ export interface BeadsProject {
   name: string; // Human-friendly label (folder name or config display name)
   rootPath: string; // Project root (VS Code workspace folder)
   beadsDir: string; // Path to .beads directory
+  source?: "workspace" | "setting" | "env";
+  storageMode?: "embedded" | "server";
   dbPath?: string; // Path to beads.db (if discovered)
   daemonStatus: "running" | "stopped" | "unknown";
   daemonPid?: number;

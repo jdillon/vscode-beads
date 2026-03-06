@@ -57,6 +57,8 @@ export interface BeadsProject {
   name: string;
   rootPath: string;
   beadsDir: string;
+  source?: "workspace" | "setting" | "env";
+  storageMode?: "embedded" | "server";
   dbPath?: string;
   daemonStatus: "running" | "stopped" | "unknown";
   daemonPid?: number;
