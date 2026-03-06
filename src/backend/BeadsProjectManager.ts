@@ -500,12 +500,20 @@ export class BeadsProjectManager implements vscode.Disposable {
       healthCheckPassed: false,
     };
 
-    // Check for database
+    // Check for database (SQLite or Dolt backend)
     try {
       await fs.promises.access(path.join(beadsDir, "beads.db"));
       details.hasDatabase = true;
     } catch {
-      // No database
+      // No SQLite DB; check for Dolt backend (beads v0.55+)
+    }
+    if (!details.hasDatabase) {
+      try {
+        await fs.promises.access(path.join(beadsDir, "metadata.json"));
+        details.hasDatabase = true;
+      } catch {
+        // No database
+      }
     }
 
     // Check for socket
