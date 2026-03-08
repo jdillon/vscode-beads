@@ -19,3 +19,5 @@
 {"actor":"Jason Dillon","comment":"Added label: marker","created_at":"2026-03-06T13:00:19Z","event_type":"label_added","id":19,"issue_id":"ex-6pu","new_value":null,"old_value":null}
 {"actor":"Jason Dillon","comment":null,"created_at":"2026-03-06T13:00:54Z","event_type":"created","id":20,"issue_id":"ex-3it","new_value":"","old_value":""}
 {"actor":"Jason Dillon","comment":"Added label: marker","created_at":"2026-03-06T13:00:54Z","event_type":"label_added","id":21,"issue_id":"ex-3it","new_value":null,"old_value":null}
+{"actor":"Jason Dillon","comment":null,"created_at":"2026-03-06T13:10:15Z","event_type":"created","id":22,"issue_id":"ex-l9m","new_value":"","old_value":""}
+{"actor":"Jason Dillon","comment":"Added label: isolation","created_at":"2026-03-06T13:10:15Z","event_type":"label_added","id":23,"issue_id":"ex-l9m","new_value":null,"old_value":null}
