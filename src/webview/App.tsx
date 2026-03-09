@@ -122,8 +122,12 @@ export function App(): React.ReactElement {
             error={state.error}
             projects={state.projects}
             activeProject={state.project}
-            onSelectProject={(projectId) =>
-              vscode.postMessage({ type: "selectProject", projectId })
+            onSelectProject={(project) =>
+              vscode.postMessage({
+                type: "selectProject",
+                projectId: project.id,
+                projectRootPath: project.rootPath,
+              })
             }
             onSelectBead={(beadId) =>
               vscode.postMessage({ type: "openBeadDetails", beadId })
@@ -147,8 +151,12 @@ export function App(): React.ReactElement {
             projects={state.projects}
             activeProject={state.project}
             tooltipHoverDelay={state.settings.tooltipHoverDelay}
-            onSelectProject={(projectId) =>
-              vscode.postMessage({ type: "selectProject", projectId })
+            onSelectProject={(project) =>
+              vscode.postMessage({
+                type: "selectProject",
+                projectId: project.id,
+                projectRootPath: project.rootPath,
+              })
             }
             onSelectBead={(beadId) =>
               vscode.postMessage({ type: "openBeadDetails", beadId })

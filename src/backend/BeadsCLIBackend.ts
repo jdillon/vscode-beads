@@ -40,17 +40,20 @@ function toStringArray(values?: string[]): string[] {
 export class BeadsCLIBackend implements BeadsBackend {
   private readonly bdPath: string;
   private readonly cwd: string;
+  private readonly beadsDir: string;
   private readonly log: Logger;
   private readonly minSupportedVersion: string;
 
   constructor(params: {
     bdPath: string;
     cwd: string;
+    beadsDir: string;
     log: Logger;
     minSupportedVersion?: string;
   }) {
     this.bdPath = params.bdPath;
     this.cwd = params.cwd;
+    this.beadsDir = params.beadsDir;
     this.log = params.log.child("CLIBackend");
     this.minSupportedVersion = params.minSupportedVersion ?? "0.51.0";
   }
@@ -194,6 +197,10 @@ export class BeadsCLIBackend implements BeadsBackend {
     try {
       const { stdout } = await execFileAsync(this.bdPath, args, {
         cwd: this.cwd,
+        env: {
+          ...process.env,
+          BEADS_DIR: this.beadsDir,
+        },
         maxBuffer: 10 * 1024 * 1024,
       });
       const trimmed = stdout.trim();
@@ -220,6 +227,10 @@ export class BeadsCLIBackend implements BeadsBackend {
       try {
         const { stdout, stderr } = await execFileAsync(this.bdPath, args, {
           cwd: this.cwd,
+          env: {
+            ...process.env,
+            BEADS_DIR: this.beadsDir,
+          },
           maxBuffer: 1024 * 1024,
         });
         const version = detectSemver(`${stdout}\n${stderr}`);

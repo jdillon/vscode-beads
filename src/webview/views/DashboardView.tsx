@@ -29,7 +29,7 @@ interface DashboardViewProps {
   error: string | null;
   projects: BeadsProject[];
   activeProject: BeadsProject | null;
-  onSelectProject: (projectId: string) => void;
+  onSelectProject: (project: BeadsProject) => void;
   onSelectBead: (beadId: string) => void;
   onStartDaemon: () => void;
   onRetry: () => void;

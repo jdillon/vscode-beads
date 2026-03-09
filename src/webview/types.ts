@@ -98,7 +98,7 @@ export type ExtensionMessage =
 export type WebviewMessage =
   | { type: "ready" }
   | { type: "refresh" }
-  | { type: "selectProject"; projectId: string }
+  | { type: "selectProject"; projectId: string; projectRootPath?: string }
   | { type: "selectBead"; beadId: string }
   | { type: "updateBead"; beadId: string; updates: Partial<Bead> }
   | { type: "createBead"; data: Partial<Bead> }

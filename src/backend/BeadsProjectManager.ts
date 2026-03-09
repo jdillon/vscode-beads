@@ -96,8 +96,19 @@ export class BeadsProjectManager implements vscode.Disposable {
   }
 
   async setActiveProject(projectId: string): Promise<boolean> {
-    const project = this.projects.find((p) => p.id === projectId);
-    if (!project) return false;
+    let project = this.projects.find((p) => p.id === projectId);
+    if (!project) {
+      this.log.warn(`Project ${projectId} not found in current cache; rediscovering.`);
+      await this.discoverProjects();
+      project = this.projects.find((p) => p.id === projectId);
+    }
+
+    if (!project) {
+      this.log.warn(`Project ${projectId} still not found after rediscovery.`);
+      return false;
+    }
+
+    this.log.info(`Switching active project to ${project.name} (${project.id})`);
 
     this.activeProject = project;
     await this.context.workspaceState.update(ACTIVE_PROJECT_KEY, project.id);
@@ -108,6 +119,7 @@ export class BeadsProjectManager implements vscode.Disposable {
     this.backend = new BeadsCLIBackend({
       bdPath,
       cwd: project.rootPath,
+      beadsDir: project.beadsDir,
       log: this.log,
       minSupportedVersion: "0.51.0",
     });
@@ -144,9 +156,11 @@ export class BeadsProjectManager implements vscode.Disposable {
       this.activeProject = null;
       this.backend = null;
       this._onActiveProjectChanged.fire(null);
+      this._onDataChanged.fire();
+      return;
     }
 
-    this._onDataChanged.fire();
+    await this.setActiveProject(activeId);
   }
 
   async ensureDaemonRunning(): Promise<boolean> {

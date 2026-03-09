@@ -16,6 +16,7 @@ import { Logger } from "../utils/logger";
 
 export class DashboardViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsDashboard";
+  private loadSequence = 0;
 
   constructor(
     extensionUri: vscode.Uri,
@@ -26,6 +27,7 @@ export class DashboardViewProvider extends BaseViewProvider {
   }
 
   protected async loadData(): Promise<void> {
+    const thisRequest = ++this.loadSequence;
     const client = this.projectManager.getClient();
     if (!client) {
       this.postMessage({
@@ -54,6 +56,9 @@ export class DashboardViewProvider extends BaseViewProvider {
     try {
       // Get all issues and compute summary
       const issues = await client.list();
+      if (thisRequest !== this.loadSequence) {
+        return;
+      }
       const beads = issues.map(issueToWebviewBead).filter((b): b is Bead => b !== null);
 
       // Compute summary
@@ -98,10 +103,15 @@ export class DashboardViewProvider extends BaseViewProvider {
       const importantBeads = [...openBeads, ...blockedBeads, ...inProgressBeads];
       this.postMessage({ type: "setBeads", beads: importantBeads });
     } catch (err) {
+      if (thisRequest !== this.loadSequence) {
+        return;
+      }
       this.setError(String(err));
       this.handleDaemonError("Failed to load dashboard", err);
     } finally {
-      this.setLoading(false);
+      if (thisRequest === this.loadSequence) {
+        this.setLoading(false);
+      }
     }
   }
 }

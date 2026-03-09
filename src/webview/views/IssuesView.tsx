@@ -67,7 +67,7 @@ interface IssuesViewProps {
   projects: BeadsProject[];
   activeProject: BeadsProject | null;
   tooltipHoverDelay: number; // 0 = disabled
-  onSelectProject: (projectId: string) => void;
+  onSelectProject: (project: BeadsProject) => void;
   onSelectBead: (beadId: string) => void;
   onUpdateBead: (beadId: string, updates: Partial<Bead>) => void;
   onStartDaemon: () => void;

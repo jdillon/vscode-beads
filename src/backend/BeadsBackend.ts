@@ -7,13 +7,13 @@ export interface BeadsIssue {
   notes?: string;
   status: string;
   priority: number;
-  issue_type?: string;
+  issue_type: string;
   assignee?: string;
   labels?: string[];
   estimated_minutes?: number;
   external_ref?: string;
-  created_at?: string;
-  updated_at?: string;
+  created_at: string;
+  updated_at: string;
   closed_at?: string;
   dependencies?: Array<Record<string, unknown>>;
   dependents?: Array<Record<string, unknown>>;

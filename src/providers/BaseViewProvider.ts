@@ -121,9 +121,26 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
         await this.loadData();
         break;
 
-      case "selectProject":
-        await this.projectManager.setActiveProject(message.projectId);
+      case "selectProject": {
+        let switched = await this.projectManager.setActiveProject(message.projectId);
+        if (!switched && message.projectRootPath) {
+          const fallback = this.projectManager
+            .getProjects()
+            .find((project) => project.rootPath === message.projectRootPath);
+          if (fallback) {
+            switched = await this.projectManager.setActiveProject(fallback.id);
+          }
+        }
+
+        if (switched) {
+          const project = this.projectManager.getActiveProject();
+          this.postMessage({ type: "setProject", project });
+          const projects = this.projectManager.getProjects();
+          this.postMessage({ type: "setProjects", projects });
+          await this.loadData();
+        }
         break;
+      }
 
       case "selectBead":
         vscode.commands.executeCommand("beads.openBeadDetails", message.beadId);

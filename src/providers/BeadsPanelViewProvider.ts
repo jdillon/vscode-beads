@@ -18,6 +18,7 @@ import { Logger } from "../utils/logger";
 export class BeadsPanelViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsPanel";
   private selectedBeadId: string | null = null;
+  private loadSequence = 0;
 
   constructor(
     extensionUri: vscode.Uri,
@@ -36,6 +37,7 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
   }
 
   protected async loadData(): Promise<void> {
+    const thisRequest = ++this.loadSequence;
     const client = this.projectManager.getClient();
     if (!client) {
       this.postMessage({ type: "setBeads", beads: [] });
@@ -47,14 +49,22 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
 
     try {
       const issues = await client.list();
+      if (thisRequest !== this.loadSequence) {
+        return;
+      }
       const beads = issues.map(issueToWebviewBead).filter((b): b is Bead => b !== null);
       this.postMessage({ type: "setBeads", beads });
     } catch (err) {
+      if (thisRequest !== this.loadSequence) {
+        return;
+      }
       this.setError(String(err));
       this.postMessage({ type: "setBeads", beads: [] });
       this.handleDaemonError("Failed to load beads", err);
     } finally {
-      this.setLoading(false);
+      if (thisRequest === this.loadSequence) {
+        this.setLoading(false);
+      }
     }
   }
 
