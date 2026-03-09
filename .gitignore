@@ -12,3 +12,6 @@ tmp/
 
 # Local environment notes (not committed)
 CLAUDE.local.md
+
+# Local beads backup artifacts
+.beads/backup/
