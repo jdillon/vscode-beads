@@ -1,5 +1,10 @@
 {
   "cSpell.words": [
     "vsbeads"
-  ]
+  ],
+  "beads.projects": [
+    "/Users/jason/ws/jdillon/vscode-beads",
+    "/Users/jason/ws/jdillon/example-project"
+  ],
+  "beads.pathToBd": "/Users/jason/ws/jdillon/vscode-beads/.local/beads/bd"
 }
