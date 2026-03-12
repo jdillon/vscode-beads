@@ -49,6 +49,7 @@ import { LabelBadge } from "../common/LabelBadge";
 import { FilterChip } from "../common/FilterChip";
 import { Table, Kanban } from "lucide-react";
 import { ErrorMessage } from "../common/ErrorMessage";
+import { Loading } from "../common/Loading";
 import { ProjectDropdown } from "../common/ProjectDropdown";
 import { Dropdown, DropdownItem } from "../common/Dropdown";
 import { Timestamp, timestampSortingFn } from "../common/Timestamp";
@@ -879,8 +880,15 @@ export function IssuesView({
         />
       )}
 
+      {/* Loading state for project switches/manual refresh */}
+      {!error && loading && (
+        <div className="issues-loading-state">
+          <Loading />
+        </div>
+      )}
+
       {/* Table */}
-      {!error && viewMode === "table" && (
+      {!error && !loading && viewMode === "table" && (
         <div className="beads-table-wrapper">
           <div className={`beads-table-container ${table.getState().columnSizingInfo.isResizingColumn ? "resizing" : ""}`}>
             <table
@@ -1053,7 +1061,7 @@ export function IssuesView({
       )}
 
       {/* Kanban Board */}
-      {!error && viewMode === "board" && (
+      {!error && !loading && viewMode === "board" && (
         <KanbanBoard
           beads={table.getFilteredRowModel().rows.map((r) => r.original)}
           selectedBeadId={selectedBeadId}

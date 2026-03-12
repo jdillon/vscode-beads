@@ -110,35 +110,7 @@ export class BeadsProjectManager implements vscode.Disposable {
 
     this.log.info(`Switching active project to ${project.name} (${project.id})`);
 
-    this.activeProject = project;
-    await this.context.workspaceState.update(ACTIVE_PROJECT_KEY, project.id);
-
-    const config = vscode.workspace.getConfiguration("beads");
-    const bdPath = config.get<string>("pathToBd", "bd");
-
-    this.backend = new BeadsCLIBackend({
-      bdPath,
-      cwd: project.rootPath,
-      beadsDir: project.beadsDir,
-      log: this.log,
-      minSupportedVersion: "0.51.0",
-    });
-
-    const compatibility = await this.backend.checkCompatibility();
-    if (compatibility.supported) {
-      try {
-        await this.backend.info();
-        project.daemonStatus = "running";
-      } catch (error) {
-        project.daemonStatus = this.isNotInitializedError(error) ? "stopped" : "unknown";
-      }
-    } else {
-      project.daemonStatus = "stopped";
-    }
-
-    this._onActiveProjectChanged.fire(project);
-    this.syncActiveProjectPolling();
-    this._onDataChanged.fire();
+    await this.activateProject(project, { emitActiveProjectChanged: true, persistSelection: true, emitDataChanged: false });
     return true;
   }
 
@@ -160,7 +132,14 @@ export class BeadsProjectManager implements vscode.Disposable {
       return;
     }
 
-    await this.setActiveProject(activeId);
+    const activeProject = this.projects.find((project) => project.id === activeId);
+    if (activeProject) {
+      await this.activateProject(activeProject, {
+        emitActiveProjectChanged: false,
+        persistSelection: false,
+        emitDataChanged: true,
+      });
+    }
   }
 
   async ensureDaemonRunning(): Promise<boolean> {
@@ -421,17 +400,19 @@ export class BeadsProjectManager implements vscode.Disposable {
     const normalizedPath = filePath.split(path.sep).join("/");
 
     if (normalizedPath.includes("/.beads/dolt/")) {
-      const ignoredDoltFiles = new Set(["LOCK", "log.txt"]);
-      return !ignoredDoltFiles.has(fileName);
+      if (normalizedPath.includes("/.dolt/noms/")) {
+        const ignoredNomsFiles = new Set(["LOCK", "manifest"]);
+        return !ignoredNomsFiles.has(fileName);
+      }
+      return false;
     }
 
     const definitiveFiles = new Set([
       "metadata.json",
       "config.yaml",
       "redirect",
+      "last-touched",
       "interactions.jsonl",
-      "dolt-server.port",
-      "dolt-server.activity",
     ]);
     if (definitiveFiles.has(fileName)) return true;
 
@@ -461,7 +442,7 @@ export class BeadsProjectManager implements vscode.Disposable {
 
     const intervalMs = Math.max(
       0,
-      vscode.workspace.getConfiguration("beads").get<number>("refreshInterval", 30000)
+      vscode.workspace.getConfiguration("beads").get<number>("refreshInterval", 0)
     );
     if (intervalMs === 0) return;
 
@@ -498,6 +479,70 @@ export class BeadsProjectManager implements vscode.Disposable {
     } catch {
       return null;
     }
+  }
+
+  private async activateProject(
+    project: BeadsProject,
+    options: { emitActiveProjectChanged: boolean; persistSelection: boolean; emitDataChanged: boolean }
+  ): Promise<void> {
+    this.activeProject = project;
+
+    if (options.persistSelection) {
+      await this.context.workspaceState.update(ACTIVE_PROJECT_KEY, project.id);
+    }
+
+    const config = vscode.workspace.getConfiguration("beads");
+    const configuredBdPath = config.get<string>("pathToBd", "bd") ?? "bd";
+    const bdPath = this.resolveBdPath(configuredBdPath.trim());
+
+    this.backend = new BeadsCLIBackend({
+      bdPath,
+      cwd: project.rootPath,
+      beadsDir: project.beadsDir,
+      log: this.log,
+      minSupportedVersion: "0.51.0",
+    });
+
+    project.daemonStatus = "unknown";
+
+    if (options.emitActiveProjectChanged) {
+      this._onActiveProjectChanged.fire(project);
+    }
+
+    this.syncActiveProjectPolling();
+
+    if (options.emitDataChanged) {
+      this._onDataChanged.fire();
+    }
+
+    const compatibility = await this.backend.checkCompatibility();
+    if (compatibility.supported) {
+      try {
+        await this.backend.info();
+        project.daemonStatus = "running";
+      } catch (error) {
+        project.daemonStatus = this.isNotInitializedError(error) ? "stopped" : "unknown";
+      }
+    } else {
+      project.daemonStatus = "stopped";
+    }
+  }
+
+  private resolveBdPath(configuredPath: string): string {
+    const raw = configuredPath || "bd";
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+
+    const resolvedPath = workspaceRoot && !path.isAbsolute(raw) ? path.resolve(workspaceRoot, raw) : raw;
+
+    if (resolvedPath !== raw && fs.existsSync(resolvedPath)) {
+      return resolvedPath;
+    }
+
+    if (path.isAbsolute(raw) || raw === "bd") {
+      return raw;
+    }
+
+    return fs.existsSync(raw) ? raw : "bd";
   }
 
   private isNotInitializedError(error: unknown): boolean {

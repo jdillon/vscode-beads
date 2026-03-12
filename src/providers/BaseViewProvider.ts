@@ -100,13 +100,13 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
     });
 
     // Load view-specific data
-    await this.loadData();
+    await this.loadData("initial");
   }
 
   /**
    * Loads view-specific data. Override in subclasses.
    */
-  protected abstract loadData(): Promise<void>;
+  protected abstract loadData(reason?: "initial" | "projectChange" | "manualRefresh" | "background"): Promise<void>;
 
   /**
    * Handles messages from the webview. Override in subclasses for custom handling.
@@ -118,7 +118,7 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
         break;
 
       case "refresh":
-        await this.loadData();
+        await this.loadData("manualRefresh");
         break;
 
       case "selectProject": {
@@ -130,14 +130,6 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
           if (fallback) {
             switched = await this.projectManager.setActiveProject(fallback.id);
           }
-        }
-
-        if (switched) {
-          const project = this.projectManager.getActiveProject();
-          this.postMessage({ type: "setProject", project });
-          const projects = this.projectManager.getProjects();
-          this.postMessage({ type: "setProjects", projects });
-          await this.loadData();
         }
         break;
       }
@@ -157,7 +149,7 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
 
       case "startDaemon":
         await this.projectManager.ensureDaemonRunning();
-        await this.loadData();
+        await this.loadData("manualRefresh");
         break;
 
       case "stopDaemon":
@@ -274,7 +266,20 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
     const projects = this.projectManager.getProjects();
     this.postMessage({ type: "setProjects", projects });
 
-    this.loadData();
+    this.loadData("background");
+  }
+
+  /**
+   * Triggers a refresh intended for active project switches.
+   */
+  public refreshForProjectChange(): void {
+    const project = this.projectManager.getActiveProject();
+    this.postMessage({ type: "setProject", project });
+
+    const projects = this.projectManager.getProjects();
+    this.postMessage({ type: "setProjects", projects });
+
+    this.loadData("projectChange");
   }
 
   /**

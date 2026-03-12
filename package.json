@@ -88,11 +88,6 @@
         "icon": "$(refresh)"
       },
       {
-        "command": "beads.createBead",
-        "title": "Beads: Create New Issue",
-        "icon": "$(add)"
-      },
-      {
         "command": "beads.startDaemon",
         "title": "Beads: Start Daemon",
         "icon": "$(play)"
@@ -131,11 +126,6 @@
           "group": "navigation@1"
         },
         {
-          "command": "beads.createBead",
-          "when": "view == beadsPanel",
-          "group": "navigation@2"
-        },
-        {
           "command": "beads.copyBeadId",
           "when": "view == beadsDetails && beads.hasSelectedBead",
           "group": "navigation@1"
@@ -157,8 +147,8 @@
         },
         "beads.refreshInterval": {
           "type": "number",
-          "default": 30000,
-          "description": "Auto-refresh interval in milliseconds (0 to disable)"
+          "default": 0,
+          "description": "Polling fallback interval in milliseconds for server-mode projects (0 to disable)"
         },
         "beads.renderMarkdown": {
           "type": "boolean",

@@ -31,6 +31,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const timestamp = new Date().toISOString();
   log.info(`Activating v${version}${isDev ? " (dev)" : ""} @ ${timestamp}`);
 
+  const config = vscode.workspace.getConfiguration("beads");
+  const configuredProjects = config.get<string[]>("projects", []);
+  const workspaceFolders = (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath);
+  log.debug(`config.pathToBd=${config.get<string>("pathToBd", "bd")}`);
+  log.debug(`config.projects=${configuredProjects.length > 0 ? configuredProjects.join(",") : "<none>"}`);
+  log.debug(`config.autoStartDaemon=${config.get<boolean>("autoStartDaemon", true)}`);
+  log.debug(`config.refreshInterval=${config.get<number>("refreshInterval", 30000)}`);
+  log.debug(`config.renderMarkdown=${config.get<boolean>("renderMarkdown", true)}`);
+  log.debug(`config.userId=${config.get<string>("userId", "") || "<empty>"}`);
+  log.debug(`config.tooltipHoverDelay=${config.get<number>("tooltipHoverDelay", 1000)}`);
+  log.debug(`config.discoveryDepth=${config.get<number>("discoveryDepth", 1)}`);
+  log.debug(`config.workspaceFolders=${workspaceFolders.length > 0 ? workspaceFolders.join(",") : "<none>"}`);
+
   // Initialize the project manager
   projectManager = new BeadsProjectManager(context, log);
   await projectManager.initialize();
@@ -120,56 +133,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand("beads.refresh", async () => {
       log.info("Manual refresh triggered");
       await projectManager.refresh();
-      beadsPanelProvider.refresh();
-      detailsProvider.refresh();
       log.info("Refresh complete");
       vscode.window.setStatusBarMessage("$(check) Beads: Refreshed", 2000);
-    }),
-
-    vscode.commands.registerCommand("beads.createBead", async () => {
-      const client = projectManager.getClient();
-      if (!client) {
-        vscode.window.showWarningMessage("No active Beads project");
-        return;
-      }
-
-      const title = await vscode.window.showInputBox({
-        prompt: "Enter bead title",
-        placeHolder: "Bug: Something is broken",
-      });
-
-      if (!title) {
-        return;
-      }
-
-      const type = await vscode.window.showQuickPick(
-        ["bug", "feature", "task", "epic", "chore"],
-        { placeHolder: "Select bead type (optional)" }
-      );
-
-      const priority = await vscode.window.showQuickPick(
-        [
-          { label: "Critical (P0)", value: 0 },
-          { label: "High (P1)", value: 1 },
-          { label: "Medium (P2)", value: 2 },
-          { label: "Low (P3)", value: 3 },
-          { label: "None (P4)", value: 4 },
-        ],
-        { placeHolder: "Select priority (optional)" }
-      );
-
-      try {
-        const created = await client.create({
-          title,
-          issue_type: type || "task",
-          priority: priority?.value ?? 2,
-        });
-        log.info(`Created bead: ${created.id}`);
-        vscode.window.showInformationMessage(`Created bead: ${created.id}`);
-      } catch (err) {
-        log.error(`Failed to create bead: ${err}`);
-        vscode.window.showErrorMessage(`Failed to create bead: ${err}`);
-      }
     }),
 
     vscode.commands.registerCommand("beads.startDaemon", async () => {
@@ -289,9 +254,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     projectManager.onActiveProjectChanged(() => {
       beadsPanelProvider.setSelectedBead(null); // Clear selection on project switch
-      dashboardProvider.refresh();
-      beadsPanelProvider.refresh();
-      detailsProvider.refresh();
+      dashboardProvider.refreshForProjectChange();
+      beadsPanelProvider.refreshForProjectChange();
+      detailsProvider.refreshForProjectChange();
       updateDaemonStatusBar();
     }),
 

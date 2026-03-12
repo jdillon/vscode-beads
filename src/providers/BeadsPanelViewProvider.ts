@@ -36,7 +36,7 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
     this.postMessage({ type: "setSelectedBeadId", beadId });
   }
 
-  protected async loadData(): Promise<void> {
+  protected async loadData(reason: "initial" | "projectChange" | "manualRefresh" | "background" = "background"): Promise<void> {
     const thisRequest = ++this.loadSequence;
     const client = this.projectManager.getClient();
     if (!client) {
@@ -44,7 +44,10 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
       return;
     }
 
-    this.setLoading(true);
+    const showLoading = reason === "initial" || reason === "projectChange";
+    if (showLoading) {
+      this.setLoading(true);
+    }
     this.setError(null);
 
     try {
@@ -59,10 +62,12 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
         return;
       }
       this.setError(String(err));
-      this.postMessage({ type: "setBeads", beads: [] });
+      if (showLoading) {
+        this.postMessage({ type: "setBeads", beads: [] });
+      }
       this.handleDaemonError("Failed to load beads", err);
     } finally {
-      if (thisRequest === this.loadSequence) {
+      if (showLoading && thisRequest === this.loadSequence) {
         this.setLoading(false);
       }
     }

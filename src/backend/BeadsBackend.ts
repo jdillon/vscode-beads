@@ -1,3 +1,5 @@
+import type { DaemonBeadDependency } from "./types";
+
 export interface BeadsIssue {
   id: string;
   title: string;
@@ -15,8 +17,8 @@ export interface BeadsIssue {
   created_at: string;
   updated_at: string;
   closed_at?: string;
-  dependencies?: Array<Record<string, unknown>>;
-  dependents?: Array<Record<string, unknown>>;
+  dependencies?: DaemonBeadDependency[];
+  dependents?: DaemonBeadDependency[];
   comments?: Array<{ id: number; author: string; text: string; created_at: string }>;
 }
 

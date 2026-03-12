@@ -26,7 +26,7 @@ export class DashboardViewProvider extends BaseViewProvider {
     super(extensionUri, projectManager, logger.child("Dashboard"));
   }
 
-  protected async loadData(): Promise<void> {
+  protected async loadData(_reason: "initial" | "projectChange" | "manualRefresh" | "background" = "background"): Promise<void> {
     const thisRequest = ++this.loadSequence;
     const client = this.projectManager.getClient();
     if (!client) {

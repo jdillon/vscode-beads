@@ -63,7 +63,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
     this.setLoading(false);
   }
 
-  protected async loadData(): Promise<void> {
+  protected async loadData(_reason: "initial" | "projectChange" | "manualRefresh" | "background" = "background"): Promise<void> {
     // Increment sequence to track this request - prevents stale responses from
     // overwriting newer data when multiple refreshes occur in rapid succession
     const thisRequest = ++this.loadSequence;
