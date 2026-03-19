@@ -17,7 +17,6 @@ import {
 import { DashboardView } from "./views/DashboardView";
 import { IssuesView } from "./views/IssuesView";
 import { DetailsView } from "./views/DetailsView";
-import { ProjectsView } from "./views/ProjectsView";
 import { Loading } from "./common/Loading";
 import { ToastProvider, triggerToast } from "./common/Toast";
 
@@ -113,9 +112,13 @@ export function App(): React.ReactElement {
       }
 
       switch (state.viewType) {
-      case "beadsProjects":
+      case "beadsDashboard":
         return (
-          <ProjectsView
+          <DashboardView
+            summary={state.summary}
+            beads={state.beads}
+            loading={state.loading}
+            error={state.error}
             projects={state.projects}
             activeProject={state.project}
             onSelectProject={(project) =>
@@ -125,28 +128,11 @@ export function App(): React.ReactElement {
                 projectRootPath: project.rootPath,
               })
             }
-            onManageProject={(project) =>
-              vscode.postMessage({
-                type: "showProjectMenu",
-                projectId: project.id,
-              })
-            }
-            onRefresh={() =>
-              vscode.postMessage({ type: "refresh" })
-            }
-          />
-        );
-
-      case "beadsDashboard":
-        return (
-          <DashboardView
-            summary={state.summary}
-            beads={state.beads}
-            loading={state.loading}
-            error={state.error}
-            onSelectBead={(beadId) =>
-              vscode.postMessage({ type: "openBeadDetails", beadId })
-            }
+            onShowStatus={() => vscode.postMessage({ type: "showDoltStatus" })}
+            onStartDolt={() => vscode.postMessage({ type: "startDoltServer" })}
+            onStopDolt={() => vscode.postMessage({ type: "stopDoltServer" })}
+            onOpenDoltLog={() => vscode.postMessage({ type: "openDoltLog" })}
+            onOpenProjectFolder={() => vscode.postMessage({ type: "openProjectFolder" })}
             onRetry={() =>
               vscode.postMessage({ type: "refresh" })
             }

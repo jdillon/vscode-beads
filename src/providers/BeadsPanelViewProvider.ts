@@ -17,6 +17,7 @@ import { Logger } from "../utils/logger";
 
 export class BeadsPanelViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsPanel";
+  private static readonly MIN_LOADING_MS = 500;
   private selectedBeadId: string | null = null;
   private loadSequence = 0;
 
@@ -45,6 +46,7 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
     }
 
     const showLoading = reason === "initial" || reason === "projectChange" || reason === "manualRefresh";
+    const loadingStartedAt = showLoading ? Date.now() : 0;
     if (showLoading) {
       this.postMessage({ type: "setBeads", beads: [] });
       this.setLoading(true);
@@ -53,6 +55,9 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
 
     try {
       const issues = await client.list();
+      if (showLoading) {
+        await this.waitForMinimumLoading(loadingStartedAt);
+      }
       if (thisRequest !== this.loadSequence) {
         return;
       }
@@ -60,6 +65,9 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
       this.postMessage({ type: "setBeads", beads });
       this.setLoading(false);
     } catch (err) {
+      if (showLoading) {
+        await this.waitForMinimumLoading(loadingStartedAt);
+      }
       if (thisRequest !== this.loadSequence) {
         return;
       }
@@ -72,6 +80,13 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
       if (thisRequest === this.loadSequence) {
         this.setLoading(false);
       }
+    }
+  }
+
+  private async waitForMinimumLoading(startedAt: number): Promise<void> {
+    const remaining = BeadsPanelViewProvider.MIN_LOADING_MS - (Date.now() - startedAt);
+    if (remaining > 0) {
+      await new Promise((resolve) => setTimeout(resolve, remaining));
     }
   }
 

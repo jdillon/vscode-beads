@@ -163,7 +163,7 @@ export type ExtensionToWebviewMessage =
   | { type: "setBeads"; beads: Bead[] }
   | { type: "setBead"; bead: Bead | null }
   | { type: "setSelectedBeadId"; beadId: string | null }
-  | { type: "setSummary"; summary: BeadsSummary }
+  | { type: "setSummary"; summary: BeadsSummary | null }
   | { type: "setGraph"; graph: DependencyGraph }
   | { type: "setProjects"; projects: BeadsProject[] }
   | { type: "setLoading"; loading: boolean }
@@ -177,6 +177,11 @@ export type WebviewToExtensionMessage =
   | { type: "refresh" }
   | { type: "selectProject"; projectId: string; projectRootPath?: string }
   | { type: "showProjectMenu"; projectId: string }
+  | { type: "showDoltStatus" }
+  | { type: "startDoltServer" }
+  | { type: "stopDoltServer" }
+  | { type: "openDoltLog" }
+  | { type: "openProjectFolder" }
   | { type: "selectBead"; beadId: string }
   | { type: "updateBead"; beadId: string; updates: Partial<Bead> }
   | { type: "createBead"; data: Partial<Bead> }

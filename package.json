@@ -48,15 +48,9 @@
       "beads": [
         {
           "type": "webview",
-          "id": "beadsProjects",
-          "name": "Projects",
-          "visibility": "visible"
-        },
-        {
-          "type": "webview",
           "id": "beadsDashboard",
           "name": "Dashboard",
-          "visibility": "hidden"
+          "visibility": "visible"
         },
         {
           "type": "webview",
@@ -101,6 +95,11 @@
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "beads.refresh",
+          "when": "view == beadsDashboard",
+          "group": "navigation@1"
+        },
         {
           "command": "beads.refresh",
           "when": "view == beadsPanel",

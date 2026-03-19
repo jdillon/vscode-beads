@@ -185,7 +185,7 @@ textarea {
 }
 
 .dropdown-trigger:active {
-  transform: scale(0.98);
+  transform: none;
 }
 
 .dropdown-menu {
@@ -728,8 +728,13 @@ textarea {
 }
 
 .project-dropdown-trigger {
-  min-width: 60px;
-  max-width: 200px;
+  min-width: 0;
+  max-width: 240px;
+  width: 100%;
+  justify-content: space-between;
+  padding: 4px 8px 4px 10px;
+  min-height: 26px;
+  box-sizing: border-box;
 }
 
 .project-dropdown-name {
@@ -737,6 +742,7 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 
 .project-dropdown-menu {
@@ -920,6 +926,20 @@ textarea {
   display: flex;
   justify-content: flex-end;
   margin-top: 10px;
+}
+
+.dashboard-action-btn {
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 6px 10px;
+  cursor: pointer;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  flex-shrink: 0;
+}
+
+.dashboard-action-btn:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
 }
 
 .filter-toggle {
@@ -1416,6 +1436,151 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
+  padding: 4px;
+}
+
+.dashboard-compact {
+  gap: var(--spacing-sm);
+}
+
+.dashboard-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dashboard-toolbar .project-dropdown {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-toolbar .project-dropdown-trigger {
+  width: 100%;
+  max-width: none;
+}
+
+.dashboard-actions-dropdown {
+  flex-shrink: 0;
+}
+
+.dashboard-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  border-radius: var(--border-radius);
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.dashboard-menu-btn:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  opacity: 1;
+}
+
+.dashboard-menu-trigger {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.dashboard-actions-menu {
+  min-width: 160px;
+  z-index: 2000;
+}
+
+.dashboard-menu-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-menu-item-icon {
+  width: 12px;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.dashboard-actions-dropdown {
+  flex-shrink: 0;
+}
+
+.dashboard-menu-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: var(--border-radius);
+  opacity: 0.8;
+}
+
+.dashboard-menu-btn:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  opacity: 1;
+}
+
+.dashboard-menu-trigger {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.dashboard-actions-menu {
+  min-width: 160px;
+  z-index: 2000;
+}
+
+.dashboard-menu-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-menu-item-icon {
+  width: 12px;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.summary-section.compact {
+  grid-template-columns: repeat(4, minmax(56px, 1fr));
+  gap: 6px;
+}
+
+.dashboard-project-dir {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  overflow: hidden;
+  text-align: left;
+}
+
+.dashboard-project-dir-label {
+  flex-shrink: 0;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.dashboard-project-dir-value {
+  font-family: inherit;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vscode-foreground);
+  background: transparent;
+}
+
+.dashboard-project-dir:hover .dashboard-project-dir-value {
+  text-decoration: underline;
 }
 
 .summary-section {
@@ -1495,6 +1660,15 @@ textarea {
   min-width: 100px;
 }
 
+.bar-label.compact {
+  min-width: 84px;
+  gap: 6px;
+}
+
+.bar-label.compact.label {
+  min-width: 120px;
+}
+
 .bar-count {
   font-size: 12px;
   font-weight: 500;
@@ -1512,6 +1686,10 @@ textarea {
   height: 100%;
   border-radius: 4px;
   transition: width var(--transition-normal);
+}
+
+.bar-fill.label {
+  opacity: 0.95;
 }
 
 .work-sections {

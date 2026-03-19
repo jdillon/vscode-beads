@@ -11,13 +11,11 @@ import { BeadsProjectManager } from "./backend/BeadsProjectManager";
 import { DashboardViewProvider } from "./providers/DashboardViewProvider";
 import { BeadsPanelViewProvider } from "./providers/BeadsPanelViewProvider";
 import { BeadDetailsViewProvider } from "./providers/BeadDetailsViewProvider";
-import { ProjectsViewProvider } from "./providers/ProjectsViewProvider";
 import { createLogger, Logger } from "./utils/logger";
 
 let log: Logger;
 let projectManager: BeadsProjectManager;
 let dashboardProvider: DashboardViewProvider;
-let projectsProvider: ProjectsViewProvider;
 let beadsPanelProvider: BeadsPanelViewProvider;
 let detailsProvider: BeadDetailsViewProvider;
 let statusBar: vscode.StatusBarItem;
@@ -59,12 +57,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     log
   );
 
-  projectsProvider = new ProjectsViewProvider(
-    context.extensionUri,
-    projectManager,
-    log
-  );
-
   beadsPanelProvider = new BeadsPanelViewProvider(
     context.extensionUri,
     projectManager,
@@ -79,9 +71,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // Register webview providers
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider("beadsProjects", projectsProvider, {
-      webviewOptions: { retainContextWhenHidden: true },
-    }),
     vscode.window.registerWebviewViewProvider("beadsDashboard", dashboardProvider, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
@@ -142,6 +131,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     vscode.commands.registerCommand("beads.refresh", async () => {
       log.info("Manual refresh triggered");
+      dashboardProvider.hardRefresh();
+      beadsPanelProvider.hardRefresh();
+      detailsProvider.hardRefresh();
       await projectManager.refresh();
       log.info("Refresh complete");
       vscode.window.setStatusBarMessage("$(check) Beads: Refreshed", 2000);
@@ -203,6 +195,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.window.showInformationMessage(`Dolt status logged for ${project.name}. Check Output > Beads.`);
       } catch (err) {
         await log.errorNotify(`Failed to get Dolt status: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }),
+
+    vscode.commands.registerCommand("beads.openDoltLog", async () => {
+      const project = projectManager.getActiveProject();
+      if (!project) {
+        vscode.window.showWarningMessage("No active Beads project");
+        return;
+      }
+
+      const logUri = vscode.Uri.file(vscode.Uri.joinPath(vscode.Uri.file(project.beadsDir), "dolt-server.log").fsPath);
+      try {
+        const doc = await vscode.workspace.openTextDocument(logUri);
+        await vscode.window.showTextDocument(doc, { preview: false });
+      } catch (err) {
+        await log.errorNotify(`Failed to open Dolt log: ${err instanceof Error ? err.message : String(err)}`);
       }
     }),
 
@@ -269,7 +277,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Subscribe to project changes to refresh views
   context.subscriptions.push(
     projectManager.onDataChanged(() => {
-      projectsProvider.refresh();
       dashboardProvider.refresh();
       beadsPanelProvider.refresh();
       detailsProvider.refresh();
@@ -277,7 +284,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     projectManager.onActiveProjectChanged(() => {
       beadsPanelProvider.setSelectedBead(null); // Clear selection on project switch
-      projectsProvider.refreshForProjectChange();
       dashboardProvider.refreshForProjectChange();
       beadsPanelProvider.refreshForProjectChange();
       detailsProvider.refreshForProjectChange();
@@ -303,7 +309,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       // Refresh all views
-      projectsProvider.refresh();
       dashboardProvider.refresh();
       beadsPanelProvider.refresh();
       detailsProvider.refresh();

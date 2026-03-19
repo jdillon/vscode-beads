@@ -140,6 +140,30 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
         vscode.commands.executeCommand("beads.openBeadDetails", message.beadId);
         break;
 
+      case "showDoltStatus":
+        vscode.commands.executeCommand("beads.showDoltStatus");
+        break;
+
+      case "startDoltServer":
+        vscode.commands.executeCommand("beads.startDoltServer");
+        break;
+
+      case "stopDoltServer":
+        vscode.commands.executeCommand("beads.stopDoltServer");
+        break;
+
+      case "openDoltLog":
+        vscode.commands.executeCommand("beads.openDoltLog");
+        break;
+
+      case "openProjectFolder": {
+        const project = this.projectManager.getActiveProject();
+        if (project) {
+          await vscode.commands.executeCommand("revealInExplorer", vscode.Uri.file(project.rootPath));
+        }
+        break;
+      }
+
       case "openBeadDetails":
         vscode.commands.executeCommand("beads.openBeadDetails", message.beadId);
         break;
@@ -264,6 +288,20 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
     this.postMessage({ type: "setProjects", projects });
 
     this.loadData("background");
+  }
+
+  public hardRefresh(): void {
+    if (!this._view?.visible) {
+      return;
+    }
+
+    const project = this.projectManager.getActiveProject();
+    this.postMessage({ type: "setProject", project });
+
+    const projects = this.projectManager.getProjects();
+    this.postMessage({ type: "setProjects", projects });
+
+    this.loadData("manualRefresh");
   }
 
   /**
