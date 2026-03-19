@@ -49,7 +49,7 @@ Read CHANGELOG.md `[Unreleased]` section. Compare commits since last tag.
 **Always skip (never flag):**
 - `docs:`, `ci:`, `test:`, `bd:`, `bd sync:` commits
 - `chore:` commits (deps, formatting, tooling, project config)
-- `feat:` or `fix:` in `.claude/`, `.github/`, `scripts/`, `docs/` (project tooling, not extension)
+- `feat:` or `fix:` in `.agent/`, `.claude/`, `.opencode/`, `.github/`, `scripts/`, `docs/` (project tooling, not extension)
 - Commits already referenced in changelog (matching bead ID like `vsbeads-xxx`)
 
 If user-facing changes are missing from changelog, list them and **STOP**. Ask user to update changelog. Do NOT proceed.
