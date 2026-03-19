@@ -66,6 +66,17 @@ export class BeadsDoltBackend implements BeadsBackend {
     return this.cli.info();
   }
 
+  async getChangeToken(): Promise<string | null> {
+    try {
+      const rows = await this.query<SqlRow>("SELECT dolt_hashof_db() AS token", [], false, { logLevel: "trace" });
+      const token = rows[0]?.token;
+      return token == null ? null : String(token);
+    } catch (error) {
+      this.log.trace(`Failed to read dolt_hashof_db(): ${error instanceof Error ? error.message : String(error)}`);
+      return null;
+    }
+  }
+
   async doltStatus(): Promise<string> {
     return this.cli.doltStatus();
   }
@@ -319,16 +330,32 @@ export class BeadsDoltBackend implements BeadsBackend {
     return promise;
   }
 
-  private async query<T extends SqlRow>(sql: string, params: unknown[] = [], retry = true): Promise<T[]> {
+  private async query<T extends SqlRow>(
+    sql: string,
+    params: unknown[] = [],
+    retry = true,
+    options?: { logLevel?: "debug" | "trace" }
+  ): Promise<T[]> {
     try {
       const pool = await this.getPool();
-      this.log.debug(`Running Dolt SQL: ${this.formatSqlForLog(sql)}${params.length > 0 ? ` [params:${params.length}]` : ""}`);
+      const logLevel = options?.logLevel ?? "debug";
+      const logMessage = `Running Dolt SQL: ${this.formatSqlForLog(sql)}${params.length > 0 ? ` [params:${params.length}]` : ""}`;
+      if (logLevel === "trace") {
+        this.log.trace(logMessage);
+      } else {
+        this.log.debug(logMessage);
+      }
       if (params.length > 0) {
         this.log.trace(`Dolt SQL params: ${JSON.stringify(params)}`);
       }
       const startedAt = Date.now();
       const [rows] = await pool.query(sql, params);
-      this.log.debug(`Dolt query completed (${Date.now() - startedAt}ms)`);
+      const completionMessage = `Dolt query completed (${Date.now() - startedAt}ms)`;
+      if (logLevel === "trace") {
+        this.log.trace(completionMessage);
+      } else {
+        this.log.debug(completionMessage);
+      }
       return rows as T[];
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

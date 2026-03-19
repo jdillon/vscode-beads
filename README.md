@@ -97,7 +97,7 @@ Install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
 | ----------------------- | ------- | --------------------------------------------------- |
 | `beads.pathToBd`        | `"bd"`  | Path to `bd` CLI                                    |
 | `beads.autoStartDaemon` | `true`  | Auto-start daemon on project switch                 |
-| `beads.refreshInterval` | `30000` | Auto-refresh interval in ms (0 = disable)           |
+| `beads.refreshInterval` | `3000`  | Dolt change polling interval in ms (0 = disable)    |
 | `beads.renderMarkdown`  | `true`  | Render markdown in text fields                      |
 | `beads.userId`          | `""`    | Your user ID for "Assign to me" (defaults to $USER) |
 | `beads.tooltipHoverDelay` | `1000` | Delay in ms before showing tooltip on hover (0 = disable) |

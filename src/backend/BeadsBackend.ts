@@ -80,6 +80,7 @@ export interface BackendCompatibility {
 export interface BeadsBackend {
   checkCompatibility(): Promise<BackendCompatibility>;
   info(): Promise<Record<string, unknown>>;
+  getChangeToken(): Promise<string | null>;
   doltStatus(): Promise<string>;
   startDoltServer(): Promise<string>;
   stopDoltServer(): Promise<string>;

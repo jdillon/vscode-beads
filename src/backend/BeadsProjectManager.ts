@@ -24,6 +24,7 @@ export class BeadsProjectManager implements vscode.Disposable {
   private readonly projectWatchers = new Map<string, vscode.FileSystemWatcher>();
   private readonly discoveryWatchers: vscode.Disposable[] = [];
   private activePollTimer: NodeJS.Timeout | null = null;
+  private activePollToken: string | null = null;
 
   private readonly _onProjectsChanged = new vscode.EventEmitter<BeadsProject[]>();
   public readonly onProjectsChanged = this._onProjectsChanged.event;
@@ -160,14 +161,13 @@ export class BeadsProjectManager implements vscode.Disposable {
       };
     }
 
-    return {
-      state: "running",
-      message: compatibility.message,
-      details: {
-        beadsDir: this.activeProject.beadsDir,
-        watchMode: this.activeProject.storageMode,
-      },
-    };
+      return {
+        state: "running",
+        message: compatibility.message,
+        details: {
+          beadsDir: this.activeProject.beadsDir,
+        },
+      };
   }
 
   async showProjectPicker(): Promise<BeadsProject | undefined> {
@@ -179,7 +179,6 @@ export class BeadsProjectManager implements vscode.Disposable {
     const items = this.projects.map((project) => ({
       label: project.name,
       description: project.rootPath,
-      detail: `${project.storageMode ?? "embedded"} mode`,
       project,
     }));
 
@@ -237,14 +236,13 @@ export class BeadsProjectManager implements vscode.Disposable {
       beadsDir: projectProbe.beadsDir,
       backendStatus: "running",
       source,
-      storageMode: projectProbe.storageMode,
     };
   }
 
   private async probeBeadsProject(
     rootPath: string,
     explicitBeadsDir?: string
-  ): Promise<{ beadsDir: string; storageMode: "embedded" | "server" } | null> {
+  ): Promise<{ beadsDir: string } | null> {
     const bdPath = this.getBdPath();
     const commandLabel = `${bdPath} where`;
 
@@ -278,26 +276,12 @@ export class BeadsProjectManager implements vscode.Disposable {
       const beadsDir = path.resolve(rootPath, beadsDirLine);
       return {
         beadsDir,
-        storageMode: await this.detectStorageMode(beadsDir),
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.log.trace(`Discovery probe failed for ${rootPath}: ${message}`);
       return null;
     }
-  }
-
-  private async detectStorageMode(beadsDir: string): Promise<"embedded" | "server"> {
-    const metadataPath = path.join(beadsDir, "metadata.json");
-    try {
-      const raw = await fs.promises.readFile(metadataPath, "utf8");
-      const metadata = JSON.parse(raw) as { dolt_mode?: string; backend?: string };
-      if (metadata.dolt_mode === "server") return "server";
-      if (metadata.backend === "sqlite") return "embedded";
-    } catch {
-      // Ignore parse failures and default to embedded.
-    }
-    return "embedded";
   }
 
   private getProjectDisplayName(rootPath: string, beadsDir: string): string {
@@ -325,9 +309,11 @@ export class BeadsProjectManager implements vscode.Disposable {
       clearInterval(this.activePollTimer);
       this.activePollTimer = null;
     }
+    this.activePollToken = null;
 
     const project = this.activeProject;
-    if (!project || project.storageMode !== "server") return;
+    const backend = this.backend;
+    if (!project || !backend) return;
 
     const intervalMs = Math.max(
       0,
@@ -335,10 +321,32 @@ export class BeadsProjectManager implements vscode.Disposable {
     );
     if (intervalMs === 0) return;
 
-    this.activePollTimer = setInterval(() => {
-      if (this.activeProject?.id === project.id) {
-        this._onDataChanged.fire();
+    this.log.debug(`Watching Dolt changes for ${project.name} every ${intervalMs}ms`);
+
+    const poll = async () => {
+      if (this.activeProject?.id !== project.id || this.backend !== backend) return;
+      try {
+        this.log.trace(`Polling Dolt change token for ${project.name}`);
+        const token = await backend.getChangeToken();
+        if (!token) return;
+        if (this.activePollToken === null) {
+          this.activePollToken = token;
+          this.log.debug(`Initialized Dolt change token for ${project.name}`);
+          return;
+        }
+        if (token !== this.activePollToken) {
+          this.activePollToken = token;
+          this.log.debug(`Detected Dolt change for ${project.name}`);
+          this._onDataChanged.fire();
+        }
+      } catch (error) {
+        this.log.trace(`Active project poll failed: ${error instanceof Error ? error.message : String(error)}`);
       }
+    };
+
+    void poll();
+    this.activePollTimer = setInterval(() => {
+      void poll();
     }, intervalMs);
   }
 
@@ -371,6 +379,7 @@ export class BeadsProjectManager implements vscode.Disposable {
     });
 
     project.backendStatus = "unknown";
+    this.activePollToken = null;
 
     if (options.emitActiveProjectChanged) {
       this._onActiveProjectChanged.fire(project);
@@ -384,6 +393,13 @@ export class BeadsProjectManager implements vscode.Disposable {
 
     const compatibility = await this.backend.checkCompatibility();
     project.backendStatus = compatibility.supported ? "running" : "stopped";
+    if (compatibility.supported) {
+      try {
+        this.activePollToken = await this.backend.getChangeToken();
+      } catch (error) {
+        this.log.trace(`Failed to initialize change token: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
   }
 
   private resolveBdPath(configuredPath: string): string {

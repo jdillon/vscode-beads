@@ -109,7 +109,6 @@ export interface BeadsProject {
   rootPath: string; // Project root (VS Code workspace folder)
   beadsDir: string; // Path to .beads directory
   source?: "workspace" | "setting" | "env";
-  storageMode?: "embedded" | "server";
   dbPath?: string; // Path to beads.db (if discovered)
   backendStatus: "running" | "stopped" | "unknown";
   backendPid?: number;

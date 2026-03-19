@@ -79,6 +79,10 @@ export class BeadsCLIBackend implements BeadsBackend {
     return {};
   }
 
+  async getChangeToken(): Promise<string | null> {
+    return null;
+  }
+
   async doltStatus(): Promise<string> {
     return this.runText(["dolt", "status"]);
   }

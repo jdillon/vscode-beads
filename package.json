@@ -122,8 +122,8 @@
         },
         "beads.refreshInterval": {
           "type": "number",
-          "default": 0,
-          "description": "Polling fallback interval in milliseconds for server-mode projects (0 to disable)"
+          "default": 3000,
+          "description": "Polling interval in milliseconds for Dolt change detection (0 to disable)"
         },
         "beads.renderMarkdown": {
           "type": "boolean",
