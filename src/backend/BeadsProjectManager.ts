@@ -9,7 +9,7 @@ import { BeadsProject } from "./types";
 
 const ACTIVE_PROJECT_KEY = "beads.activeProjectId";
 
-type DaemonStatusState = "running" | "stopped" | "zombie" | "not_initialized" | "unknown";
+type BackendStatusState = "running" | "stopped" | "zombie" | "not_initialized" | "unknown";
 
 export class BeadsProjectManager implements vscode.Disposable {
   private readonly context: vscode.ExtensionContext;
@@ -142,21 +142,7 @@ export class BeadsProjectManager implements vscode.Disposable {
     }
   }
 
-  async ensureDaemonRunning(): Promise<boolean> {
-    await this.refresh();
-    return this.backend !== null;
-  }
-
-  async stopDaemon(): Promise<boolean> {
-    return true;
-  }
-
-  async restartDaemon(): Promise<boolean> {
-    await this.refresh();
-    return this.backend !== null;
-  }
-
-  async getDaemonStatus(): Promise<{ state: DaemonStatusState; message: string; details?: Record<string, unknown> }> {
+  async getBackendStatus(): Promise<{ state: BackendStatusState; message: string; details?: Record<string, unknown> }> {
     if (!this.activeProject || !this.backend) {
       return { state: "unknown", message: "No active project" };
     }
@@ -179,7 +165,7 @@ export class BeadsProjectManager implements vscode.Disposable {
       if (this.isNotInitializedError(error)) {
         return {
           state: "not_initialized",
-          message: "Beads project is not initialized. Run `bd init` in this project.",
+          message: "Beads project is not initialized. Run `bd init` in this project. See Output > Beads for details.",
         };
       }
 
@@ -220,7 +206,7 @@ export class BeadsProjectManager implements vscode.Disposable {
     return selected.project;
   }
 
-  async notifyDaemonError(err: unknown): Promise<void> {
+  async notifyBackendError(err: unknown): Promise<void> {
     const message = err instanceof Error ? err.message : String(err);
     this.log.warn(`Backend error: ${message}`);
   }
@@ -283,7 +269,7 @@ export class BeadsProjectManager implements vscode.Disposable {
       name: folderName,
       rootPath,
       beadsDir: resolvedBeadsDir,
-      daemonStatus: "running",
+      backendStatus: "running",
       source,
       storageMode: await this.detectStorageMode(resolvedBeadsDir),
     };
@@ -503,7 +489,7 @@ export class BeadsProjectManager implements vscode.Disposable {
       minSupportedVersion: "0.51.0",
     });
 
-    project.daemonStatus = "unknown";
+    project.backendStatus = "unknown";
 
     if (options.emitActiveProjectChanged) {
       this._onActiveProjectChanged.fire(project);
@@ -519,12 +505,12 @@ export class BeadsProjectManager implements vscode.Disposable {
     if (compatibility.supported) {
       try {
         await this.backend.info();
-        project.daemonStatus = "running";
+        project.backendStatus = "running";
       } catch (error) {
-        project.daemonStatus = this.isNotInitializedError(error) ? "stopped" : "unknown";
+        project.backendStatus = this.isNotInitializedError(error) ? "stopped" : "unknown";
       }
     } else {
-      project.daemonStatus = "stopped";
+      project.backendStatus = "stopped";
     }
   }
 
@@ -548,6 +534,7 @@ export class BeadsProjectManager implements vscode.Disposable {
   private isNotInitializedError(error: unknown): boolean {
     const message = error instanceof Error ? error.message : String(error);
     const normalized = message.toLowerCase();
-    return normalized.includes("not initialized") || normalized.includes("failed to open database");
+    const missingNamedDatabase = normalized.includes('database "') && normalized.includes('" not found');
+    return normalized.includes("not initialized") || missingNamedDatabase;
   }
 }

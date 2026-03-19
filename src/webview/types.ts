@@ -60,8 +60,8 @@ export interface BeadsProject {
   source?: "workspace" | "setting" | "env";
   storageMode?: "embedded" | "server";
   dbPath?: string;
-  daemonStatus: "running" | "stopped" | "unknown";
-  daemonPid?: number;
+  backendStatus: "running" | "stopped" | "unknown";
+  backendPid?: number;
 }
 
 export interface BeadsSummary {
@@ -108,8 +108,6 @@ export type WebviewMessage =
   | { type: "addComment"; beadId: string; text: string }
   | { type: "openBeadDetails"; beadId: string }
   | { type: "viewInGraph"; beadId: string }
-  | { type: "startDaemon" }
-  | { type: "stopDaemon" }
   | { type: "copyBeadId"; beadId: string }
   | { type: "openFile"; filePath: string; line?: number };
 

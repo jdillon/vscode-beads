@@ -1,4 +1,4 @@
-import type { DaemonBeadDependency } from "./types";
+import type { BackendBeadDependency } from "./types";
 
 export interface BeadsIssue {
   id: string;
@@ -17,8 +17,8 @@ export interface BeadsIssue {
   created_at: string;
   updated_at: string;
   closed_at?: string;
-  dependencies?: DaemonBeadDependency[];
-  dependents?: DaemonBeadDependency[];
+  dependencies?: BackendBeadDependency[];
+  dependents?: BackendBeadDependency[];
   comments?: Array<{ id: number; author: string; text: string; created_at: string }>;
 }
 

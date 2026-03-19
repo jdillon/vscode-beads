@@ -10,9 +10,7 @@ tmp/
 .cache/
 .openvscode-server/
 .local/
+.beads/
 
 # Local environment notes (not committed)
 CLAUDE.local.md
-
-# Local beads backup artifacts
-.beads/backup/

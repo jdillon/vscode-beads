@@ -31,7 +31,6 @@ interface DashboardViewProps {
   activeProject: BeadsProject | null;
   onSelectProject: (project: BeadsProject) => void;
   onSelectBead: (beadId: string) => void;
-  onStartDaemon: () => void;
   onRetry: () => void;
 }
 
@@ -44,11 +43,8 @@ export function DashboardView({
   activeProject,
   onSelectProject,
   onSelectBead,
-  onStartDaemon,
   onRetry,
 }: DashboardViewProps): React.ReactElement {
-  const isSocketError = error?.includes("ENOENT") || error?.includes("socket");
-
   const openBeads = beads.filter((b) => b.status === "open").slice(0, 5);
   const blockedBeads = beads.filter((b) => b.status === "blocked").slice(0, 5);
   const inProgressBeads = beads.filter((b) => b.status === "in_progress").slice(0, 5);
@@ -69,7 +65,6 @@ export function DashboardView({
         <ErrorMessage
           message={error}
           onRetry={onRetry}
-          onStartDaemon={isSocketError ? onStartDaemon : undefined}
         />
       )}
 

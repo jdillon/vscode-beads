@@ -128,7 +128,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
       }
       this.setError(String(err));
       this.postMessage({ type: "setBead", bead: null });
-      this.handleDaemonError("Failed to load bead details", err);
+      this.handleBackendError("Failed to load bead details", err);
     } finally {
       // Only update loading state if this is still the current request
       if (thisRequest === this.loadSequence) {
@@ -150,7 +150,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
         this.log.debug(`Updating bead ${message.beadId}: ${JSON.stringify(message.updates)}`);
 
         try {
-          // Map webview field names (camelCase) to daemon API field names (snake_case)
+          // Map webview field names (camelCase) to CLI/backend field names (snake_case)
           const {
             labels,
             externalRef,
@@ -162,7 +162,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
             id: message.beadId,
             ...rest,
           };
-          // Daemon uses set_labels instead of labels
+          // CLI uses set_labels instead of labels
           if (labels !== undefined) {
             updateArgs.set_labels = labels;
           }

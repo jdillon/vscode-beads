@@ -107,7 +107,7 @@ export class DashboardViewProvider extends BaseViewProvider {
         return;
       }
       this.setError(String(err));
-      this.handleDaemonError("Failed to load dashboard", err);
+      this.handleBackendError("Failed to load dashboard", err);
     } finally {
       if (thisRequest === this.loadSequence) {
         this.setLoading(false);

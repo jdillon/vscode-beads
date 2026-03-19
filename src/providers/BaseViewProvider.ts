@@ -147,15 +147,6 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
         vscode.commands.executeCommand("beadsGraph.focus");
         break;
 
-      case "startDaemon":
-        await this.projectManager.ensureDaemonRunning();
-        await this.loadData("manualRefresh");
-        break;
-
-      case "stopDaemon":
-        await this.projectManager.stopDaemon();
-        break;
-
       case "copyBeadId":
         if (message.beadId) {
           await vscode.env.clipboard.writeText(message.beadId);
@@ -245,13 +236,13 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
   }
 
   /**
-   * Handles daemon connection errors - logs and notifies ProjectManager
+   * Handles backend connection errors - logs and notifies ProjectManager
    * Views show error state in UI; centralized notification handled by ProjectManager
    */
-  protected handleDaemonError(message: string, err: unknown): void {
+  protected handleBackendError(message: string, err: unknown): void {
     this.log.error(`${message}: ${err}`);
-    // ProjectManager handles the notification - views just update their error state
-    this.projectManager.notifyDaemonError(err);
+    // ProjectManager handles notification details - views just update their error state
+    this.projectManager.notifyBackendError(err);
   }
 
   /**

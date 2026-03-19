@@ -65,7 +65,7 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
       if (showLoading) {
         this.postMessage({ type: "setBeads", beads: [] });
       }
-      this.handleDaemonError("Failed to load beads", err);
+      this.handleBackendError("Failed to load beads", err);
     } finally {
       if (showLoading && thisRequest === this.loadSequence) {
         this.setLoading(false);

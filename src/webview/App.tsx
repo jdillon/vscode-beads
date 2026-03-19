@@ -132,9 +132,6 @@ export function App(): React.ReactElement {
             onSelectBead={(beadId) =>
               vscode.postMessage({ type: "openBeadDetails", beadId })
             }
-            onStartDaemon={() =>
-              vscode.postMessage({ type: "startDaemon" })
-            }
             onRetry={() =>
               vscode.postMessage({ type: "refresh" })
             }
@@ -163,9 +160,6 @@ export function App(): React.ReactElement {
             }
             onUpdateBead={(beadId, updates) =>
               vscode.postMessage({ type: "updateBead", beadId, updates })
-            }
-            onStartDaemon={() =>
-              vscode.postMessage({ type: "startDaemon" })
             }
             onRetry={() =>
               vscode.postMessage({ type: "refresh" })

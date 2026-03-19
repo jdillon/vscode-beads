@@ -213,8 +213,14 @@ export class BeadsCLIBackend implements BeadsBackend {
       const rawMessage = stderr || stdout || err.message;
       this.log.warn(`bd command failed: ${args.join(" ")} :: ${rawMessage}`);
 
+      if (this.isDoltConnectionError(rawMessage)) {
+        throw new Error(
+          "Beads cannot connect to the Dolt server for this project. Run `bd dolt start` and retry. See Output > Beads for details."
+        );
+      }
+
       if (this.isProjectNotInitializedError(rawMessage)) {
-        throw new Error("Beads project is not initialized. Run `bd init` in this project.");
+        throw new Error("Beads project is not initialized. Run `bd init` in this project. See Output > Beads for details.");
       }
 
       throw new Error(rawMessage);
@@ -255,11 +261,20 @@ export class BeadsCLIBackend implements BeadsBackend {
 
   private isProjectNotInitializedError(message: string): boolean {
     const normalized = message.toLowerCase();
+    const missingNamedDatabase = normalized.includes('database "') && normalized.includes('" not found');
     return (
-      normalized.includes("failed to open database") ||
-      normalized.includes("database \"beads\" not found") ||
+      missingNamedDatabase ||
       normalized.includes("database not found on dolt server") ||
       normalized.includes("has not been initialized")
+    );
+  }
+
+  private isDoltConnectionError(message: string): boolean {
+    const normalized = message.toLowerCase();
+    return (
+      normalized.includes("dolt circuit breaker is open") ||
+      normalized.includes("server appears down") ||
+      normalized.includes("active probe failed")
     );
   }
 }
