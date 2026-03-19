@@ -1561,6 +1561,17 @@ textarea {
   text-align: left;
 }
 
+.dashboard-project-dir-link {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+}
+
 .dashboard-project-dir-label {
   flex-shrink: 0;
   font-size: 10px;
@@ -1571,6 +1582,7 @@ textarea {
 
 .dashboard-project-dir-value {
   font-family: inherit;
+  display: inline-block;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1579,7 +1591,7 @@ textarea {
   background: transparent;
 }
 
-.dashboard-project-dir:hover .dashboard-project-dir-value {
+.dashboard-project-dir-link:hover .dashboard-project-dir-value {
   text-decoration: underline;
 }
 
