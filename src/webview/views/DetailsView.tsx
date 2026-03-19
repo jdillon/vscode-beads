@@ -20,7 +20,6 @@ import {
   STATUS_COLORS,
   TYPE_COLORS,
   TYPE_LABELS,
-  TYPE_SORT_ORDER,
   getTypeSortOrder,
   sortLabels,
 } from "../types";

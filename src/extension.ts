@@ -36,11 +36,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const workspaceFolders = (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath);
   log.debug(`config.pathToBd=${config.get<string>("pathToBd", "bd")}`);
   log.debug(`config.projects=${configuredProjects.length > 0 ? configuredProjects.join(",") : "<none>"}`);
-  log.debug(`config.refreshInterval=${config.get<number>("refreshInterval", 30000)}`);
+  log.debug(`config.refreshInterval=${config.get<number>("refreshInterval", 3000)}`);
   log.debug(`config.renderMarkdown=${config.get<boolean>("renderMarkdown", true)}`);
   log.debug(`config.userId=${config.get<string>("userId", "") || "<empty>"}`);
   log.debug(`config.tooltipHoverDelay=${config.get<number>("tooltipHoverDelay", 1000)}`);
-  log.debug(`config.discoveryDepth=${config.get<number>("discoveryDepth", 1)}`);
   log.debug(`config.workspaceFolders=${workspaceFolders.length > 0 ? workspaceFolders.join(",") : "<none>"}`);
 
   // Initialize the project manager

@@ -27,12 +27,10 @@ When using `--branch` mode, beads creates a git worktree at `.git/beads-worktree
 bd init --branch beads-metadata --force
 ```
 
-## Daemon Auto-Commit
+## Dolt Status and Protected Branch Sync
 
-The daemon must be started with `--auto-commit` flag for protected branch workflow:
+In protected-branch mode, issue data still syncs through the metadata worktree, but daemon-specific guidance is obsolete.
 
-```bash
-bd daemon --start --auto-commit
-```
-
-Without this flag, changes won't auto-commit to the metadata branch.
+- Use `bd sync` to reconcile metadata branch changes
+- Use `bd hooks install --force` after upgrading `bd`
+- If the extension cannot read issue data, check the active project's Dolt status from the dashboard or with `bd dolt status`

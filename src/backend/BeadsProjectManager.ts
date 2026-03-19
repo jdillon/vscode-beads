@@ -21,8 +21,6 @@ export class BeadsProjectManager implements vscode.Disposable {
   private activeProject: BeadsProject | null = null;
   private backend: BeadsBackend | null = null;
 
-  private readonly projectWatchers = new Map<string, vscode.FileSystemWatcher>();
-  private readonly discoveryWatchers: vscode.Disposable[] = [];
   private activePollTimer: NodeJS.Timeout | null = null;
   private activePollToken: string | null = null;
 
@@ -78,7 +76,6 @@ export class BeadsProjectManager implements vscode.Disposable {
     const discoveredProjects = Array.from(discoveredById.values()).sort((a, b) => a.name.localeCompare(b.name));
     this.projects = discoveredProjects;
     this._onProjectsChanged.fire(this.projects);
-    this.syncProjectWatchers();
   }
 
   getProjects(): BeadsProject[] {
@@ -198,10 +195,6 @@ export class BeadsProjectManager implements vscode.Disposable {
   }
 
   dispose(): void {
-    for (const watcher of this.projectWatchers.values()) watcher.dispose();
-    for (const watcher of this.discoveryWatchers) watcher.dispose();
-    this.projectWatchers.clear();
-    this.discoveryWatchers.length = 0;
     if (this.activePollTimer) {
       clearInterval(this.activePollTimer);
       this.activePollTimer = null;
@@ -297,11 +290,6 @@ export class BeadsProjectManager implements vscode.Disposable {
 
   private generateProjectId(beadsDir: string): string {
     return crypto.createHash("sha256").update(beadsDir).digest("hex").slice(0, 12);
-  }
-
-  private syncProjectWatchers(): void {
-    for (const watcher of this.projectWatchers.values()) watcher.dispose();
-    this.projectWatchers.clear();
   }
 
   private syncActiveProjectPolling(): void {

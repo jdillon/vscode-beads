@@ -8,7 +8,7 @@ After cloning, initialize beads with the protected branch workflow:
 bd init --branch beads-metadata && bd hooks install
 ```
 
-This sets up the worktree-based sync to `beads-metadata` branch. The extension handles daemon lifecycle automatically.
+This sets up the worktree-based sync to `beads-metadata` branch. The extension uses `bd` for project discovery and Dolt lifecycle control, and reads issue data directly from Dolt SQL.
 
 ## Build Commands
 

@@ -14,7 +14,7 @@ The protected branch workflow keeps beads issue data on a separate branch (`bead
 **With protected branch:**
 - Issue data commits to dedicated `beads-metadata` branch via git worktree
 - Code PRs stay clean - only code changes
-- Daemon handles auto-commit to metadata branch
+- Hooks and `bd sync` keep metadata branch flow predictable
 - No merge conflicts on issue data
 
 ## Setup (New Project)
@@ -26,7 +26,6 @@ git checkout main
 bd init --branch beads-metadata
 bd sync                        # creates branch and worktree
 bd hooks install
-bd daemon --start --auto-commit
 ```
 
 > **Note:** `bd init --branch` only sets config. Run `bd sync` to create the actual branch and worktree.
@@ -106,11 +105,10 @@ bd sync
 
 This creates the `beads-metadata` branch and sets up the worktree at `.git/beads-worktrees/beads-metadata`.
 
-### Step 6: Install hooks and start daemon
+### Step 6: Install hooks
 
 ```bash
 bd hooks install --force
-bd daemon --start --auto-commit
 ```
 
 ## Verification
@@ -126,9 +124,6 @@ git worktree list
 
 # Check branch exists
 git branch | grep beads-metadata
-
-# Check daemon running with auto-commit
-bd daemon --status
 
 # Check issues are intact
 bd stats
@@ -147,20 +142,18 @@ main branch                    beads-metadata branch
 ├── src/                       ├── .beads/
 ├── package.json               │   ├── issues.jsonl
 ├── .beads/                    │   └── deletions.jsonl
-│   ├── beads.db (local)       └── (auto-committed by daemon)
-│   └── config.yaml
+│   └── config.yaml            └── (metadata commits via hooks/sync)
 └── (your code)
 
          ↑                              ↑
     code commits                  issue data commits
-    (manual/PR)                   (daemon auto-commit)
+    (manual/PR)                   (metadata workflow)
 ```
 
-The daemon:
-- Watches for database changes
-- Exports to JSONL files in worktree
-- Auto-commits to `beads-metadata` branch
-- Syncs with remote on `bd sync`
+The protected branch workflow:
+- Keeps issue data in a dedicated metadata branch
+- Uses hooks and sync commands to keep metadata current
+- Keeps application code and issue history separated
 
 ## Sync Commands
 
@@ -184,12 +177,6 @@ cp .beads/*.jsonl tmp/   # backup
 rm -rf .beads
 bd init --branch beads-metadata
 bd sync
-```
-
-**Daemon not auto-committing:**
-```bash
-bd daemon --stop
-bd daemon --start --auto-commit
 ```
 
 **Check hooks installed:**
