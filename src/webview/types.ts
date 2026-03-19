@@ -14,7 +14,7 @@ export type BeadPriority = 0 | 1 | 2 | 3 | 4;
 export type DependencyType = "blocks" | "parent-child" | "related" | "discovered-from";
 
 export interface BeadComment {
-  id: number;
+  id: string;
   author: string;
   text: string;
   createdAt: string;

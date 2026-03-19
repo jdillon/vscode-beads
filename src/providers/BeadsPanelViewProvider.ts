@@ -44,7 +44,7 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
       return;
     }
 
-    const showLoading = reason === "initial" || reason === "projectChange";
+    const showLoading = reason === "initial" || reason === "projectChange" || reason === "manualRefresh";
     if (showLoading) {
       this.setLoading(true);
     }
@@ -57,6 +57,7 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
       }
       const beads = issues.map(issueToWebviewBead).filter((b): b is Bead => b !== null);
       this.postMessage({ type: "setBeads", beads });
+      this.setLoading(false);
     } catch (err) {
       if (thisRequest !== this.loadSequence) {
         return;
@@ -67,7 +68,7 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
       }
       this.handleBackendError("Failed to load beads", err);
     } finally {
-      if (showLoading && thisRequest === this.loadSequence) {
+      if (thisRequest === this.loadSequence) {
         this.setLoading(false);
       }
     }

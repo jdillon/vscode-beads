@@ -99,8 +99,10 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
       },
     });
 
-    // Load view-specific data
-    await this.loadData("initial");
+    // Load view-specific data only for visible views.
+    if (this._view.visible) {
+      await this.loadData("initial");
+    }
   }
 
   /**
@@ -249,6 +251,10 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
    * Triggers a refresh of the view
    */
   public refresh(): void {
+    if (!this._view?.visible) {
+      return;
+    }
+
     // Update project state in webview
     const project = this.projectManager.getActiveProject();
     this.postMessage({ type: "setProject", project });
@@ -264,6 +270,10 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
    * Triggers a refresh intended for active project switches.
    */
   public refreshForProjectChange(): void {
+    if (!this._view?.visible) {
+      return;
+    }
+
     const project = this.projectManager.getActiveProject();
     this.postMessage({ type: "setProject", project });
 

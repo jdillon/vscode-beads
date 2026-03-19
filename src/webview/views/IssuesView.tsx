@@ -875,16 +875,14 @@ export function IssuesView({
         />
       )}
 
-      {/* Loading state for project switches/manual refresh */}
-      {!error && loading && (
-        <div className="issues-loading-state">
-          <Loading />
-        </div>
-      )}
-
       {/* Table */}
-      {!error && !loading && viewMode === "table" && (
+      {!error && viewMode === "table" && (
         <div className="beads-table-wrapper">
+          {loading && (
+            <div className="issues-loading-state">
+              <Loading />
+            </div>
+          )}
           <div className={`beads-table-container ${table.getState().columnSizingInfo.isResizingColumn ? "resizing" : ""}`}>
             <table
               className="beads-table"
@@ -1056,15 +1054,22 @@ export function IssuesView({
       )}
 
       {/* Kanban Board */}
-      {!error && !loading && viewMode === "board" && (
-        <KanbanBoard
-          beads={table.getFilteredRowModel().rows.map((r) => r.original)}
-          selectedBeadId={selectedBeadId}
-          onSelectBead={onSelectBead}
-          onUpdateBead={onUpdateBead}
-          hasActiveFilters={hasActiveFilters}
-          unfilteredCounts={unfilteredStatusCounts}
-        />
+      {!error && viewMode === "board" && (
+        <>
+          {loading && (
+            <div className="issues-loading-state">
+              <Loading />
+            </div>
+          )}
+          <KanbanBoard
+            beads={table.getFilteredRowModel().rows.map((r) => r.original)}
+            selectedBeadId={selectedBeadId}
+            onSelectBead={onSelectBead}
+            onUpdateBead={onUpdateBead}
+            hasActiveFilters={hasActiveFilters}
+            unfilteredCounts={unfilteredStatusCounts}
+          />
+        </>
       )}
 
       {/* Markdown tooltip */}

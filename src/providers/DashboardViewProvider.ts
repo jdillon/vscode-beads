@@ -26,7 +26,7 @@ export class DashboardViewProvider extends BaseViewProvider {
     super(extensionUri, projectManager, logger.child("Dashboard"));
   }
 
-  protected async loadData(_reason: "initial" | "projectChange" | "manualRefresh" | "background" = "background"): Promise<void> {
+  protected async loadData(reason: "initial" | "projectChange" | "manualRefresh" | "background" = "background"): Promise<void> {
     const thisRequest = ++this.loadSequence;
     const client = this.projectManager.getClient();
     if (!client) {
@@ -50,7 +50,10 @@ export class DashboardViewProvider extends BaseViewProvider {
       return;
     }
 
-    this.setLoading(true);
+    const showLoading = reason === "initial" || reason === "projectChange" || reason === "manualRefresh";
+    if (showLoading) {
+      this.setLoading(true);
+    }
     this.setError(null);
 
     try {
@@ -102,6 +105,7 @@ export class DashboardViewProvider extends BaseViewProvider {
 
       const importantBeads = [...openBeads, ...blockedBeads, ...inProgressBeads];
       this.postMessage({ type: "setBeads", beads: importantBeads });
+      this.setLoading(false);
     } catch (err) {
       if (thisRequest !== this.loadSequence) {
         return;

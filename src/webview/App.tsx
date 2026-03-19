@@ -107,11 +107,6 @@ export function App(): React.ReactElement {
 
   // Render the appropriate view
   const renderView = () => {
-    // Only show loading for beadsPanel when loading initial data
-    if (state.viewType === "beadsPanel" && state.loading && state.beads.length === 0) {
-      return <Loading />;
-    }
-
     switch (state.viewType) {
       case "beadsDashboard":
         return (

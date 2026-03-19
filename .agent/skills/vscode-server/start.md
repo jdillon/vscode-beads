@@ -7,7 +7,7 @@ Start code-server development environment for testing the current VS Code extens
 Run the comprehensive startup script:
 
 ```bash
-.claude/skills/vscode-server/scripts/start-dev-environment.sh
+.agent/skills/vscode-server/scripts/start-dev-environment.sh
 ```
 
 Use `run_in_background: true` for this command.

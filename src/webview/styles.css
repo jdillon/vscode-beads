@@ -335,24 +335,6 @@ textarea {
   max-width: 200px;
 }
 
-.daemon-badge {
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 10px;
-}
-
-.daemon-running {
-  color: var(--vscode-testing-iconPassed, #22c55e);
-}
-
-.daemon-stopped {
-  color: var(--vscode-testing-iconFailed, #ef4444);
-}
-
-.daemon-unknown {
-  color: var(--vscode-descriptionForeground);
-}
-
 /* ==================== Status & Priority Badges ==================== */
 /*
  * Keep font-variant in sync with:
@@ -612,8 +594,7 @@ textarea {
   gap: var(--spacing-sm);
 }
 
-.retry-button,
-.start-daemon-button {
+.retry-button {
   padding: var(--spacing-sm) var(--spacing-lg);
   background-color: var(--vscode-button-background);
   color: var(--vscode-button-foreground);
@@ -622,24 +603,13 @@ textarea {
   border: none;
 }
 
-.retry-button:hover,
-.start-daemon-button:hover {
+.retry-button:hover {
   background-color: var(--vscode-button-hoverBackground);
 }
 
-.retry-button:active,
-.start-daemon-button:active {
+.retry-button:active {
   transform: scale(0.97);
   opacity: 0.9;
-}
-
-.start-daemon-button {
-  background-color: var(--vscode-button-secondaryBackground);
-  color: var(--vscode-button-secondaryForeground);
-}
-
-.start-daemon-button:hover {
-  background-color: var(--vscode-button-secondaryHoverBackground);
 }
 
 /* Empty States */
@@ -750,25 +720,6 @@ textarea {
 .search-clear-btn:hover {
   opacity: 1;
   background: var(--vscode-toolbar-hoverBackground);
-}
-
-.daemon-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.daemon-dot.running {
-  background: #22c55e;
-}
-
-.daemon-dot.stopped {
-  background: #ef4444;
-}
-
-.daemon-dot.unknown {
-  background: #6b7280;
 }
 
 /* Project Dropdown - extends generic .dropdown */

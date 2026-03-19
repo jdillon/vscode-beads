@@ -19,7 +19,7 @@ export interface BeadsIssue {
   closed_at?: string;
   dependencies?: BackendBeadDependency[];
   dependents?: BackendBeadDependency[];
-  comments?: Array<{ id: number; author: string; text: string; created_at: string }>;
+  comments?: Array<{ id: string; author: string; text: string; created_at: string }>;
 }
 
 export interface CreateIssueArgs {
@@ -80,6 +80,9 @@ export interface BackendCompatibility {
 export interface BeadsBackend {
   checkCompatibility(): Promise<BackendCompatibility>;
   info(): Promise<Record<string, unknown>>;
+  doltStatus(): Promise<string>;
+  startDoltServer(): Promise<string>;
+  stopDoltServer(): Promise<string>;
   list(): Promise<BeadsIssue[]>;
   show(id: string): Promise<BeadsIssue | null>;
   create(args: CreateIssueArgs): Promise<BeadsIssue>;
@@ -87,6 +90,6 @@ export interface BeadsBackend {
   close(args: CloseIssueArgs): Promise<BeadsIssue>;
   addDependency(args: DependencyArgs): Promise<void>;
   removeDependency(args: DependencyArgs): Promise<void>;
-  listComments(id: string): Promise<Array<{ id: number; author: string; text: string; created_at: string }>>;
+  listComments(id: string): Promise<Array<{ id: string; author: string; text: string; created_at: string }>>;
   addComment(args: AddCommentArgs): Promise<void>;
 }

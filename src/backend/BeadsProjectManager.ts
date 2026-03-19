@@ -1,6 +1,8 @@
 import * as crypto from "crypto";
+import { execFile } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
+import * as util from "util";
 import * as vscode from "vscode";
 import { Logger } from "../utils/logger";
 import { BeadsBackend } from "./BeadsBackend";
@@ -8,6 +10,7 @@ import { BeadsCLIBackend } from "./BeadsCLIBackend";
 import { BeadsProject } from "./types";
 
 const ACTIVE_PROJECT_KEY = "beads.activeProjectId";
+const execFileAsync = util.promisify(execFile);
 
 type BackendStatusState = "running" | "stopped" | "zombie" | "not_initialized" | "unknown";
 
@@ -53,24 +56,24 @@ export class BeadsProjectManager implements vscode.Disposable {
   async discoverProjects(): Promise<void> {
     const discoveredById = new Map<string, BeadsProject>();
 
-    for (const explicitPath of this.getConfiguredProjectPaths()) {
-      const project = await this.createProjectFromInputPath(explicitPath, "setting");
-      if (project) discoveredById.set(project.id, project);
+    const configuredProjects = await Promise.all(
+      this.getConfiguredProjectPaths().map((explicitPath) => this.createProjectFromInputPath(explicitPath, "setting"))
+    );
+    for (const project of configuredProjects) {
+      if (project && !discoveredById.has(project.id)) discoveredById.set(project.id, project);
     }
 
     const envBeadsDir = process.env.BEADS_DIR?.trim();
     if (envBeadsDir) {
       const project = await this.createProjectFromInputPath(envBeadsDir, "env");
-      if (project) discoveredById.set(project.id, project);
+      if (project && !discoveredById.has(project.id)) discoveredById.set(project.id, project);
     }
 
-    const depth = Math.max(0, vscode.workspace.getConfiguration("beads").get<number>("discoveryDepth", 1));
-    for (const folder of vscode.workspace.workspaceFolders ?? []) {
-      const roots = await this.getCandidateRoots(folder.uri.fsPath, depth);
-      for (const root of roots) {
-        const project = await this.createProjectFromInputPath(root, "workspace");
-        if (project) discoveredById.set(project.id, project);
-      }
+    const workspaceProjects = await Promise.all(
+      (vscode.workspace.workspaceFolders ?? []).map((folder) => this.createProjectFromInputPath(folder.uri.fsPath, "workspace"))
+    );
+    for (const project of workspaceProjects) {
+      if (project && !discoveredById.has(project.id)) discoveredById.set(project.id, project);
     }
 
     const discoveredProjects = Array.from(discoveredById.values()).sort((a, b) => a.name.localeCompare(b.name));
@@ -159,20 +162,6 @@ export class BeadsProjectManager implements vscode.Disposable {
       };
     }
 
-    try {
-      await this.backend.info();
-    } catch (error) {
-      if (this.isNotInitializedError(error)) {
-        return {
-          state: "not_initialized",
-          message: "Beads project is not initialized. Run `bd init` in this project. See Output > Beads for details.",
-        };
-      }
-
-      const message = error instanceof Error ? error.message : String(error);
-      return { state: "unknown", message };
-    }
-
     return {
       state: "running",
       message: compatibility.message,
@@ -208,7 +197,7 @@ export class BeadsProjectManager implements vscode.Disposable {
 
   async notifyBackendError(err: unknown): Promise<void> {
     const message = err instanceof Error ? err.message : String(err);
-    this.log.warn(`Backend error: ${message}`);
+    this.log.trace(`Backend error: ${message}`);
   }
 
   dispose(): void {
@@ -233,71 +222,72 @@ export class BeadsProjectManager implements vscode.Disposable {
     return configured.filter((value) => typeof value === "string" && value.trim().length > 0);
   }
 
-  private async getCandidateRoots(workspaceRoot: string, depth: number): Promise<string[]> {
-    const roots = [workspaceRoot];
-    if (depth <= 0) return roots;
-
-    try {
-      const children = await fs.promises.readdir(workspaceRoot, { withFileTypes: true });
-      for (const child of children) {
-        if (child.isDirectory()) roots.push(path.join(workspaceRoot, child.name));
-      }
-    } catch {
-      // Ignore unreadable workspace roots.
-    }
-
-    return roots;
-  }
-
   private async createProjectFromInputPath(inputPath: string, source: BeadsProject["source"]): Promise<BeadsProject | null> {
     const resolvedInput = path.resolve(inputPath);
     const stats = await this.tryStat(resolvedInput);
     if (!stats) return null;
 
-    const explicitBeadsDir = path.basename(resolvedInput) === ".beads" ? resolvedInput : path.join(resolvedInput, ".beads");
-    const beadsStats = await this.tryStat(explicitBeadsDir);
-    if (!beadsStats?.isDirectory()) return null;
-
-    const resolvedBeadsDir = await this.resolveBeadsDir(explicitBeadsDir);
-    if (!(await this.isBeadsProject(resolvedBeadsDir))) return null;
-
     const rootPath = path.basename(resolvedInput) === ".beads" ? path.dirname(resolvedInput) : resolvedInput;
-    const folderName = path.basename(rootPath) || rootPath;
+    const explicitBeadsDir = path.basename(resolvedInput) === ".beads" ? resolvedInput : undefined;
+    const projectProbe = await this.probeBeadsProject(rootPath, explicitBeadsDir);
+    if (!projectProbe) return null;
+
+    const folderName = this.getProjectDisplayName(rootPath, projectProbe.beadsDir);
 
     return {
-      id: this.generateProjectId(resolvedBeadsDir),
+      id: this.generateProjectId(projectProbe.beadsDir),
       name: folderName,
       rootPath,
-      beadsDir: resolvedBeadsDir,
+      beadsDir: projectProbe.beadsDir,
       backendStatus: "running",
       source,
-      storageMode: await this.detectStorageMode(resolvedBeadsDir),
+      storageMode: projectProbe.storageMode,
     };
   }
 
-  private async resolveBeadsDir(initialBeadsDir: string): Promise<string> {
-    const redirectPath = path.join(initialBeadsDir, "redirect");
-    try {
-      const content = (await fs.promises.readFile(redirectPath, "utf8")).trim();
-      if (!content) return initialBeadsDir;
-      return path.resolve(initialBeadsDir, content);
-    } catch {
-      return initialBeadsDir;
-    }
-  }
-
-  private async isBeadsProject(beadsDir: string): Promise<boolean> {
-    if (await this.pathExists(path.join(beadsDir, "metadata.json"))) return true;
-    if (await this.pathExists(path.join(beadsDir, "config.yaml"))) return true;
-
-    const doltStats = await this.tryStat(path.join(beadsDir, "dolt"));
-    if (doltStats?.isDirectory()) return true;
+  private async probeBeadsProject(
+    rootPath: string,
+    explicitBeadsDir?: string
+  ): Promise<{ beadsDir: string; storageMode: "embedded" | "server" } | null> {
+    const bdPath = this.getBdPath();
+    const commandLabel = `${bdPath} where`;
 
     try {
-      const entries = await fs.promises.readdir(beadsDir);
-      return entries.some((entry) => entry.endsWith(".db"));
-    } catch {
-      return false;
+      const env = {
+        ...process.env,
+        ...(explicitBeadsDir ? { BEADS_DIR: explicitBeadsDir } : {}),
+      };
+
+      this.log.debug(
+        `Running discovery probe: ${commandLabel} (cwd=${rootPath}${explicitBeadsDir ? `, BEADS_DIR=${explicitBeadsDir}` : ""})`
+      );
+      const startedAt = Date.now();
+
+      const { stdout } = await execFileAsync(bdPath, ["where"], {
+        cwd: rootPath,
+        env,
+        maxBuffer: 1024 * 1024,
+      });
+      const elapsedMs = Date.now() - startedAt;
+      this.log.debug(`Completed discovery probe: ${commandLabel} (${elapsedMs}ms)`);
+      const trimmedStdout = stdout.trim();
+      if (trimmedStdout) this.log.trace(`discovery stdout: ${trimmedStdout}`);
+
+      const beadsDirLine = stdout
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .find((line) => line.length > 0);
+      if (!beadsDirLine) return null;
+
+      const beadsDir = path.resolve(rootPath, beadsDirLine);
+      return {
+        beadsDir,
+        storageMode: await this.detectStorageMode(beadsDir),
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.log.trace(`Discovery probe failed for ${rootPath}: ${message}`);
+      return null;
     }
   }
 
@@ -312,6 +302,17 @@ export class BeadsProjectManager implements vscode.Disposable {
       // Ignore parse failures and default to embedded.
     }
     return "embedded";
+  }
+
+  private getProjectDisplayName(rootPath: string, beadsDir: string): string {
+    const workspaceName = path.basename(rootPath) || rootPath;
+    const canonicalRepoName = path.basename(path.dirname(beadsDir));
+
+    if (!canonicalRepoName || canonicalRepoName === workspaceName) {
+      return workspaceName;
+    }
+
+    return `${canonicalRepoName} (${workspaceName})`;
   }
 
   private generateProjectId(beadsDir: string): string {
@@ -361,7 +362,11 @@ export class BeadsProjectManager implements vscode.Disposable {
       configWatcher.onDidCreate(() => this.scheduleRediscovery());
       configWatcher.onDidDelete(() => this.scheduleRediscovery());
 
-      this.discoveryWatchers.push(metadataWatcher, configWatcher);
+      const beadsRootWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(folder, "**/.beads"));
+      beadsRootWatcher.onDidCreate(() => this.scheduleRediscovery());
+      beadsRootWatcher.onDidDelete(() => this.scheduleRediscovery());
+
+      this.discoveryWatchers.push(metadataWatcher, configWatcher, beadsRootWatcher);
     }
   }
 
@@ -397,7 +402,6 @@ export class BeadsProjectManager implements vscode.Disposable {
       "metadata.json",
       "config.yaml",
       "redirect",
-      "last-touched",
       "interactions.jsonl",
     ]);
     if (definitiveFiles.has(fileName)) return true;
@@ -450,15 +454,6 @@ export class BeadsProjectManager implements vscode.Disposable {
     this.projectRefreshTimers.set("__discovery__", timer);
   }
 
-  private async pathExists(filePath: string): Promise<boolean> {
-    try {
-      await fs.promises.access(filePath);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
   private async tryStat(target: string): Promise<fs.Stats | null> {
     try {
       return await fs.promises.stat(target);
@@ -477,9 +472,7 @@ export class BeadsProjectManager implements vscode.Disposable {
       await this.context.workspaceState.update(ACTIVE_PROJECT_KEY, project.id);
     }
 
-    const config = vscode.workspace.getConfiguration("beads");
-    const configuredBdPath = config.get<string>("pathToBd", "bd") ?? "bd";
-    const bdPath = this.resolveBdPath(configuredBdPath.trim());
+    const bdPath = this.getBdPath();
 
     this.backend = new BeadsCLIBackend({
       bdPath,
@@ -502,16 +495,7 @@ export class BeadsProjectManager implements vscode.Disposable {
     }
 
     const compatibility = await this.backend.checkCompatibility();
-    if (compatibility.supported) {
-      try {
-        await this.backend.info();
-        project.backendStatus = "running";
-      } catch (error) {
-        project.backendStatus = this.isNotInitializedError(error) ? "stopped" : "unknown";
-      }
-    } else {
-      project.backendStatus = "stopped";
-    }
+    project.backendStatus = compatibility.supported ? "running" : "stopped";
   }
 
   private resolveBdPath(configuredPath: string): string {
@@ -529,6 +513,12 @@ export class BeadsProjectManager implements vscode.Disposable {
     }
 
     return fs.existsSync(raw) ? raw : "bd";
+  }
+
+  private getBdPath(): string {
+    const config = vscode.workspace.getConfiguration("beads");
+    const configuredBdPath = config.get<string>("pathToBd", "bd") ?? "bd";
+    return this.resolveBdPath(configuredBdPath.trim());
   }
 
   private isNotInitializedError(error: unknown): boolean {

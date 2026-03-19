@@ -136,6 +136,65 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       vscode.window.setStatusBarMessage("$(check) Beads: Refreshed", 2000);
     }),
 
+    vscode.commands.registerCommand("beads.startDoltServer", async () => {
+      const client = projectManager.getClient();
+      const project = projectManager.getActiveProject();
+      if (!client || !project) {
+        vscode.window.showWarningMessage("No active Beads project");
+        return;
+      }
+
+      try {
+        const output = await client.startDoltServer();
+        log.info(`Started Dolt server for ${project.name}: ${output || "<no output>"}`);
+        await projectManager.refresh();
+        dashboardProvider.refresh();
+        beadsPanelProvider.refresh();
+        detailsProvider.refresh();
+        vscode.window.showInformationMessage(`Dolt server started for ${project.name}.`);
+      } catch (err) {
+        await log.errorNotify(`Failed to start Dolt server: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }),
+
+    vscode.commands.registerCommand("beads.stopDoltServer", async () => {
+      const client = projectManager.getClient();
+      const project = projectManager.getActiveProject();
+      if (!client || !project) {
+        vscode.window.showWarningMessage("No active Beads project");
+        return;
+      }
+
+      try {
+        const output = await client.stopDoltServer();
+        log.info(`Stopped Dolt server for ${project.name}: ${output || "<no output>"}`);
+        await projectManager.refresh();
+        dashboardProvider.refresh();
+        beadsPanelProvider.refresh();
+        detailsProvider.refresh();
+        vscode.window.showInformationMessage(`Dolt server stopped for ${project.name}.`);
+      } catch (err) {
+        await log.errorNotify(`Failed to stop Dolt server: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }),
+
+    vscode.commands.registerCommand("beads.showDoltStatus", async () => {
+      const client = projectManager.getClient();
+      const project = projectManager.getActiveProject();
+      if (!client || !project) {
+        vscode.window.showWarningMessage("No active Beads project");
+        return;
+      }
+
+      try {
+        const output = await client.doltStatus();
+        log.info(`Dolt status for ${project.name}:\n${output || "<no output>"}`);
+        vscode.window.showInformationMessage(`Dolt status logged for ${project.name}. Check Output > Beads.`);
+      } catch (err) {
+        await log.errorNotify(`Failed to get Dolt status: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }),
+
     vscode.commands.registerCommand("beads.copyBeadId", async () => {
       const beadId = detailsProvider.getCurrentBeadId();
       if (beadId) {
@@ -169,6 +228,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
       items.push(
         { label: "$(refresh) Refresh", description: "Refresh Beads data" },
+        { label: "$(server-process) Dolt Status", description: "Log Dolt server status" },
+        { label: "$(play) Start Dolt", description: "Start the Dolt server for this project" },
+        { label: "$(debug-stop) Stop Dolt", description: "Stop the Dolt server for this project" },
         { label: "$(output) Show Logs", description: "Open Beads output panel" }
       );
 
@@ -180,6 +242,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (selected) {
         if (selected.label.includes("Refresh")) {
           vscode.commands.executeCommand("beads.refresh");
+        } else if (selected.label.includes("Dolt Status")) {
+          vscode.commands.executeCommand("beads.showDoltStatus");
+        } else if (selected.label.includes("Start Dolt")) {
+          vscode.commands.executeCommand("beads.startDoltServer");
+        } else if (selected.label.includes("Stop Dolt")) {
+          vscode.commands.executeCommand("beads.stopDoltServer");
         } else if (selected.label.includes("Show Logs")) {
           log.show();
         }

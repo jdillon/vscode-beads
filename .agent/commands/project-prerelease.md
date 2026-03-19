@@ -42,7 +42,7 @@ For EACH commit, decide: **INCLUDE** or **SKIP**?
 
 **SKIP if ANY of these are true:**
 - Commit type is: `docs:`, `ci:`, `test:`, `chore:`, `bd:`, `bd sync:`, `refactor:`
-- The change is in: `.claude/`, `.github/`, `scripts/`, `docs/`, `.beads/`
+- The change is in: `.agent/`, `.claude/`, `.opencode/`, `.github/`, `scripts/`, `docs/`, `.beads/`
 - The bead ID is already in CHANGELOG.md
 - The change is infrastructure/tooling (build scripts, CI workflows, slash commands)
 
@@ -53,7 +53,7 @@ For EACH commit, decide: **INCLUDE** or **SKIP**?
 | `feat(ui): add dark mode toggle` | INCLUDE | User-facing UI feature |
 | `fix: button not clickable` | INCLUDE | User-facing bug fix |
 | `docs: update README` | SKIP | Documentation only |
-| `feat: add /release command` | SKIP | Project tooling in .claude/ |
+| `feat: add /release command` | SKIP | Project tooling in .agent/ |
 | `chore: update dependencies` | SKIP | Not user-facing |
 | `fix(ci): repair workflow` | SKIP | CI/infrastructure |
 

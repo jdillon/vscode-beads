@@ -73,7 +73,7 @@ export interface Bead {
 
 // Comment on a bead
 export interface BeadComment {
-  id: number;
+  id: string;
   author: string;
   text: string;
   createdAt: string;
@@ -349,7 +349,7 @@ export function issueToWebviewBead(issue: {
   closed_at?: string;
   dependencies?: BackendBeadDependency[];
   dependents?: BackendBeadDependency[];
-  comments?: Array<{ id: number; author: string; text: string; created_at: string }>;
+  comments?: Array<{ id: string; author: string; text: string; created_at: string }>;
 }): Bead | null {
   const status = normalizeStatus(issue.status);
   if (status === null) {
