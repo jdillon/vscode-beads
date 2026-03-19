@@ -11,11 +11,13 @@ import { BeadsProjectManager } from "./backend/BeadsProjectManager";
 import { DashboardViewProvider } from "./providers/DashboardViewProvider";
 import { BeadsPanelViewProvider } from "./providers/BeadsPanelViewProvider";
 import { BeadDetailsViewProvider } from "./providers/BeadDetailsViewProvider";
+import { ProjectsViewProvider } from "./providers/ProjectsViewProvider";
 import { createLogger, Logger } from "./utils/logger";
 
 let log: Logger;
 let projectManager: BeadsProjectManager;
 let dashboardProvider: DashboardViewProvider;
+let projectsProvider: ProjectsViewProvider;
 let beadsPanelProvider: BeadsPanelViewProvider;
 let detailsProvider: BeadDetailsViewProvider;
 let statusBar: vscode.StatusBarItem;
@@ -57,6 +59,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     log
   );
 
+  projectsProvider = new ProjectsViewProvider(
+    context.extensionUri,
+    projectManager,
+    log
+  );
+
   beadsPanelProvider = new BeadsPanelViewProvider(
     context.extensionUri,
     projectManager,
@@ -71,6 +79,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // Register webview providers
   context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider("beadsProjects", projectsProvider, {
+      webviewOptions: { retainContextWhenHidden: true },
+    }),
     vscode.window.registerWebviewViewProvider("beadsDashboard", dashboardProvider, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
@@ -258,6 +269,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Subscribe to project changes to refresh views
   context.subscriptions.push(
     projectManager.onDataChanged(() => {
+      projectsProvider.refresh();
       dashboardProvider.refresh();
       beadsPanelProvider.refresh();
       detailsProvider.refresh();
@@ -265,6 +277,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     projectManager.onActiveProjectChanged(() => {
       beadsPanelProvider.setSelectedBead(null); // Clear selection on project switch
+      projectsProvider.refreshForProjectChange();
       dashboardProvider.refreshForProjectChange();
       beadsPanelProvider.refreshForProjectChange();
       detailsProvider.refreshForProjectChange();
@@ -290,6 +303,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       // Refresh all views
+      projectsProvider.refresh();
       dashboardProvider.refresh();
       beadsPanelProvider.refresh();
       detailsProvider.refresh();

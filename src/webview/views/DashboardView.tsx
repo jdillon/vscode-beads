@@ -10,7 +10,6 @@
 import React from "react";
 import {
   Bead,
-  BeadsProject,
   BeadsSummary,
   BeadStatus,
   BeadPriority,
@@ -20,16 +19,12 @@ import {
 import { StatusBadge } from "../common/StatusBadge";
 import { PriorityBadge } from "../common/PriorityBadge";
 import { ErrorMessage } from "../common/ErrorMessage";
-import { ProjectDropdown } from "../common/ProjectDropdown";
 
 interface DashboardViewProps {
   summary: BeadsSummary | null;
   beads: Bead[];
   loading: boolean;
   error: string | null;
-  projects: BeadsProject[];
-  activeProject: BeadsProject | null;
-  onSelectProject: (project: BeadsProject) => void;
   onSelectBead: (beadId: string) => void;
   onRetry: () => void;
 }
@@ -39,9 +34,6 @@ export function DashboardView({
   beads,
   loading,
   error,
-  projects,
-  activeProject,
-  onSelectProject,
   onSelectBead,
   onRetry,
 }: DashboardViewProps): React.ReactElement {
@@ -51,15 +43,6 @@ export function DashboardView({
 
   return (
     <div className="dashboard">
-      {/* Toolbar with project selector */}
-      <div className="panel-toolbar-compact">
-        <ProjectDropdown
-          projects={projects}
-          activeProject={activeProject}
-          onSelectProject={onSelectProject}
-        />
-      </div>
-
       {/* Error state */}
       {error && !loading && (
         <ErrorMessage

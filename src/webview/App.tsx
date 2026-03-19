@@ -17,6 +17,7 @@ import {
 import { DashboardView } from "./views/DashboardView";
 import { IssuesView } from "./views/IssuesView";
 import { DetailsView } from "./views/DetailsView";
+import { ProjectsView } from "./views/ProjectsView";
 import { Loading } from "./common/Loading";
 import { ToastProvider, triggerToast } from "./common/Toast";
 
@@ -107,14 +108,14 @@ export function App(): React.ReactElement {
 
   // Render the appropriate view
   const renderView = () => {
-    switch (state.viewType) {
-      case "beadsDashboard":
+      if (state.viewType === "beadsPanel" && state.loading && state.beads.length === 0) {
+        return <Loading />;
+      }
+
+      switch (state.viewType) {
+      case "beadsProjects":
         return (
-          <DashboardView
-            summary={state.summary}
-            beads={state.beads}
-            loading={state.loading}
-            error={state.error}
+          <ProjectsView
             projects={state.projects}
             activeProject={state.project}
             onSelectProject={(project) =>
@@ -124,6 +125,25 @@ export function App(): React.ReactElement {
                 projectRootPath: project.rootPath,
               })
             }
+            onManageProject={(project) =>
+              vscode.postMessage({
+                type: "showProjectMenu",
+                projectId: project.id,
+              })
+            }
+            onRefresh={() =>
+              vscode.postMessage({ type: "refresh" })
+            }
+          />
+        );
+
+      case "beadsDashboard":
+        return (
+          <DashboardView
+            summary={state.summary}
+            beads={state.beads}
+            loading={state.loading}
+            error={state.error}
             onSelectBead={(beadId) =>
               vscode.postMessage({ type: "openBeadDetails", beadId })
             }
@@ -140,16 +160,7 @@ export function App(): React.ReactElement {
             loading={state.loading}
             error={state.error}
             selectedBeadId={state.selectedBeadId}
-            projects={state.projects}
-            activeProject={state.project}
             tooltipHoverDelay={state.settings.tooltipHoverDelay}
-            onSelectProject={(project) =>
-              vscode.postMessage({
-                type: "selectProject",
-                projectId: project.id,
-                projectRootPath: project.rootPath,
-              })
-            }
             onSelectBead={(beadId) =>
               vscode.postMessage({ type: "openBeadDetails", beadId })
             }

@@ -753,6 +753,175 @@ textarea {
   white-space: nowrap;
 }
 
+.projects-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+}
+
+.projects-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.projects-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--vscode-foreground);
+}
+
+.projects-subtitle {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.projects-refresh-btn,
+.project-primary-btn,
+.project-secondary-btn {
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.projects-refresh-btn,
+.project-secondary-btn {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.project-primary-btn {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.projects-refresh-btn:hover,
+.project-secondary-btn:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.project-primary-btn:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.projects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.project-card {
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 92%, white 8%);
+}
+
+.project-card.active {
+  border-color: var(--vscode-focusBorder);
+}
+
+.project-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.project-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.project-card-title {
+  font-weight: 600;
+}
+
+.project-active-badge,
+.project-status-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.project-active-badge {
+  background: color-mix(in srgb, var(--vscode-focusBorder) 20%, transparent);
+  color: var(--vscode-focusBorder);
+}
+
+.project-status-pill {
+  text-transform: capitalize;
+  background: color-mix(in srgb, var(--vscode-descriptionForeground) 15%, transparent);
+  color: var(--vscode-descriptionForeground);
+}
+
+.project-status-pill.running {
+  background: color-mix(in srgb, #10b981 18%, transparent);
+  color: #10b981;
+}
+
+.project-status-pill.stopped {
+  background: color-mix(in srgb, #f59e0b 18%, transparent);
+  color: #f59e0b;
+}
+
+.project-status-pill.unknown {
+  background: color-mix(in srgb, #64748b 18%, transparent);
+  color: #94a3b8;
+}
+
+.project-card-path,
+.project-beads-dir code {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.project-card-path {
+  margin-top: 4px;
+}
+
+.project-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.project-meta-label {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.project-meta-value {
+  font-size: 12px;
+}
+
+.project-beads-dir {
+  margin-top: 10px;
+}
+
+.project-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
 .filter-toggle {
   display: flex;
   align-items: center;

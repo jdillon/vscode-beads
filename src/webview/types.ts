@@ -99,6 +99,7 @@ export type WebviewMessage =
   | { type: "ready" }
   | { type: "refresh" }
   | { type: "selectProject"; projectId: string; projectRootPath?: string }
+  | { type: "showProjectMenu"; projectId: string }
   | { type: "selectBead"; beadId: string }
   | { type: "updateBead"; beadId: string; updates: Partial<Bead> }
   | { type: "createBead"; data: Partial<Bead> }

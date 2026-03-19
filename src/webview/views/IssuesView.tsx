@@ -27,7 +27,6 @@ import {
 } from "@tanstack/react-table";
 import {
   Bead,
-  BeadsProject,
   BeadStatus,
   BeadPriority,
   BeadType,
@@ -50,7 +49,6 @@ import { FilterChip } from "../common/FilterChip";
 import { Table, Kanban } from "lucide-react";
 import { ErrorMessage } from "../common/ErrorMessage";
 import { Loading } from "../common/Loading";
-import { ProjectDropdown } from "../common/ProjectDropdown";
 import { Dropdown, DropdownItem } from "../common/Dropdown";
 import { Timestamp, timestampSortingFn } from "../common/Timestamp";
 import { AutocompleteInput, AutocompleteOption } from "../common/AutocompleteInput";
@@ -65,10 +63,7 @@ interface IssuesViewProps {
   loading: boolean;
   error: string | null;
   selectedBeadId: string | null;
-  projects: BeadsProject[];
-  activeProject: BeadsProject | null;
   tooltipHoverDelay: number; // 0 = disabled
-  onSelectProject: (project: BeadsProject) => void;
   onSelectBead: (beadId: string) => void;
   onUpdateBead: (beadId: string, updates: Partial<Bead>) => void;
   onRetry: () => void;
@@ -108,10 +103,7 @@ export function IssuesView({
   loading,
   error,
   selectedBeadId,
-  projects,
-  activeProject,
   tooltipHoverDelay,
-  onSelectProject,
   onSelectBead,
   onUpdateBead,
   onRetry,
@@ -631,13 +623,8 @@ export function IssuesView({
 
   return (
     <div className="beads-panel">
-      {/* Row 1: project + search + filter toggle */}
+      {/* Row 1: search + filter toggle */}
       <div className="panel-toolbar-compact">
-        <ProjectDropdown
-          projects={projects}
-          activeProject={activeProject}
-          onSelectProject={onSelectProject}
-        />
         <div className="search-input-wrapper">
           <input
             type="text"

@@ -6,7 +6,7 @@ import * as util from "util";
 import * as vscode from "vscode";
 import { Logger } from "../utils/logger";
 import { BeadsBackend } from "./BeadsBackend";
-import { BeadsCLIBackend } from "./BeadsCLIBackend";
+import { BeadsDoltBackend } from "./BeadsDoltBackend";
 import { BeadsProject } from "./types";
 
 const ACTIVE_PROJECT_KEY = "beads.activeProjectId";
@@ -22,7 +22,6 @@ export class BeadsProjectManager implements vscode.Disposable {
   private backend: BeadsBackend | null = null;
 
   private readonly projectWatchers = new Map<string, vscode.FileSystemWatcher>();
-  private readonly projectRefreshTimers = new Map<string, NodeJS.Timeout>();
   private readonly discoveryWatchers: vscode.Disposable[] = [];
   private activePollTimer: NodeJS.Timeout | null = null;
 
@@ -42,7 +41,6 @@ export class BeadsProjectManager implements vscode.Disposable {
 
   async initialize(): Promise<void> {
     await this.discoverProjects();
-    this.setupDiscoveryWatchers();
 
     if (this.projects.length > 0 && !this.activeProject) {
       const savedProjectId = this.context.workspaceState.get<string>(ACTIVE_PROJECT_KEY);
@@ -203,10 +201,8 @@ export class BeadsProjectManager implements vscode.Disposable {
   dispose(): void {
     for (const watcher of this.projectWatchers.values()) watcher.dispose();
     for (const watcher of this.discoveryWatchers) watcher.dispose();
-    for (const timer of this.projectRefreshTimers.values()) clearTimeout(timer);
     this.projectWatchers.clear();
     this.discoveryWatchers.length = 0;
-    this.projectRefreshTimers.clear();
     if (this.activePollTimer) {
       clearInterval(this.activePollTimer);
       this.activePollTimer = null;
@@ -320,105 +316,8 @@ export class BeadsProjectManager implements vscode.Disposable {
   }
 
   private syncProjectWatchers(): void {
-    const validIds = new Set(this.projects.map((p) => p.id));
-
-    for (const [projectId, watcher] of this.projectWatchers.entries()) {
-      if (validIds.has(projectId)) continue;
-      watcher.dispose();
-      this.projectWatchers.delete(projectId);
-      const timer = this.projectRefreshTimers.get(projectId);
-      if (timer) clearTimeout(timer);
-      this.projectRefreshTimers.delete(projectId);
-    }
-
-    for (const project of this.projects) {
-      if (this.projectWatchers.has(project.id)) continue;
-      const pattern = new vscode.RelativePattern(project.beadsDir, "**/*");
-      const watcher = vscode.workspace.createFileSystemWatcher(pattern);
-      const onFileEvent = (uri: vscode.Uri) => this.onProjectFileChange(project.id, uri.fsPath);
-
-      watcher.onDidCreate(onFileEvent);
-      watcher.onDidChange(onFileEvent);
-      watcher.onDidDelete(onFileEvent);
-
-      this.projectWatchers.set(project.id, watcher);
-    }
-  }
-
-  private setupDiscoveryWatchers(): void {
-    for (const watcher of this.discoveryWatchers) watcher.dispose();
-    this.discoveryWatchers.length = 0;
-
-    for (const folder of vscode.workspace.workspaceFolders ?? []) {
-      const metadataWatcher = vscode.workspace.createFileSystemWatcher(
-        new vscode.RelativePattern(folder, "**/.beads/metadata.json")
-      );
-      metadataWatcher.onDidCreate(() => this.scheduleRediscovery());
-      metadataWatcher.onDidDelete(() => this.scheduleRediscovery());
-
-      const configWatcher = vscode.workspace.createFileSystemWatcher(
-        new vscode.RelativePattern(folder, "**/.beads/config.yaml")
-      );
-      configWatcher.onDidCreate(() => this.scheduleRediscovery());
-      configWatcher.onDidDelete(() => this.scheduleRediscovery());
-
-      const beadsRootWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(folder, "**/.beads"));
-      beadsRootWatcher.onDidCreate(() => this.scheduleRediscovery());
-      beadsRootWatcher.onDidDelete(() => this.scheduleRediscovery());
-
-      this.discoveryWatchers.push(metadataWatcher, configWatcher, beadsRootWatcher);
-    }
-  }
-
-  private onProjectFileChange(projectId: string, filePath: string): void {
-    if (!this.shouldTriggerRefresh(filePath)) return;
-
-    const existing = this.projectRefreshTimers.get(projectId);
-    if (existing) clearTimeout(existing);
-
-    const timer = setTimeout(() => {
-      this.projectRefreshTimers.delete(projectId);
-      if (this.activeProject?.id === projectId) {
-        this._onDataChanged.fire();
-      }
-    }, 500);
-
-    this.projectRefreshTimers.set(projectId, timer);
-  }
-
-  private shouldTriggerRefresh(filePath: string): boolean {
-    const fileName = path.basename(filePath);
-    const normalizedPath = filePath.split(path.sep).join("/");
-
-    if (normalizedPath.includes("/.beads/dolt/")) {
-      if (normalizedPath.includes("/.dolt/noms/")) {
-        const ignoredNomsFiles = new Set(["LOCK", "manifest"]);
-        return !ignoredNomsFiles.has(fileName);
-      }
-      return false;
-    }
-
-    const definitiveFiles = new Set([
-      "metadata.json",
-      "config.yaml",
-      "redirect",
-      "interactions.jsonl",
-    ]);
-    if (definitiveFiles.has(fileName)) return true;
-
-    const ignoredFiles = new Set([
-      ".DS_Store",
-      "dolt-server.log",
-      "dolt-server.pid",
-      "dolt-monitor.pid",
-      "dolt-server.lock",
-      ".local_version",
-      ".gitignore",
-    ]);
-
-    if (ignoredFiles.has(fileName)) return false;
-    if (filePath.includes(`${path.sep}.git${path.sep}`)) return false;
-    return false;
+    for (const watcher of this.projectWatchers.values()) watcher.dispose();
+    this.projectWatchers.clear();
   }
 
   private syncActiveProjectPolling(): void {
@@ -443,17 +342,6 @@ export class BeadsProjectManager implements vscode.Disposable {
     }, intervalMs);
   }
 
-  private scheduleRediscovery(): void {
-    const existing = this.projectRefreshTimers.get("__discovery__");
-    if (existing) clearTimeout(existing);
-    const timer = setTimeout(async () => {
-      this.projectRefreshTimers.delete("__discovery__");
-      await this.discoverProjects();
-      this._onDataChanged.fire();
-    }, 500);
-    this.projectRefreshTimers.set("__discovery__", timer);
-  }
-
   private async tryStat(target: string): Promise<fs.Stats | null> {
     try {
       return await fs.promises.stat(target);
@@ -474,7 +362,7 @@ export class BeadsProjectManager implements vscode.Disposable {
 
     const bdPath = this.getBdPath();
 
-    this.backend = new BeadsCLIBackend({
+    this.backend = new BeadsDoltBackend({
       bdPath,
       cwd: project.rootPath,
       beadsDir: project.beadsDir,

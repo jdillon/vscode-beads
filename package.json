@@ -48,6 +48,12 @@
       "beads": [
         {
           "type": "webview",
+          "id": "beadsProjects",
+          "name": "Projects",
+          "visibility": "visible"
+        },
+        {
+          "type": "webview",
           "id": "beadsDashboard",
           "name": "Dashboard",
           "visibility": "hidden"
@@ -172,6 +178,7 @@
     "@tanstack/react-table": "^8.21.3",
     "lucide-react": "^0.563.0",
     "marked": "^17.0.1",
+    "mysql2": "^3.20.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   }

@@ -46,6 +46,7 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
 
     const showLoading = reason === "initial" || reason === "projectChange" || reason === "manualRefresh";
     if (showLoading) {
+      this.postMessage({ type: "setBeads", beads: [] });
       this.setLoading(true);
     }
     this.setError(null);
