@@ -17,7 +17,9 @@ import { Logger } from "../utils/logger";
 
 export class BeadsPanelViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsPanel";
+  private static readonly MIN_LOADING_MS = 500;
   private selectedBeadId: string | null = null;
+  private loadSequence = 0;
 
   constructor(
     extensionUri: vscode.Uri,
@@ -35,26 +37,56 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
     this.postMessage({ type: "setSelectedBeadId", beadId });
   }
 
-  protected async loadData(): Promise<void> {
+  protected async loadData(reason: "initial" | "projectChange" | "manualRefresh" | "background" = "background"): Promise<void> {
+    const thisRequest = ++this.loadSequence;
     const client = this.projectManager.getClient();
     if (!client) {
       this.postMessage({ type: "setBeads", beads: [] });
       return;
     }
 
-    this.setLoading(true);
+    const showLoading = reason === "initial" || reason === "projectChange" || reason === "manualRefresh";
+    const loadingStartedAt = showLoading ? Date.now() : 0;
+    if (showLoading) {
+      this.postMessage({ type: "setBeads", beads: [] });
+      this.setLoading(true);
+    }
     this.setError(null);
 
     try {
       const issues = await client.list();
+      if (showLoading) {
+        await this.waitForMinimumLoading(loadingStartedAt);
+      }
+      if (thisRequest !== this.loadSequence) {
+        return;
+      }
       const beads = issues.map(issueToWebviewBead).filter((b): b is Bead => b !== null);
       this.postMessage({ type: "setBeads", beads });
-    } catch (err) {
-      this.setError(String(err));
-      this.postMessage({ type: "setBeads", beads: [] });
-      this.handleDaemonError("Failed to load beads", err);
-    } finally {
       this.setLoading(false);
+    } catch (err) {
+      if (showLoading) {
+        await this.waitForMinimumLoading(loadingStartedAt);
+      }
+      if (thisRequest !== this.loadSequence) {
+        return;
+      }
+      this.setError(String(err));
+      if (showLoading) {
+        this.postMessage({ type: "setBeads", beads: [] });
+      }
+      this.handleBackendError("Failed to load beads", err);
+    } finally {
+      if (thisRequest === this.loadSequence) {
+        this.setLoading(false);
+      }
+    }
+  }
+
+  private async waitForMinimumLoading(startedAt: number): Promise<void> {
+    const remaining = BeadsPanelViewProvider.MIN_LOADING_MS - (Date.now() - startedAt);
+    if (remaining > 0) {
+      await new Promise((resolve) => setTimeout(resolve, remaining));
     }
   }
 

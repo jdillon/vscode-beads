@@ -9,9 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-### Fixed
+- Direct Dolt-backed backend with bd cli execution to bootstrap config/locations
+- Projects panel for project and server management
+- Real-time change detection via Dolt change-token polling
 
 ### Changed
+
+- Project switching now updates immediately with improved loading feedback
+- Removed daemon-era terminology and management surfaces
+- Removed "Create Issue" quick command from editor UI
+
+### Removed
+
+- Daemon RPC client and socket management (removed in beads v0.50.0)
+- Daemon start/stop commands and status bar lifecycle controls
+- Auto-start daemon setting and zombie daemon detection
+
+### Breaking Changes
+
+- Requires beads v0.50.0 or later (daemon removed upstream)
+
+### Fixed
+
+- Dashboard project link hover target now limited to path text only
+- Project switching no longer stalls on refresh sequencing
+- Backend discovery and loading more stable with reduced refresh churn
+- CLI backend properly isolated per project using BEADS_DIR
+- Harden Dolt backend lifecycle and restore dashboard drill-down/refresh
 
 ## [0.12.0] - 2026-01-31
 

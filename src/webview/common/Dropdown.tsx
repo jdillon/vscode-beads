@@ -8,9 +8,9 @@
  * - Auto-close on item click (via context)
  */
 
-import React, { useState, useRef, useEffect, ReactNode, createContext, useContext } from "react";
+import React, { useState, useRef, useEffect, ReactNode, createContext, useContext, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { ChevronIcon } from "./ChevronIcon";
-import { useClickOutside } from "../hooks/useClickOutside";
 
 // Context to allow DropdownItem to close the dropdown
 const DropdownContext = createContext<{ close: () => void } | null>(null);
@@ -34,6 +34,8 @@ interface DropdownProps {
   open?: boolean;
   /** Controlled: callback when open state changes */
   onOpenChange?: (open: boolean) => void;
+  /** Menu placement relative to trigger */
+  menuPlacement?: "bottom-start" | "bottom-end";
 }
 
 export function Dropdown({
@@ -46,9 +48,17 @@ export function Dropdown({
   showChevron = true,
   open: controlledOpen,
   onOpenChange,
+  menuPlacement = "bottom-start",
 }: DropdownProps): React.ReactElement {
   const [internalOpen, setInternalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number; minWidth: number }>({
+    top: 0,
+    left: 0,
+    minWidth: 0,
+  });
 
   // Support both controlled and uncontrolled modes
   const isControlled = controlledOpen !== undefined;
@@ -62,8 +72,19 @@ export function Dropdown({
 
   const close = () => setIsOpen(false);
 
-  // Close on click outside
-  useClickOutside(dropdownRef, close, isOpen);
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (dropdownRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      close();
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [isOpen]);
 
   // Close on blur (click outside webview)
   useEffect(() => {
@@ -72,10 +93,56 @@ export function Dropdown({
     return () => window.removeEventListener("blur", handleBlur);
   }, []);
 
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+
+    const updatePosition = () => {
+      const triggerEl = triggerRef.current;
+      const menuEl = menuRef.current;
+      if (!triggerEl || !menuEl) return;
+
+      const rect = triggerEl.getBoundingClientRect();
+      const menuWidth = menuEl.offsetWidth || rect.width;
+      const menuHeight = menuEl.offsetHeight || 0;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      let left = menuPlacement === "bottom-end" ? rect.right - menuWidth : rect.left;
+      left = Math.max(8, Math.min(left, viewportWidth - menuWidth - 8));
+
+      let top = rect.bottom + 2;
+      if (top + menuHeight > viewportHeight - 8) {
+        top = Math.max(8, rect.top - menuHeight - 2);
+      }
+
+      setMenuPosition({ top, left, minWidth: rect.width });
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [isOpen, menuPlacement]);
+
+  const menu = isOpen ? createPortal(
+    <div
+      ref={menuRef}
+      className={`dropdown-menu ${menuClassName}`}
+      style={{ position: "fixed", top: menuPosition.top, left: menuPosition.left, minWidth: menuPosition.minWidth }}
+    >
+      {children}
+    </div>,
+    document.body
+  ) : null;
+
   return (
     <DropdownContext.Provider value={{ close }}>
       <div className={`dropdown ${className}`} ref={dropdownRef}>
         <button
+          ref={triggerRef}
           className={`dropdown-trigger ${triggerClassName}`}
           onClick={() => setIsOpen(!isOpen)}
           title={title}
@@ -83,13 +150,8 @@ export function Dropdown({
           {trigger}
           {showChevron && <ChevronIcon open={isOpen} />}
         </button>
-
-        {isOpen && (
-          <div className={`dropdown-menu ${menuClassName}`}>
-            {children}
-          </div>
-        )}
       </div>
+      {menu}
     </DropdownContext.Provider>
   );
 }

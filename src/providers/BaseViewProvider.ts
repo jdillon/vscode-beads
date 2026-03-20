@@ -99,14 +99,16 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
       },
     });
 
-    // Load view-specific data
-    await this.loadData();
+    // Load view-specific data only for visible views.
+    if (this._view.visible) {
+      await this.loadData("initial");
+    }
   }
 
   /**
    * Loads view-specific data. Override in subclasses.
    */
-  protected abstract loadData(): Promise<void>;
+  protected abstract loadData(reason?: "initial" | "projectChange" | "manualRefresh" | "background"): Promise<void>;
 
   /**
    * Handles messages from the webview. Override in subclasses for custom handling.
@@ -118,16 +120,49 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
         break;
 
       case "refresh":
-        await this.loadData();
+        await this.loadData("manualRefresh");
         break;
 
-      case "selectProject":
-        await this.projectManager.setActiveProject(message.projectId);
+      case "selectProject": {
+        let switched = await this.projectManager.setActiveProject(message.projectId);
+        if (!switched && message.projectRootPath) {
+          const fallback = this.projectManager
+            .getProjects()
+            .find((project) => project.rootPath === message.projectRootPath);
+          if (fallback) {
+            switched = await this.projectManager.setActiveProject(fallback.id);
+          }
+        }
         break;
+      }
 
       case "selectBead":
         vscode.commands.executeCommand("beads.openBeadDetails", message.beadId);
         break;
+
+      case "showDoltStatus":
+        vscode.commands.executeCommand("beads.showDoltStatus");
+        break;
+
+      case "startDoltServer":
+        vscode.commands.executeCommand("beads.startDoltServer");
+        break;
+
+      case "stopDoltServer":
+        vscode.commands.executeCommand("beads.stopDoltServer");
+        break;
+
+      case "openDoltLog":
+        vscode.commands.executeCommand("beads.openDoltLog");
+        break;
+
+      case "openProjectFolder": {
+        const project = this.projectManager.getActiveProject();
+        if (project) {
+          await vscode.commands.executeCommand("revealInExplorer", vscode.Uri.file(project.rootPath));
+        }
+        break;
+      }
 
       case "openBeadDetails":
         vscode.commands.executeCommand("beads.openBeadDetails", message.beadId);
@@ -136,15 +171,6 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
       case "viewInGraph":
         // Focus the graph view and highlight the bead
         vscode.commands.executeCommand("beadsGraph.focus");
-        break;
-
-      case "startDaemon":
-        await this.projectManager.ensureDaemonRunning();
-        await this.loadData();
-        break;
-
-      case "stopDaemon":
-        await this.projectManager.stopDaemon();
         break;
 
       case "copyBeadId":
@@ -236,19 +262,23 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
   }
 
   /**
-   * Handles daemon connection errors - logs and notifies ProjectManager
+   * Handles backend connection errors - logs and notifies ProjectManager
    * Views show error state in UI; centralized notification handled by ProjectManager
    */
-  protected handleDaemonError(message: string, err: unknown): void {
+  protected handleBackendError(message: string, err: unknown): void {
     this.log.error(`${message}: ${err}`);
-    // ProjectManager handles the notification - views just update their error state
-    this.projectManager.notifyDaemonError(err);
+    // ProjectManager handles notification details - views just update their error state
+    this.projectManager.notifyBackendError(err);
   }
 
   /**
    * Triggers a refresh of the view
    */
   public refresh(): void {
+    if (!this._view?.visible) {
+      return;
+    }
+
     // Update project state in webview
     const project = this.projectManager.getActiveProject();
     this.postMessage({ type: "setProject", project });
@@ -257,7 +287,38 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
     const projects = this.projectManager.getProjects();
     this.postMessage({ type: "setProjects", projects });
 
-    this.loadData();
+    this.loadData("background");
+  }
+
+  public hardRefresh(): void {
+    if (!this._view?.visible) {
+      return;
+    }
+
+    const project = this.projectManager.getActiveProject();
+    this.postMessage({ type: "setProject", project });
+
+    const projects = this.projectManager.getProjects();
+    this.postMessage({ type: "setProjects", projects });
+
+    this.loadData("manualRefresh");
+  }
+
+  /**
+   * Triggers a refresh intended for active project switches.
+   */
+  public refreshForProjectChange(): void {
+    if (!this._view?.visible) {
+      return;
+    }
+
+    const project = this.projectManager.getActiveProject();
+    this.postMessage({ type: "setProject", project });
+
+    const projects = this.projectManager.getProjects();
+    this.postMessage({ type: "setProjects", projects });
+
+    this.loadData("projectChange");
   }
 
   /**

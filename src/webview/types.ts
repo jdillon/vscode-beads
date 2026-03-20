@@ -14,7 +14,7 @@ export type BeadPriority = 0 | 1 | 2 | 3 | 4;
 export type DependencyType = "blocks" | "parent-child" | "related" | "discovered-from";
 
 export interface BeadComment {
-  id: number;
+  id: string;
   author: string;
   text: string;
   createdAt: string;
@@ -57,9 +57,10 @@ export interface BeadsProject {
   name: string;
   rootPath: string;
   beadsDir: string;
+  source?: "workspace" | "setting" | "env";
   dbPath?: string;
-  daemonStatus: "running" | "stopped" | "unknown";
-  daemonPid?: number;
+  backendStatus: "running" | "stopped" | "unknown";
+  backendPid?: number;
 }
 
 export interface BeadsSummary {
@@ -96,7 +97,13 @@ export type ExtensionMessage =
 export type WebviewMessage =
   | { type: "ready" }
   | { type: "refresh" }
-  | { type: "selectProject"; projectId: string }
+  | { type: "selectProject"; projectId: string; projectRootPath?: string }
+  | { type: "showProjectMenu"; projectId: string }
+  | { type: "showDoltStatus" }
+  | { type: "startDoltServer" }
+  | { type: "stopDoltServer" }
+  | { type: "openDoltLog" }
+  | { type: "openProjectFolder" }
   | { type: "selectBead"; beadId: string }
   | { type: "updateBead"; beadId: string; updates: Partial<Bead> }
   | { type: "createBead"; data: Partial<Bead> }
@@ -106,8 +113,6 @@ export type WebviewMessage =
   | { type: "addComment"; beadId: string; text: string }
   | { type: "openBeadDetails"; beadId: string }
   | { type: "viewInGraph"; beadId: string }
-  | { type: "startDaemon" }
-  | { type: "stopDaemon" }
   | { type: "copyBeadId"; beadId: string }
   | { type: "openFile"; filePath: string; line?: number };
 

@@ -27,7 +27,6 @@ import {
 } from "@tanstack/react-table";
 import {
   Bead,
-  BeadsProject,
   BeadStatus,
   BeadPriority,
   BeadType,
@@ -49,7 +48,7 @@ import { LabelBadge } from "../common/LabelBadge";
 import { FilterChip } from "../common/FilterChip";
 import { Table, Kanban } from "lucide-react";
 import { ErrorMessage } from "../common/ErrorMessage";
-import { ProjectDropdown } from "../common/ProjectDropdown";
+import { Loading } from "../common/Loading";
 import { Dropdown, DropdownItem } from "../common/Dropdown";
 import { Timestamp, timestampSortingFn } from "../common/Timestamp";
 import { AutocompleteInput, AutocompleteOption } from "../common/AutocompleteInput";
@@ -64,13 +63,9 @@ interface IssuesViewProps {
   loading: boolean;
   error: string | null;
   selectedBeadId: string | null;
-  projects: BeadsProject[];
-  activeProject: BeadsProject | null;
   tooltipHoverDelay: number; // 0 = disabled
-  onSelectProject: (projectId: string) => void;
   onSelectBead: (beadId: string) => void;
   onUpdateBead: (beadId: string, updates: Partial<Bead>) => void;
-  onStartDaemon: () => void;
   onRetry: () => void;
 }
 
@@ -108,17 +103,11 @@ export function IssuesView({
   loading,
   error,
   selectedBeadId,
-  projects,
-  activeProject,
   tooltipHoverDelay,
-  onSelectProject,
   onSelectBead,
   onUpdateBead,
-  onStartDaemon,
   onRetry,
 }: IssuesViewProps): React.ReactElement {
-  const isSocketError = error?.includes("ENOENT") || error?.includes("socket");
-
   // Persisted column state (sorting, visibility, order)
   const defaultVisibility = {
     labels: false,
@@ -634,13 +623,8 @@ export function IssuesView({
 
   return (
     <div className="beads-panel">
-      {/* Row 1: project + search + filter toggle */}
+      {/* Row 1: search + filter toggle */}
       <div className="panel-toolbar-compact">
-        <ProjectDropdown
-          projects={projects}
-          activeProject={activeProject}
-          onSelectProject={onSelectProject}
-        />
         <div className="search-input-wrapper">
           <input
             type="text"
@@ -875,13 +859,17 @@ export function IssuesView({
         <ErrorMessage
           message={error}
           onRetry={onRetry}
-          onStartDaemon={isSocketError ? onStartDaemon : undefined}
         />
       )}
 
       {/* Table */}
       {!error && viewMode === "table" && (
         <div className="beads-table-wrapper">
+          {loading && (
+            <div className="issues-loading-state">
+              <Loading />
+            </div>
+          )}
           <div className={`beads-table-container ${table.getState().columnSizingInfo.isResizingColumn ? "resizing" : ""}`}>
             <table
               className="beads-table"
@@ -1054,14 +1042,21 @@ export function IssuesView({
 
       {/* Kanban Board */}
       {!error && viewMode === "board" && (
-        <KanbanBoard
-          beads={table.getFilteredRowModel().rows.map((r) => r.original)}
-          selectedBeadId={selectedBeadId}
-          onSelectBead={onSelectBead}
-          onUpdateBead={onUpdateBead}
-          hasActiveFilters={hasActiveFilters}
-          unfilteredCounts={unfilteredStatusCounts}
-        />
+        <>
+          {loading && (
+            <div className="issues-loading-state">
+              <Loading />
+            </div>
+          )}
+          <KanbanBoard
+            beads={table.getFilteredRowModel().rows.map((r) => r.original)}
+            selectedBeadId={selectedBeadId}
+            onSelectBead={onSelectBead}
+            onUpdateBead={onUpdateBead}
+            hasActiveFilters={hasActiveFilters}
+            unfilteredCounts={unfilteredStatusCounts}
+          />
+        </>
       )}
 
       {/* Markdown tooltip */}

@@ -2,7 +2,7 @@
 
 <img src="resources/icon.png" alt="Beads icon" width="128" align="right">
 
-VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issues. Communicates with the Beads daemon via `bd` CLI.
+VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issues. Uses `bd` for project discovery and Dolt lifecycle control, and reads issue data directly from Dolt SQL for a faster UI.
 
 ![Beads VS Code Extension](docs/images/beads-vscode-screenshot.png)
 
@@ -36,12 +36,12 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 - Markdown rendering in description/notes with timezone-aware timestamps
 - Dependency management with grouped relationship types (blocks, related, parent-child)
 
-**Multi-Project & Daemon**
+**Multi-Project & Dolt-Aware UI**
 
 - Auto-detects `.beads` directories in workspace
-- Status bar indicator with daemon health
-- Auto-start daemon, auto-recover from stale sockets
-- Windows TCP socket support
+- Project switcher and compact dashboard controls
+- Direct Dolt-backed reads for issues, details, and comments
+- Configurable Dolt change polling for near-real-time updates
 
 ## Development
 
@@ -60,8 +60,8 @@ Install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
 ## Usage
 
 1. Initialize: `bd init`
-2. Start daemon: `bd daemon start`
-3. Click Beads icon in Activity Bar
+2. Click the Beads icon in the Activity Bar
+3. If needed, use the dashboard controls to inspect/start/stop Dolt for the active project
 
 ### Issues Panel
 
@@ -87,26 +87,25 @@ Install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
 | `Beads: Switch Project`   | Select active project           |
 | `Beads: Refresh`          | Refresh all views               |
 | `Beads: Create New Issue` | Create issue via quick input    |
-| `Beads: Start Daemon`     | Start daemon for active project |
-| `Beads: Stop Daemon`      | Stop daemon                     |
-| `Beads: Restart Daemon`   | Restart daemon                  |
+| `Beads: Start Dolt Server` | Start Dolt for active project  |
+| `Beads: Stop Dolt Server`  | Stop Dolt for active project   |
+| `Beads: Show Dolt Status`  | Log Dolt status for the project |
 
 ## Settings
 
 | Setting                 | Default | Description                                         |
 | ----------------------- | ------- | --------------------------------------------------- |
-| `beads.pathToBd`        | `"bd"`  | Path to `bd` CLI                                    |
-| `beads.autoStartDaemon` | `true`  | Auto-start daemon on project switch                 |
-| `beads.refreshInterval` | `30000` | Auto-refresh interval in ms (0 = disable)           |
-| `beads.renderMarkdown`  | `true`  | Render markdown in text fields                      |
-| `beads.userId`          | `""`    | Your user ID for "Assign to me" (defaults to $USER) |
+| `beads.pathToBd`          | `"bd"`  | Path to `bd` CLI                                     |
+| `beads.refreshInterval`   | `3000`  | Dolt change polling interval in ms (0 = disable)     |
+| `beads.renderMarkdown`    | `true`  | Render markdown in text fields                       |
+| `beads.userId`            | `""`    | Your user ID for "Assign to me" (defaults to $USER)  |
 | `beads.tooltipHoverDelay` | `1000` | Delay in ms before showing tooltip on hover (0 = disable) |
 
 ## Troubleshooting
 
 **"No Beads projects found"** - Run `bd init` in project root
 
-**"Daemon not running"** - Click "Start Daemon" or run `bd daemon start`
+**Dolt not available / issues not loading** - Use the dashboard actions to inspect Dolt status or start the Dolt server for the active project
 
 **Commands fail** - Check "Beads" output channel, verify `bd` in PATH
 

@@ -73,7 +73,7 @@ export interface Bead {
 
 // Comment on a bead
 export interface BeadComment {
-  id: number;
+  id: string;
   author: string;
   text: string;
   createdAt: string;
@@ -92,8 +92,8 @@ export interface BeadDependency {
   priority?: BeadPriority;
 }
 
-// Daemon API dependency format (before normalization)
-export interface DaemonBeadDependency {
+// Backend dependency format (before normalization)
+export interface BackendBeadDependency {
   id: string;
   dependency_type: string; // relationship: blocks, related, parent-child, etc.
   issue_type?: string;     // bead type: bug, feature, task, epic, chore
@@ -108,23 +108,22 @@ export interface BeadsProject {
   name: string; // Human-friendly label (folder name or config display name)
   rootPath: string; // Project root (VS Code workspace folder)
   beadsDir: string; // Path to .beads directory
+  source?: "workspace" | "setting" | "env";
   dbPath?: string; // Path to beads.db (if discovered)
-  daemonStatus: "running" | "stopped" | "unknown";
-  daemonPid?: number;
+  backendStatus: "running" | "stopped" | "unknown";
+  backendPid?: number;
 }
 
 // Result from `bd info --json`
 export interface BeadsInfo {
   version?: string;
   database?: string;
-  daemon_status?: string;
-  daemon_pid?: number;
   issue_count?: number;
   [key: string]: unknown;
 }
 
-// Result from `bd daemons list --json`
-export interface DaemonInfo {
+// Legacy backend process info
+export interface BackendProcessInfo {
   pid: number;
   database: string;
   working_dir?: string;
@@ -163,7 +162,7 @@ export type ExtensionToWebviewMessage =
   | { type: "setBeads"; beads: Bead[] }
   | { type: "setBead"; bead: Bead | null }
   | { type: "setSelectedBeadId"; beadId: string | null }
-  | { type: "setSummary"; summary: BeadsSummary }
+  | { type: "setSummary"; summary: BeadsSummary | null }
   | { type: "setGraph"; graph: DependencyGraph }
   | { type: "setProjects"; projects: BeadsProject[] }
   | { type: "setLoading"; loading: boolean }
@@ -175,7 +174,13 @@ export type ExtensionToWebviewMessage =
 export type WebviewToExtensionMessage =
   | { type: "ready" }
   | { type: "refresh" }
-  | { type: "selectProject"; projectId: string }
+  | { type: "selectProject"; projectId: string; projectRootPath?: string }
+  | { type: "showProjectMenu"; projectId: string }
+  | { type: "showDoltStatus" }
+  | { type: "startDoltServer" }
+  | { type: "stopDoltServer" }
+  | { type: "openDoltLog" }
+  | { type: "openProjectFolder" }
   | { type: "selectBead"; beadId: string }
   | { type: "updateBead"; beadId: string; updates: Partial<Bead> }
   | { type: "createBead"; data: Partial<Bead> }
@@ -186,9 +191,7 @@ export type WebviewToExtensionMessage =
   | { type: "openBeadDetails"; beadId: string }
   | { type: "viewInGraph"; beadId: string }
   | { type: "copyBeadId"; beadId: string }
-  | { type: "openFile"; filePath: string; line?: number }
-  | { type: "startDaemon" }
-  | { type: "stopDaemon" };
+  | { type: "openFile"; filePath: string; line?: number };
 
 // CLI command result
 export interface CommandResult<T = unknown> {
@@ -329,7 +332,7 @@ export function normalizeBead(raw: Record<string, unknown>): Bead | null {
 }
 
 /**
- * Converts a daemon Issue to webview Bead format.
+ * Converts a backend issue to webview Bead format.
  * Returns null if status is invalid (bead will be skipped).
  */
 export function issueToWebviewBead(issue: {
@@ -349,9 +352,9 @@ export function issueToWebviewBead(issue: {
   created_at: string;
   updated_at: string;
   closed_at?: string;
-  dependencies?: DaemonBeadDependency[];
-  dependents?: DaemonBeadDependency[];
-  comments?: Array<{ id: number; author: string; text: string; created_at: string }>;
+  dependencies?: BackendBeadDependency[];
+  dependents?: BackendBeadDependency[];
+  comments?: Array<{ id: string; author: string; text: string; created_at: string }>;
 }): Bead | null {
   const status = normalizeStatus(issue.status);
   if (status === null) {

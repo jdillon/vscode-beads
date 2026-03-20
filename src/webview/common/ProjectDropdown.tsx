@@ -1,7 +1,7 @@
 /**
  * ProjectDropdown Component
  *
- * Custom dropdown for selecting projects with daemon status indicators.
+ * Custom dropdown for selecting projects.
  * Uses generic Dropdown component for consistent behavior.
  */
 
@@ -12,7 +12,7 @@ import { Dropdown, DropdownItem } from "./Dropdown";
 interface ProjectDropdownProps {
   projects: BeadsProject[];
   activeProject: BeadsProject | null;
-  onSelectProject: (projectId: string) => void;
+  onSelectProject: (project: BeadsProject) => void;
 }
 
 export function ProjectDropdown({
@@ -28,13 +28,12 @@ export function ProjectDropdown({
     );
   }
 
-  const handleSelect = (projectId: string) => {
-    onSelectProject(projectId);
+  const handleSelect = (project: BeadsProject) => {
+    onSelectProject(project);
   };
 
   const triggerContent = (
     <>
-      <DaemonDot status={activeProject?.daemonStatus || "unknown"} />
       <span className="project-dropdown-name">
         {activeProject?.name || projects[0]?.name || "Select project"}
       </span>
@@ -51,29 +50,15 @@ export function ProjectDropdown({
     >
       {projects.map((project) => (
         <DropdownItem
-          key={project.id}
+          key={`${project.id}:${project.rootPath}`}
           className="project-dropdown-item"
           active={project.id === activeProject?.id}
-          onClick={() => handleSelect(project.id)}
+          onClick={() => handleSelect(project)}
           title={project.rootPath}
         >
-          <DaemonDot status={project.daemonStatus || "unknown"} />
           <span className="project-dropdown-item-name">{project.name}</span>
         </DropdownItem>
       ))}
     </Dropdown>
-  );
-}
-
-interface DaemonDotProps {
-  status: "running" | "stopped" | "unknown";
-}
-
-function DaemonDot({ status }: DaemonDotProps): React.ReactElement {
-  return (
-    <span
-      className={`daemon-dot ${status}`}
-      title={`Daemon: ${status}`}
-    />
   );
 }

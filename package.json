@@ -50,7 +50,7 @@
           "type": "webview",
           "id": "beadsDashboard",
           "name": "Dashboard",
-          "visibility": "hidden"
+          "visibility": "visible"
         },
         {
           "type": "webview",
@@ -88,36 +88,6 @@
         "icon": "$(refresh)"
       },
       {
-        "command": "beads.createBead",
-        "title": "Beads: Create New Issue",
-        "icon": "$(add)"
-      },
-      {
-        "command": "beads.startDaemon",
-        "title": "Beads: Start Daemon",
-        "icon": "$(play)"
-      },
-      {
-        "command": "beads.stopDaemon",
-        "title": "Beads: Stop Daemon",
-        "icon": "$(debug-stop)"
-      },
-      {
-        "command": "beads.restartDaemon",
-        "title": "Beads: Restart Daemon",
-        "icon": "$(debug-restart)"
-      },
-      {
-        "command": "beads.checkDaemonStatus",
-        "title": "Beads: Check Daemon Status",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "beads.showDaemonMenu",
-        "title": "Beads: Daemon Menu",
-        "icon": "$(server-process)"
-      },
-      {
         "command": "beads.copyBeadId",
         "title": "Beads: Copy Issue ID",
         "icon": "$(copy)"
@@ -127,13 +97,13 @@
       "view/title": [
         {
           "command": "beads.refresh",
-          "when": "view == beadsPanel",
+          "when": "view == beadsDashboard",
           "group": "navigation@1"
         },
         {
-          "command": "beads.createBead",
+          "command": "beads.refresh",
           "when": "view == beadsPanel",
-          "group": "navigation@2"
+          "group": "navigation@1"
         },
         {
           "command": "beads.copyBeadId",
@@ -150,15 +120,10 @@
           "default": "bd",
           "description": "Path to the bd CLI executable"
         },
-        "beads.autoStartDaemon": {
-          "type": "boolean",
-          "default": true,
-          "description": "Automatically start daemon when switching to a project"
-        },
         "beads.refreshInterval": {
           "type": "number",
-          "default": 30000,
-          "description": "Auto-refresh interval in milliseconds (0 to disable)"
+          "default": 3000,
+          "description": "Polling interval in milliseconds for Dolt change detection (0 to disable)"
         },
         "beads.renderMarkdown": {
           "type": "boolean",
@@ -212,6 +177,7 @@
     "@tanstack/react-table": "^8.21.3",
     "lucide-react": "^0.563.0",
     "marked": "^17.0.1",
+    "mysql2": "^3.20.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   }

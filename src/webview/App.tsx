@@ -107,12 +107,11 @@ export function App(): React.ReactElement {
 
   // Render the appropriate view
   const renderView = () => {
-    // Only show loading for beadsPanel when loading initial data
-    if (state.viewType === "beadsPanel" && state.loading && state.beads.length === 0) {
-      return <Loading />;
-    }
+      if (state.viewType === "beadsPanel" && state.loading && state.beads.length === 0) {
+        return <Loading />;
+      }
 
-    switch (state.viewType) {
+      switch (state.viewType) {
       case "beadsDashboard":
         return (
           <DashboardView
@@ -122,15 +121,21 @@ export function App(): React.ReactElement {
             error={state.error}
             projects={state.projects}
             activeProject={state.project}
-            onSelectProject={(projectId) =>
-              vscode.postMessage({ type: "selectProject", projectId })
+            onSelectProject={(project) =>
+              vscode.postMessage({
+                type: "selectProject",
+                projectId: project.id,
+                projectRootPath: project.rootPath,
+              })
             }
             onSelectBead={(beadId) =>
               vscode.postMessage({ type: "openBeadDetails", beadId })
             }
-            onStartDaemon={() =>
-              vscode.postMessage({ type: "startDaemon" })
-            }
+            onShowStatus={() => vscode.postMessage({ type: "showDoltStatus" })}
+            onStartDolt={() => vscode.postMessage({ type: "startDoltServer" })}
+            onStopDolt={() => vscode.postMessage({ type: "stopDoltServer" })}
+            onOpenDoltLog={() => vscode.postMessage({ type: "openDoltLog" })}
+            onOpenProjectFolder={() => vscode.postMessage({ type: "openProjectFolder" })}
             onRetry={() =>
               vscode.postMessage({ type: "refresh" })
             }
@@ -144,20 +149,12 @@ export function App(): React.ReactElement {
             loading={state.loading}
             error={state.error}
             selectedBeadId={state.selectedBeadId}
-            projects={state.projects}
-            activeProject={state.project}
             tooltipHoverDelay={state.settings.tooltipHoverDelay}
-            onSelectProject={(projectId) =>
-              vscode.postMessage({ type: "selectProject", projectId })
-            }
             onSelectBead={(beadId) =>
               vscode.postMessage({ type: "openBeadDetails", beadId })
             }
             onUpdateBead={(beadId, updates) =>
               vscode.postMessage({ type: "updateBead", beadId, updates })
-            }
-            onStartDaemon={() =>
-              vscode.postMessage({ type: "startDaemon" })
             }
             onRetry={() =>
               vscode.postMessage({ type: "refresh" })

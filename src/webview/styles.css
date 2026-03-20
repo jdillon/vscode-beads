@@ -185,7 +185,7 @@ textarea {
 }
 
 .dropdown-trigger:active {
-  transform: scale(0.98);
+  transform: none;
 }
 
 .dropdown-menu {
@@ -333,24 +333,6 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 200px;
-}
-
-.daemon-badge {
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 10px;
-}
-
-.daemon-running {
-  color: var(--vscode-testing-iconPassed, #22c55e);
-}
-
-.daemon-stopped {
-  color: var(--vscode-testing-iconFailed, #ef4444);
-}
-
-.daemon-unknown {
-  color: var(--vscode-descriptionForeground);
 }
 
 /* ==================== Status & Priority Badges ==================== */
@@ -612,8 +594,7 @@ textarea {
   gap: var(--spacing-sm);
 }
 
-.retry-button,
-.start-daemon-button {
+.retry-button {
   padding: var(--spacing-sm) var(--spacing-lg);
   background-color: var(--vscode-button-background);
   color: var(--vscode-button-foreground);
@@ -622,24 +603,13 @@ textarea {
   border: none;
 }
 
-.retry-button:hover,
-.start-daemon-button:hover {
+.retry-button:hover {
   background-color: var(--vscode-button-hoverBackground);
 }
 
-.retry-button:active,
-.start-daemon-button:active {
+.retry-button:active {
   transform: scale(0.97);
   opacity: 0.9;
-}
-
-.start-daemon-button {
-  background-color: var(--vscode-button-secondaryBackground);
-  color: var(--vscode-button-secondaryForeground);
-}
-
-.start-daemon-button:hover {
-  background-color: var(--vscode-button-secondaryHoverBackground);
 }
 
 /* Empty States */
@@ -752,33 +722,19 @@ textarea {
   background: var(--vscode-toolbar-hoverBackground);
 }
 
-.daemon-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.daemon-dot.running {
-  background: #22c55e;
-}
-
-.daemon-dot.stopped {
-  background: #ef4444;
-}
-
-.daemon-dot.unknown {
-  background: #6b7280;
-}
-
 /* Project Dropdown - extends generic .dropdown */
 .project-dropdown {
   flex-shrink: 0;
 }
 
 .project-dropdown-trigger {
-  min-width: 60px;
-  max-width: 200px;
+  min-width: 0;
+  max-width: 240px;
+  width: 100%;
+  justify-content: space-between;
+  padding: 4px 8px 4px 10px;
+  min-height: 26px;
+  box-sizing: border-box;
 }
 
 .project-dropdown-name {
@@ -786,6 +742,7 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 
 .project-dropdown-menu {
@@ -800,6 +757,189 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.projects-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+}
+
+.projects-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.projects-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--vscode-foreground);
+}
+
+.projects-subtitle {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.projects-refresh-btn,
+.project-primary-btn,
+.project-secondary-btn {
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.projects-refresh-btn,
+.project-secondary-btn {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.project-primary-btn {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.projects-refresh-btn:hover,
+.project-secondary-btn:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.project-primary-btn:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.projects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.project-card {
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--vscode-editor-background) 92%, white 8%);
+}
+
+.project-card.active {
+  border-color: var(--vscode-focusBorder);
+}
+
+.project-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.project-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.project-card-title {
+  font-weight: 600;
+}
+
+.project-active-badge,
+.project-status-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.project-active-badge {
+  background: color-mix(in srgb, var(--vscode-focusBorder) 20%, transparent);
+  color: var(--vscode-focusBorder);
+}
+
+.project-status-pill {
+  text-transform: capitalize;
+  background: color-mix(in srgb, var(--vscode-descriptionForeground) 15%, transparent);
+  color: var(--vscode-descriptionForeground);
+}
+
+.project-status-pill.running {
+  background: color-mix(in srgb, #10b981 18%, transparent);
+  color: #10b981;
+}
+
+.project-status-pill.stopped {
+  background: color-mix(in srgb, #f59e0b 18%, transparent);
+  color: #f59e0b;
+}
+
+.project-status-pill.unknown {
+  background: color-mix(in srgb, #64748b 18%, transparent);
+  color: #94a3b8;
+}
+
+.project-card-path,
+.project-beads-dir code {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.project-card-path {
+  margin-top: 4px;
+}
+
+.project-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.project-meta-label {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.project-meta-value {
+  font-size: 12px;
+}
+
+.project-beads-dir {
+  margin-top: 10px;
+}
+
+.project-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.dashboard-action-btn {
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 6px 10px;
+  cursor: pointer;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  flex-shrink: 0;
+}
+
+.dashboard-action-btn:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
 }
 
 .filter-toggle {
@@ -1260,6 +1400,14 @@ textarea {
   flex-direction: column;
 }
 
+.issues-loading-state {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .filter-count-overlay {
   position: absolute;
   bottom: 8px;
@@ -1288,6 +1436,163 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
+  padding: 4px;
+}
+
+.dashboard-compact {
+  gap: var(--spacing-sm);
+}
+
+.dashboard-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dashboard-toolbar .project-dropdown {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-toolbar .project-dropdown-trigger {
+  width: 100%;
+  max-width: none;
+}
+
+.dashboard-actions-dropdown {
+  flex-shrink: 0;
+}
+
+.dashboard-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  border-radius: var(--border-radius);
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.dashboard-menu-btn:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  opacity: 1;
+}
+
+.dashboard-menu-trigger {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.dashboard-actions-menu {
+  min-width: 160px;
+  z-index: 2000;
+}
+
+.dashboard-menu-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-menu-item-icon {
+  width: 12px;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.dashboard-actions-dropdown {
+  flex-shrink: 0;
+}
+
+.dashboard-menu-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: var(--border-radius);
+  opacity: 0.8;
+}
+
+.dashboard-menu-btn:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  opacity: 1;
+}
+
+.dashboard-menu-trigger {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.dashboard-actions-menu {
+  min-width: 160px;
+  z-index: 2000;
+}
+
+.dashboard-menu-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-menu-item-icon {
+  width: 12px;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.summary-section.compact {
+  grid-template-columns: repeat(4, minmax(56px, 1fr));
+  gap: 6px;
+}
+
+.dashboard-project-dir {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  overflow: hidden;
+  text-align: left;
+}
+
+.dashboard-project-dir-link {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+}
+
+.dashboard-project-dir-label {
+  flex-shrink: 0;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.dashboard-project-dir-value {
+  font-family: inherit;
+  display: inline-block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--vscode-foreground);
+  background: transparent;
+}
+
+.dashboard-project-dir-link:hover .dashboard-project-dir-value {
+  text-decoration: underline;
 }
 
 .summary-section {
@@ -1367,6 +1672,15 @@ textarea {
   min-width: 100px;
 }
 
+.bar-label.compact {
+  min-width: 84px;
+  gap: 6px;
+}
+
+.bar-label.compact.label {
+  min-width: 120px;
+}
+
 .bar-count {
   font-size: 12px;
   font-weight: 500;
@@ -1384,6 +1698,10 @@ textarea {
   height: 100%;
   border-radius: 4px;
   transition: width var(--transition-normal);
+}
+
+.bar-fill.label {
+  opacity: 0.95;
 }
 
 .work-sections {
