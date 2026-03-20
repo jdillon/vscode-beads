@@ -13,6 +13,7 @@ import {
 } from "./BeadsBackend";
 
 const execFileAsync = util.promisify(execFile);
+const BD_COMMAND_TIMEOUT_MS = 30000;
 
 function compareSemver(a: string, b: string): number {
   const aParts = a.split(".").map((n) => parseInt(n, 10));
@@ -37,7 +38,7 @@ function toStringArray(values?: string[]): string[] {
   return values.flatMap((v) => ["--label", v]);
 }
 
-export class BeadsCLIBackend implements BeadsBackend {
+export class BeadsCommandRunner implements BeadsBackend {
   private readonly bdPath: string;
   private readonly cwd: string;
   private readonly beadsDir: string;
@@ -61,9 +62,18 @@ export class BeadsCLIBackend implements BeadsBackend {
     this.minSupportedVersion = params.minSupportedVersion ?? "0.51.0";
   }
 
+  async dispose(): Promise<void> {
+    this.inFlightReads.clear();
+    this.recentJsonCache.clear();
+  }
+
   async checkCompatibility(): Promise<BackendCompatibility> {
     this.compatibilityPromise ??= this.computeCompatibility();
     return this.compatibilityPromise;
+  }
+
+  async probeLive(): Promise<void> {
+    await this.checkCompatibility();
   }
 
   async list(): Promise<BeadsIssue[]> {
@@ -143,8 +153,15 @@ export class BeadsCLIBackend implements BeadsBackend {
       cmdArgs.push("--estimate", String(args.estimated_minutes));
     }
     if (args.estimate !== undefined) cmdArgs.push("--estimate", String(args.estimate));
-    if (args.type !== undefined) cmdArgs.push("--type", args.type);
-    if (args.issue_type !== undefined) cmdArgs.push("--type", args.issue_type);
+    if (
+      args.type !== undefined &&
+      args.issue_type !== undefined &&
+      args.type !== args.issue_type
+    ) {
+      throw new Error("Conflicting issue type values");
+    }
+    const issueType = args.issue_type ?? args.type;
+    if (issueType !== undefined) cmdArgs.push("--type", issueType);
 
     for (const label of args.add_labels ?? []) cmdArgs.push("--add-label", label);
     for (const label of args.remove_labels ?? []) cmdArgs.push("--remove-label", label);
@@ -197,6 +214,8 @@ export class BeadsCLIBackend implements BeadsBackend {
         BEADS_DIR: this.beadsDir,
       },
       maxBuffer,
+      timeout: BD_COMMAND_TIMEOUT_MS,
+      killSignal: "SIGTERM",
     });
 
     const elapsedMs = Date.now() - startedAt;
@@ -297,6 +316,9 @@ export class BeadsCLIBackend implements BeadsBackend {
       return output;
     } catch (error) {
       const err = error as Error & { stderr?: string; stdout?: string };
+      if ((err as NodeJS.ErrnoException).code === "ETIMEDOUT") {
+        throw new Error(`bd command timed out after ${BD_COMMAND_TIMEOUT_MS}ms: ${args.join(" ")}`);
+      }
       const stderr = err.stderr?.trim() ?? "";
       const stdout = err.stdout?.trim() ?? "";
       throw new Error(stderr || stdout || err.message);

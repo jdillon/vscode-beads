@@ -12,7 +12,7 @@ import {
   DependencyArgs,
   UpdateIssueArgs,
 } from "./BeadsBackend";
-import { BeadsCLIBackend } from "./BeadsCLIBackend";
+import { BeadsCommandRunner } from "./BeadsCommandRunner";
 
 const execFileAsync = util.promisify(execFile);
 
@@ -34,7 +34,7 @@ interface DoltShowInfo {
 type SqlRow = Record<string, unknown>;
 
 export class BeadsDoltBackend implements BeadsBackend {
-  private readonly cli: BeadsCLIBackend;
+  private readonly cli: BeadsCommandRunner;
   private readonly bdPath: string;
   private readonly cwd: string;
   private readonly beadsDir: string;
@@ -55,11 +55,22 @@ export class BeadsDoltBackend implements BeadsBackend {
     this.cwd = params.cwd;
     this.beadsDir = params.beadsDir;
     this.log = params.log.child("DoltBackend");
-    this.cli = new BeadsCLIBackend(params);
+    this.cli = new BeadsCommandRunner(params);
+  }
+
+  async dispose(): Promise<void> {
+    this.inFlightReads.clear();
+    await this.resetPool();
+    await this.cli.dispose();
   }
 
   async checkCompatibility(): Promise<BackendCompatibility> {
     return this.cli.checkCompatibility();
+  }
+
+  async probeLive(): Promise<void> {
+    const pool = await this.getPool();
+    await pool.query("SELECT 1");
   }
 
   async info(): Promise<Record<string, unknown>> {
@@ -380,7 +391,10 @@ export class BeadsDoltBackend implements BeadsBackend {
 
     this.poolPromise = (async () => {
       const info = await this.getConnectionInfo();
-      await this.resetPool();
+      if (this.pool) {
+        await this.pool.end();
+        this.pool = null;
+      }
       this.connectionInfo = info;
       const pool = mysql.createPool({
         host: info.host,
@@ -446,7 +460,8 @@ export class BeadsDoltBackend implements BeadsBackend {
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
 
-    return this.cli.doltStatus();
+    const status = await this.cli.doltStatus();
+    throw new Error(`Dolt server did not become ready: ${status}`);
   }
 
   private async execBdText(args: string[]): Promise<string> {
@@ -461,9 +476,38 @@ export class BeadsDoltBackend implements BeadsBackend {
     return [stdout.trim(), stderr.trim()].filter(Boolean).join("\n").trim();
   }
 
+  private async execBdJson<T>(args: string[]): Promise<T> {
+    try {
+      const { stdout, stderr } = await execFileAsync(this.bdPath, args, {
+        cwd: this.cwd,
+        env: {
+          ...process.env,
+          BEADS_DIR: this.beadsDir,
+        },
+        maxBuffer: 10 * 1024 * 1024,
+      });
+
+      const trimmedStdout = stdout.trim();
+      const trimmedStderr = stderr.trim();
+      if (trimmedStderr) {
+        this.log.trace(`bd ${args.join(" ")} stderr: ${trimmedStderr}`);
+      }
+      if (!trimmedStdout) {
+        throw new Error(`No JSON output from bd ${args.join(" ")}`);
+      }
+      return JSON.parse(trimmedStdout) as T;
+    } catch (error) {
+      const err = error as Error & { stderr?: string; stdout?: string };
+      const stderr = err.stderr?.trim() ?? "";
+      const stdout = err.stdout?.trim() ?? "";
+      const rawMessage = stderr || stdout || err.message;
+      this.log.trace(`bd ${args.join(" ")} failed: ${rawMessage}`);
+      throw new Error(rawMessage);
+    }
+  }
+
   private async getDoltShowInfo(): Promise<DoltShowInfo> {
-    const output = await this.execBdText(["dolt", "show", "--json"]);
-    return JSON.parse(output) as DoltShowInfo;
+    return this.execBdJson<DoltShowInfo>(["dolt", "show", "--json"]);
   }
 
   private async resetPool(): Promise<void> {

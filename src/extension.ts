@@ -130,10 +130,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     vscode.commands.registerCommand("beads.refresh", async () => {
       log.info("Manual refresh triggered");
+      await projectManager.refresh();
       dashboardProvider.hardRefresh();
       beadsPanelProvider.hardRefresh();
       detailsProvider.hardRefresh();
-      await projectManager.refresh();
       log.info("Refresh complete");
       vscode.window.setStatusBarMessage("$(check) Beads: Refreshed", 2000);
     }),
@@ -153,6 +153,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         dashboardProvider.refresh();
         beadsPanelProvider.refresh();
         detailsProvider.refresh();
+        await updateStatusBar();
         vscode.window.showInformationMessage(`Dolt server started for ${project.name}.`);
       } catch (err) {
         await log.errorNotify(`Failed to start Dolt server: ${err instanceof Error ? err.message : String(err)}`);
@@ -174,6 +175,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         dashboardProvider.refresh();
         beadsPanelProvider.refresh();
         detailsProvider.refresh();
+        await updateStatusBar();
         vscode.window.showInformationMessage(`Dolt server stopped for ${project.name}.`);
       } catch (err) {
         await log.errorNotify(`Failed to stop Dolt server: ${err instanceof Error ? err.message : String(err)}`);

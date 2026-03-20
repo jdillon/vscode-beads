@@ -32,6 +32,7 @@ interface DashboardViewProps {
   projects: BeadsProject[];
   activeProject: BeadsProject | null;
   onSelectProject: (project: BeadsProject) => void;
+  onSelectBead: (beadId: string) => void;
   onShowStatus: () => void;
   onStartDolt: () => void;
   onStopDolt: () => void;
@@ -48,6 +49,7 @@ export function DashboardView({
   projects,
   activeProject,
   onSelectProject,
+  onSelectBead,
   onShowStatus,
   onStartDolt,
   onStopDolt,
@@ -196,7 +198,7 @@ export function DashboardView({
               <div className="work-section open compact">
                 <h3>Open</h3>
                 <ul className="bead-list">
-                  {openBeads.map((bead) => <BeadListItem key={bead.id} bead={bead} />)}
+                  {openBeads.map((bead) => <BeadListItem key={bead.id} bead={bead} onSelectBead={onSelectBead} />)}
                 </ul>
               </div>
             )}
@@ -204,7 +206,7 @@ export function DashboardView({
               <div className="work-section in-progress compact">
                 <h3>In Progress</h3>
                 <ul className="bead-list">
-                  {inProgressBeads.map((bead) => <BeadListItem key={bead.id} bead={bead} />)}
+                  {inProgressBeads.map((bead) => <BeadListItem key={bead.id} bead={bead} onSelectBead={onSelectBead} />)}
                 </ul>
               </div>
             )}
@@ -212,7 +214,7 @@ export function DashboardView({
               <div className="work-section blocked compact">
                 <h3>Blocked</h3>
                 <ul className="bead-list">
-                  {blockedBeads.map((bead) => <BeadListItem key={bead.id} bead={bead} />)}
+                  {blockedBeads.map((bead) => <BeadListItem key={bead.id} bead={bead} onSelectBead={onSelectBead} />)}
                 </ul>
               </div>
             )}
@@ -223,9 +225,20 @@ export function DashboardView({
   );
 }
 
-function BeadListItem({ bead }: { bead: Bead }): React.ReactElement {
+function BeadListItem({ bead, onSelectBead }: { bead: Bead; onSelectBead: (beadId: string) => void }): React.ReactElement {
   return (
-    <li className="bead-list-item compact">
+    <li
+      className="bead-list-item compact"
+      onClick={() => onSelectBead(bead.id)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelectBead(bead.id);
+        }
+      }}
+      role="button"
+      tabIndex={0}
+    >
       <div className="bead-info">
         <span className="bead-id">{bead.id}</span>
         <span className="bead-title">{bead.title}</span>

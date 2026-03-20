@@ -158,6 +158,28 @@ export class BeadsProjectManager implements vscode.Disposable {
       };
     }
 
+    try {
+      await this.backend.probeLive();
+    } catch (error) {
+      if (this.isNotInitializedError(error)) {
+        return {
+          state: "not_initialized",
+          message: "Beads project is not initialized. Run `bd init` in this project. See Output > Beads for details.",
+        };
+      }
+
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        state: "zombie",
+        message,
+        details: {
+          beadsDir: this.activeProject.beadsDir,
+          detectedVersion: compatibility.detectedVersion,
+          minimumVersion: compatibility.minimumVersion,
+        },
+      };
+    }
+
       return {
         state: "running",
         message: compatibility.message,
@@ -350,6 +372,11 @@ export class BeadsProjectManager implements vscode.Disposable {
     project: BeadsProject,
     options: { emitActiveProjectChanged: boolean; persistSelection: boolean; emitDataChanged: boolean }
   ): Promise<void> {
+    const oldBackend = this.backend;
+    if (oldBackend) {
+      await oldBackend.dispose();
+    }
+
     this.activeProject = project;
 
     if (options.persistSelection) {

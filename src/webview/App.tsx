@@ -128,6 +128,9 @@ export function App(): React.ReactElement {
                 projectRootPath: project.rootPath,
               })
             }
+            onSelectBead={(beadId) =>
+              vscode.postMessage({ type: "openBeadDetails", beadId })
+            }
             onShowStatus={() => vscode.postMessage({ type: "showDoltStatus" })}
             onStartDolt={() => vscode.postMessage({ type: "startDoltServer" })}
             onStopDolt={() => vscode.postMessage({ type: "stopDoltServer" })}

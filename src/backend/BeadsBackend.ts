@@ -78,7 +78,9 @@ export interface BackendCompatibility {
 }
 
 export interface BeadsBackend {
+  dispose(): Promise<void>;
   checkCompatibility(): Promise<BackendCompatibility>;
+  probeLive(): Promise<void>;
   info(): Promise<Record<string, unknown>>;
   getChangeToken(): Promise<string | null>;
   doltStatus(): Promise<string>;
