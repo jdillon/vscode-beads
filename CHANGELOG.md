@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Project switching no longer stalls on refresh sequencing
 - Backend discovery and loading more stable with reduced refresh churn
 - CLI backend properly isolated per project using BEADS_DIR
+- Harden Dolt backend lifecycle and restore dashboard drill-down/refresh
 
 ## [0.12.0] - 2026-01-31
 
