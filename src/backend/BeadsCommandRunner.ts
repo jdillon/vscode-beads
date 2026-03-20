@@ -149,10 +149,15 @@ export class BeadsCommandRunner implements BeadsBackend {
     if (args.priority !== undefined) cmdArgs.push("--priority", String(args.priority));
     if (args.assignee !== undefined) cmdArgs.push("--assignee", args.assignee);
     if (args.external_ref !== undefined) cmdArgs.push("--external-ref", args.external_ref);
-    if (args.estimated_minutes !== undefined) {
-      cmdArgs.push("--estimate", String(args.estimated_minutes));
+    if (
+      args.estimated_minutes !== undefined &&
+      args.estimate !== undefined &&
+      args.estimated_minutes !== args.estimate
+    ) {
+      throw new Error("Conflicting estimate values: estimated_minutes and estimate differ");
     }
-    if (args.estimate !== undefined) cmdArgs.push("--estimate", String(args.estimate));
+    const estimate = args.estimated_minutes ?? args.estimate;
+    if (estimate !== undefined) cmdArgs.push("--estimate", String(estimate));
     if (
       args.type !== undefined &&
       args.issue_type !== undefined &&
