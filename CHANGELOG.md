@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-03-20
+
 ### Added
 
 - Direct Dolt-backed backend with bd cli execution to bootstrap config/locations
