@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `beads.userId` and `beads.pathToBd` now expand `${env:VAR}` placeholders (#60)
+
 ## [0.13.0] - 2026-03-20
 
 ### Added
