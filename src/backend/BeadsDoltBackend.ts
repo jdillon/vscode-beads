@@ -21,6 +21,7 @@ interface DoltConnectionInfo {
   port: number;
   user: string;
   database: string;
+  sharedServer: boolean;
 }
 
 interface DoltShowInfo {
@@ -29,6 +30,7 @@ interface DoltShowInfo {
   user?: string;
   database?: string;
   connection_ok?: boolean;
+  shared_server?: boolean;
 }
 
 type SqlRow = Record<string, unknown>;
@@ -410,7 +412,8 @@ export class BeadsDoltBackend implements BeadsBackend {
       });
       await pool.query("SELECT 1");
       this.pool = pool;
-      this.log.info(`Connected to Dolt SQL at ${info.host}:${info.port}/${info.database}`);
+      const mode = info.sharedServer ? "shared" : "per-project";
+      this.log.info(`Connected to Dolt SQL at ${info.host}:${info.port}/${info.database} (${mode} server)`);
       return pool;
     })();
 
@@ -434,7 +437,7 @@ export class BeadsDoltBackend implements BeadsBackend {
       throw new Error(`Unable to determine Dolt connection details. status=${statusOutput} show=${JSON.stringify(showInfo)}`);
     }
 
-    return { host, port, user, database };
+    return { host, port, user, database, sharedServer: showInfo.shared_server === true };
   }
 
   private async ensureServerRunning(): Promise<string> {
