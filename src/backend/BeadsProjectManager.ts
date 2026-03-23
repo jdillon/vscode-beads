@@ -5,6 +5,7 @@ import * as path from "path";
 import * as util from "util";
 import * as vscode from "vscode";
 import { Logger } from "../utils/logger";
+import { resolveEnvVariables } from "../utils/resolve-env-variables";
 import { BeadsBackend } from "./BeadsBackend";
 import { BeadsDoltBackend } from "./BeadsDoltBackend";
 import { BeadsProject } from "./types";
@@ -437,7 +438,7 @@ export class BeadsProjectManager implements vscode.Disposable {
   private getBdPath(): string {
     const config = vscode.workspace.getConfiguration("beads");
     const configuredBdPath = config.get<string>("pathToBd", "bd") ?? "bd";
-    return this.resolveBdPath(configuredBdPath.trim());
+    return this.resolveBdPath(resolveEnvVariables(configuredBdPath).trim());
   }
 
   private isNotInitializedError(error: unknown): boolean {

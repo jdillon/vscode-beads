@@ -15,6 +15,7 @@ import {
   WebviewToExtensionMessage,
 } from "../backend/types";
 import { Logger } from "../utils/logger";
+import { resolveEnvVariables } from "../utils/resolve-env-variables";
 
 export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
   protected _view?: vscode.WebviewView;
@@ -89,7 +90,8 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
     // Send settings
     const config = vscode.workspace.getConfiguration("beads");
     // User ID: prefer setting, fallback to $USER, then "unknown"
-    const userId = config.get<string>("userId", "") || process.env.USER || process.env.USERNAME || "unknown";
+    const rawUserId = config.get<string>("userId", "");
+    const userId = resolveEnvVariables(rawUserId || "") || process.env.USER || process.env.USERNAME || "unknown";
     this.postMessage({
       type: "setSettings",
       settings: {

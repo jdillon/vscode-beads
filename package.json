@@ -118,7 +118,7 @@
         "beads.pathToBd": {
           "type": "string",
           "default": "bd",
-          "description": "Path to the bd CLI executable"
+          "description": "Path to the bd CLI executable. Supports ${env:VAR} placeholders."
         },
         "beads.refreshInterval": {
           "type": "number",
@@ -133,7 +133,7 @@
         "beads.userId": {
           "type": "string",
           "default": "",
-          "description": "Your user ID for 'Assign to me'. Defaults to $USER if not set."
+          "description": "Your user ID for 'Assign to me'. Supports ${env:VAR} placeholders (e.g., ${env:USER}). Defaults to $USER if not set."
         },
         "beads.tooltipHoverDelay": {
           "type": "number",
