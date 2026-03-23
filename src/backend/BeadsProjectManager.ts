@@ -119,6 +119,9 @@ export class BeadsProjectManager implements vscode.Disposable {
 
     const activeId = this.activeProject?.id;
     if (!activeId) {
+      if (this.projects.length > 0) {
+        await this.setActiveProject(this.projects[0].id);
+      }
       this._onDataChanged.fire();
       return;
     }
