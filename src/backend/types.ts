@@ -183,7 +183,6 @@ export type WebviewToExtensionMessage =
   | { type: "openProjectFolder" }
   | { type: "selectBead"; beadId: string }
   | { type: "updateBead"; beadId: string; updates: Partial<Bead> }
-  | { type: "createBead"; data: Partial<Bead> }
   | { type: "deleteBead"; beadId: string }
   | { type: "addDependency"; beadId: string; targetId: string; dependencyType: DependencyType; reverse: boolean }
   | { type: "removeDependency"; beadId: string; dependsOnId: string }
