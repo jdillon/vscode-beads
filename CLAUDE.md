@@ -82,27 +82,6 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 CLI status values are normalized: `in-progress`/`active` → `in_progress`, `completed` → `done`, etc.
 Priority is 0-4 where 0 = Critical (P0), 4 = None (P4).
 
-## Beads
-
-Use beads MCP tools for ALL issue tracking. Do NOT use TodoWrite or markdown TODOs.
-
-**When creating beads**: Add a category label (e.g., `ui`, `backend`, `daemon`, `docs`, `dx`).
-
-**Working on a bead**: When user says "work on", "activate", "look at", or similar for an issue, set it to `in_progress` and assign to `jdillon`. Keep beads `in_progress` until user explicitly closes or requests close.
-
-**NEVER close issues without explicit permission.** Even after user verification, DO NOT close beads until the full workflow is complete: branch created, code committed, pushed, and user explicitly says "close" or "done". User verification that something works is NOT permission to close - that's just testing. Ask "ready to close?" if unsure.
-
-**Updating notes**: Append new information, don't replace existing content. Use `---` separator for dated updates. Only replace if explicitly asked.
-
-**Protected branch workflow**: Issue data commits to `beads-metadata` branch via worktree, not main. Daemon runs with `--auto-commit`. Code PRs stay clean of beads changes.
-
-**Commit format**: Include `Resolves: vsbeads-xxx` or `Related: vsbeads-xxx` in commit messages.
-See `bd onboard` for more information.
-
-**Cross-link related beads**: When working on an issue, actively look for related beads and link them with `bd dep add <id> <related-id> --type related`. Examples: follow-up tasks, upstream contributions, discovered work. Don't leave beads orphaned when they're clearly related.
-
-**Hooks maintenance**: After updating `bd`, run `bd hooks install --force` to get latest hook templates.
-
 ## CHANGELOG
 
 Maintain `CHANGELOG.md` using [Keep a Changelog](https://keepachangelog.com/) format.
