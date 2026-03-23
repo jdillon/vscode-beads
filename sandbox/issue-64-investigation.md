@@ -1,8 +1,8 @@
 # Issue #64 Investigation: Refresh Command Doesn't Re-discover Projects
 
-## Status: Partially Fixed
+## Status: Fixed
 
-The original bug (early-return preventing discovery) was fixed in the v0.13.0 refactor. A secondary gap remains: discovered projects aren't auto-activated.
+The original bug (early-return preventing discovery) was fixed in the v0.13.0 refactor. The secondary gap (discovered projects not auto-activated) was fixed in this PR by adding auto-activation to `refresh()`.
 
 ## Current Code Analysis
 
@@ -51,9 +51,9 @@ Uses `bd where` to detect `.beads/` directories. This correctly discovers newly-
 
 **None exists.** No watcher for `.beads/` directory creation. The only automatic rediscovery trigger is `onDidChangeWorkspaceFolders` (`extension.ts:295`), which fires when folders are added/removed from the workspace — not when subdirectories like `.beads/` are created.
 
-## Remaining Gap
+## Previous Gap (fixed in this PR)
 
-After `bd init` in an existing workspace folder:
+Before this fix, after `bd init` in an existing workspace folder:
 
 1. User runs "Beads: Refresh"
 2. `refresh()` calls `discoverProjects()` — project IS found and added to `this.projects`
@@ -61,18 +61,7 @@ After `bd init` in an existing workspace folder:
 4. Since `activeProject` is still null, `refresh()` fires `_onDataChanged` and returns
 5. **No project gets activated** — views stay empty
 
-Compare with `initialize()` (`src/backend/BeadsProjectManager.ts:41-51`):
-```typescript
-async initialize(): Promise<void> {
-    await this.discoverProjects();
-    if (this.projects.length > 0 && !this.activeProject) {
-        // ... auto-activates first project
-        await this.setActiveProject(targetProject?.id ?? this.projects[0].id);
-    }
-}
-```
-
-`initialize()` has the auto-activation logic. `refresh()` does not.
+The fix adds auto-activation to `refresh()`, mirroring the `initialize()` pattern (`src/backend/BeadsProjectManager.ts:41-51`).
 
 ## Recommended Fix
 
@@ -107,5 +96,5 @@ A `FileSystemWatcher` for `**/.beads/metadata.json` could auto-trigger rediscove
 |--------|-------------------|-------------------|
 | `refresh()` calls `discoverProjects()` | No (early-return) | Yes (fixed) |
 | New projects found after `bd init` | No | Yes |
-| New projects auto-activated | No | No (gap remains) |
+| New projects auto-activated | No | Yes (fixed in this PR) |
 | FileSystemWatcher for `.beads/` | No | No |
