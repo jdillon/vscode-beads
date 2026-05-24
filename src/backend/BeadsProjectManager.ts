@@ -7,7 +7,7 @@ import * as vscode from "vscode";
 import { Logger } from "../utils/logger";
 import { resolveEnvVariables } from "../utils/resolve-env-variables";
 import { BeadsBackend } from "./BeadsBackend";
-import { BeadsDoltBackend } from "./BeadsDoltBackend";
+import { createBeadsBackend } from "./BeadsBackendFactory";
 import { BeadsProject } from "./types";
 
 const ACTIVE_PROJECT_KEY = "beads.activeProjectId";
@@ -389,7 +389,7 @@ export class BeadsProjectManager implements vscode.Disposable {
 
     const bdPath = this.getBdPath();
 
-    this.backend = new BeadsDoltBackend({
+    this.backend = await createBeadsBackend({
       bdPath,
       cwd: project.rootPath,
       beadsDir: project.beadsDir,

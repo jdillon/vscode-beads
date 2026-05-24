@@ -38,6 +38,10 @@ function toStringArray(values?: string[]): string[] {
   return values.flatMap((v) => ["--label", v]);
 }
 
+export function createListCommandArgs(): string[] {
+  return ["list", "--all", "--limit", "0", "--json"];
+}
+
 export class BeadsCommandRunner implements BeadsBackend {
   private readonly bdPath: string;
   private readonly cwd: string;
@@ -77,7 +81,7 @@ export class BeadsCommandRunner implements BeadsBackend {
   }
 
   async list(): Promise<BeadsIssue[]> {
-    const result = await this.runReadJson(["list", "--json"], { cacheTtlMs: 750 });
+    const result = await this.runReadJson(createListCommandArgs(), { cacheTtlMs: 750 });
     return Array.isArray(result) ? (result as BeadsIssue[]) : [];
   }
 
