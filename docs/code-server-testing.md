@@ -11,12 +11,47 @@ bun run watch &
 # 2. Start code-server (no auth for local dev)
 code-server --auth none .
 
-# 3. Open browser via Chrome DevTools MCP
+# 3. Open browser (either MCP works — see Browser Automation below)
 mcp__chrome-devtools__new_page url=http://127.0.0.1:8080/
+# or: mcp__claude-in-chrome__navigate url=http://127.0.0.1:8080/
 
 # 4. After code changes: just reload browser window
 # Run: codeserver reload
 ```
+
+## Browser Automation
+
+Two MCP options, both verified working (2026-07):
+
+| Need | chrome-devtools MCP | claude-in-chrome |
+|---|---|---|
+| Open page | `new_page` | `navigate` (or `tabs_create_mcp`) |
+| Hard reload (cache bypass) | `navigate_page type=reload ignoreCache=true` | `computer key Cmd+Shift+R` |
+| Console logs | `list_console_messages` | `read_console_messages pattern=<regex>` (filterable) |
+| Screenshot / click | yes | yes (`computer`) |
+| Browser instance | separate CDP Chrome — crashes if DevTools opened manually | user's real Chrome, no CDP conflict |
+
+claude-in-chrome caveats:
+- Needs extension site permission for `127.0.0.1`
+- Extension host logs do NOT appear in page console — read from disk instead:
+  `~/.local/share/code-server/logs/<session>/exthost*/planet57.vscode-beads/Beads.log`
+
+## Workspace Trust (gotcha)
+
+Fresh code-server sessions (and any workspace-folder addition) start in **Restricted Mode**
+— the extension will not activate and the activity bar icon stays hidden. Click
+"Restricted Mode" in the status bar → Trust. Trust persists per folder, but adding a new
+folder to the workspace re-triggers Restricted Mode for the whole workspace.
+
+## Test Fixtures
+
+Reusable fixture projects in `beads-test.code-workspace`:
+
+- `~/ws/jdillon/beads-fixture` — shared Dolt server mode, bd 1.1.0+ schema
+  (`depends_on_issue_id`), issues with a `blocks` dependency
+- `~/ws/jdillon/beads-fixture-embedded` — embedded Dolt mode, 1 open + 1 closed issue
+  (exercises CLI backend routing and the `All` filter)
+- `example-project` — pre-1.1 schema (`depends_on_id`), per-project Dolt server
 
 ### Agent Protocol
 

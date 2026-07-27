@@ -69,6 +69,10 @@ async function readDoltShowInfo(params: BackendFactoryParams): Promise<DoltShowI
       BEADS_DIR: params.beadsDir,
     },
     maxBuffer: 1024 * 1024,
+    // Don't let a hung bd block project activation; on timeout the factory
+    // falls back to the Dolt SQL backend.
+    timeout: 5000,
+    killSignal: "SIGTERM",
   });
 
   const trimmed = stdout.trim();

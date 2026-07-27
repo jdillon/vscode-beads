@@ -55,3 +55,11 @@ Files:
 Chrome only allows one DevTools client at a time. If you manually open DevTools (F12) while chrome-devtools-mcp is connected, the MCP will crash/disconnect.
 
 **Workaround**: Configure MCP with `--devtools` flag to launch Chrome with DevTools already open.
+
+## Alternative: claude-in-chrome MCP
+
+The claude-in-chrome extension covers the same workflow in the user's real Chrome (no CDP conflict): `navigate` to open, `computer key Cmd+Shift+R` for hard reload, `read_console_messages pattern=<regex>` for filtered console. Needs site permission for `127.0.0.1`. Extension host logs are NOT in the page console — read `~/.local/share/code-server/logs/<session>/exthost*/planet57.vscode-beads/Beads.log`.
+
+## Workspace Trust
+
+Fresh sessions and workspace-folder additions start in Restricted Mode — extension won't activate until trusted. Click "Restricted Mode" status-bar item → Trust. See `docs/code-server-testing.md`.
