@@ -44,6 +44,7 @@ export class BeadsDoltBackend implements BeadsBackend {
   private pool: mysql.Pool | null = null;
   private connectionInfo: DoltConnectionInfo | null = null;
   private readonly inFlightReads = new Map<string, Promise<unknown>>();
+  private depTargetColumnPromise: Promise<string> | null = null;
   private poolPromise: Promise<mysql.Pool> | null = null;
 
   constructor(params: {
@@ -281,19 +282,35 @@ export class BeadsDoltBackend implements BeadsBackend {
     return result;
   }
 
+  /**
+   * bd >= 1.1 (schema migration 0043) dropped `dependencies.depends_on_id`,
+   * splitting it into typed target columns; older databases still use the
+   * original column. Detect which one exists once per connection (#79).
+   */
+  private async getDepTargetColumn(): Promise<string> {
+    this.depTargetColumnPromise ??= this.query<SqlRow>(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_schema = DATABASE()
+        AND table_name = 'dependencies'
+        AND column_name = 'depends_on_issue_id'
+    `).then((rows) => (rows.length > 0 ? "depends_on_issue_id" : "depends_on_id"));
+    return this.depTargetColumnPromise;
+  }
+
   private async loadDependencies(issueId: string): Promise<BeadsIssue["dependencies"]> {
+    const targetColumn = await this.getDepTargetColumn();
     const rows = await this.query<SqlRow>(`
       SELECT
-        d.depends_on_id AS id,
+        d.${targetColumn} AS id,
         d.type AS dependency_type,
         i.issue_type,
         i.title,
         i.status,
         i.priority
       FROM dependencies d
-      LEFT JOIN issues i ON i.id = d.depends_on_id
+      LEFT JOIN issues i ON i.id = d.${targetColumn}
       WHERE d.issue_id = ?
-      ORDER BY d.depends_on_id ASC
+      ORDER BY d.${targetColumn} ASC
     `, [issueId]);
 
     return rows.map((row) => ({
@@ -307,6 +324,7 @@ export class BeadsDoltBackend implements BeadsBackend {
   }
 
   private async loadDependents(issueId: string): Promise<BeadsIssue["dependents"]> {
+    const targetColumn = await this.getDepTargetColumn();
     const rows = await this.query<SqlRow>(`
       SELECT
         d.issue_id AS id,
@@ -317,7 +335,7 @@ export class BeadsDoltBackend implements BeadsBackend {
         i.priority
       FROM dependencies d
       LEFT JOIN issues i ON i.id = d.issue_id
-      WHERE d.depends_on_id = ?
+      WHERE d.${targetColumn} = ?
       ORDER BY d.issue_id ASC
     `, [issueId]);
 
@@ -515,6 +533,7 @@ export class BeadsDoltBackend implements BeadsBackend {
 
   private async resetPool(): Promise<void> {
     this.poolPromise = null;
+    this.depTargetColumnPromise = null;
     if (this.pool) {
       await this.pool.end();
     }

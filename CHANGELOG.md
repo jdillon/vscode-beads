@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `beads.userId` and `beads.pathToBd` now expand `${env:VAR}` placeholders (#60)
-- Embedded Dolt projects now load Dashboard and Issues through the CLI backend without calling `bd dolt start`, including closed issues for the `All` filter.
+- Embedded Dolt projects now load Dashboard and Issues through the CLI backend without calling `bd dolt start`, including closed issues for the `All` filter (#77)
+- Bead Details panel loads on bd >= 1.1 databases where the `dependencies` schema dropped `depends_on_id`; both old and new schemas supported (#79)
 
 ## [0.13.0] - 2026-03-20
 
