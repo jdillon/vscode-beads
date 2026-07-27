@@ -18,6 +18,7 @@ import { DashboardView } from "./views/DashboardView";
 import { IssuesView } from "./views/IssuesView";
 import { DetailsView } from "./views/DetailsView";
 import { Loading } from "./common/Loading";
+import { NoProject } from "./common/NoProject";
 import { ToastProvider, triggerToast } from "./common/Toast";
 
 interface AppState {
@@ -107,6 +108,15 @@ export function App(): React.ReactElement {
 
   // Render the appropriate view
   const renderView = () => {
+      // Discovery finished without a project: show how to fix it, not a spinner (#76)
+      if (
+        !state.loading &&
+        !state.project &&
+        (state.viewType === "beadsPanel" || state.viewType === "beadsDashboard")
+      ) {
+        return <NoProject />;
+      }
+
       if (state.viewType === "beadsPanel" && state.loading && state.beads.length === 0) {
         return <Loading />;
       }

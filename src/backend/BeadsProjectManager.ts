@@ -298,7 +298,7 @@ export class BeadsProjectManager implements vscode.Disposable {
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.log.trace(`Discovery probe failed for ${rootPath}: ${message}`);
+      this.log.warn(`Discovery probe failed: ${commandLabel} (cwd=${rootPath}): ${message}`);
       return null;
     }
   }
@@ -435,7 +435,12 @@ export class BeadsProjectManager implements vscode.Disposable {
       return raw;
     }
 
-    return fs.existsSync(raw) ? raw : "bd";
+    if (fs.existsSync(raw)) {
+      return raw;
+    }
+
+    this.log.warn(`Configured beads.pathToBd "${raw}" does not exist; falling back to "bd" on PATH.`);
+    return "bd";
   }
 
   private getBdPath(): string {

@@ -7,12 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `beads.projects` setting is now declared so it appears in the Settings UI (#76)
+
 ### Fixed
 
 - `beads.userId` and `beads.pathToBd` now expand `${env:VAR}` placeholders (#60)
 - Embedded Dolt projects now load Dashboard and Issues through the CLI backend without calling `bd dolt start`, including closed issues for the `All` filter (#77)
 - Bead Details panel loads on bd >= 1.1 databases where the `dependencies` schema dropped `depends_on_id`; both old and new schemas supported (#79)
 - Backend-mode detection now times out after 5s so a hung `bd` cannot block project activation
+- Dashboard and Issues views no longer spin on "Loading" forever when no Beads project is found; they show recovery hints, and discovery/`bd` path failures are logged at warn level (#76)
+- Windows absolute paths are no longer treated as project-relative when opening files from bead details (#76)
 
 ## [0.13.0] - 2026-03-20
 

@@ -8,6 +8,7 @@
  * - Project context
  */
 
+import * as path from "path";
 import * as vscode from "vscode";
 import { BeadsProjectManager } from "../backend/BeadsProjectManager";
 import {
@@ -211,7 +212,7 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
     }
 
     // Resolve path relative to project root
-    const resolvedPath = filePath.startsWith("/")
+    const resolvedPath = path.isAbsolute(filePath)
       ? filePath
       : vscode.Uri.joinPath(vscode.Uri.file(project.rootPath), filePath).fsPath;
 

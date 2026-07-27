@@ -42,7 +42,10 @@ export class DashboardViewProvider extends BaseViewProvider {
           inProgressCount: 0,
         },
       });
+      // No project/backend: clear loading so the webview shows the empty state
+      // instead of spinning forever (#76)
       this.postMessage({ type: "setBeads", beads: [] });
+      this.setLoading(false);
       return;
     }
 
