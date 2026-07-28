@@ -427,15 +427,11 @@ export class BeadsProjectManager implements vscode.Disposable {
 
     const resolvedPath = workspaceRoot && !path.isAbsolute(raw) ? path.resolve(workspaceRoot, raw) : raw;
 
-    if (resolvedPath !== raw && fs.existsSync(resolvedPath)) {
+    if (fs.existsSync(resolvedPath)) {
       return resolvedPath;
     }
 
-    if (path.isAbsolute(raw) || raw === "bd") {
-      return raw;
-    }
-
-    if (fs.existsSync(raw)) {
+    if (raw === "bd") {
       return raw;
     }
 

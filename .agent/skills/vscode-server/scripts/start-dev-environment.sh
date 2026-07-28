@@ -56,6 +56,13 @@ extensions_dir="$HOME/.local/share/code-server/extensions"
 symlink_path="$extensions_dir/$extension_id"
 
 mkdir -p "$extensions_dir"
+
+# A real directory here (e.g. an installed VSIX) would swallow the new link
+if [[ -e "$symlink_path" && ! -L "$symlink_path" ]]; then
+  echo "ERROR:$symlink_path exists and is not a symlink; remove it first"
+  exit 1
+fi
+
 current_link=$(readlink "$symlink_path" 2>/dev/null || echo "")
 
 if [[ "$current_link" == "$project_dir" ]]; then
