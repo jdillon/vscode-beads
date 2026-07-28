@@ -61,7 +61,9 @@ current_link=$(readlink "$symlink_path" 2>/dev/null || echo "")
 if [[ "$current_link" == "$project_dir" ]]; then
   echo "SYMLINK:verified"
 else
-  ln -sf "$project_dir" "$symlink_path"
+  # -n: don't follow an existing symlink, otherwise the new link lands *inside*
+  # the old target directory and the stale extension keeps loading
+  ln -sfn "$project_dir" "$symlink_path"
   echo "SYMLINK:created"
 fi
 

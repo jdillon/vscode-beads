@@ -53,6 +53,18 @@ Reusable fixture projects in `beads-test.code-workspace`:
   (exercises CLI backend routing and the `All` filter)
 - `example-project` — pre-1.1 schema (`depends_on_id`), per-project Dolt server
 
+Throwaway fixture for the "no project found" path (#76) — folder with no `.beads` and a
+`beads.pathToBd` that does not resolve:
+
+```bash
+mkdir -p /tmp/beads-fixture-noproject/.vscode
+echo '{"beads.pathToBd": "tools/bd"}' > /tmp/beads-fixture-noproject/.vscode/settings.json
+# open via http://127.0.0.1:<port>/?folder=/tmp/beads-fixture-noproject
+```
+
+Expected: Dashboard and Issues show "No Beads project found" (no spinner), and Beads.log
+warns about the unresolved `beads.pathToBd` and the failed `bd where` probe.
+
 ### Agent Protocol
 
 When testing with code-server, agents should:
@@ -134,6 +146,11 @@ Use manual builds when watch mode isn't running or after major changes (new file
 - Symlinked extensions use `-dev` suffix convention
 
 ## Troubleshooting
+
+### Testing the wrong checkout (worktrees)
+`readlink ~/.local/share/code-server/extensions/planet57.vscode-beads-dev` must point at the
+checkout you are editing. `ln -sf` on an existing symlink-to-directory writes the new link
+*inside* the old target instead of replacing it — use `ln -sfn` (the start script now does).
 
 ### Extension not loading
 - Check symlink exists: `ls -la ~/.local/share/code-server/extensions/`
