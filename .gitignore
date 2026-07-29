@@ -14,3 +14,8 @@ tmp/
 
 # Local environment notes (not committed)
 CLAUDE.local.md
+
+# opencode is not used in this project; the CLI recreates these on any run
+# (it rewrites package.json on plugin autoupdate), so keep them out of git
+.opencode/
+opencode.json

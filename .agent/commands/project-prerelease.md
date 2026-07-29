@@ -42,7 +42,7 @@ For EACH commit, decide: **INCLUDE** or **SKIP**?
 
 **SKIP if ANY of these are true:**
 - Commit type is: `docs:`, `ci:`, `test:`, `chore:`, `bd:`, `bd sync:`, `refactor:`
-- The change is in: `.agent/`, `.claude/`, `.opencode/`, `.github/`, `scripts/`, `docs/`, `.beads/`
+- The change is in: `.agent/`, `.claude/`, `.github/`, `scripts/`, `docs/`, `.beads/`
 - The bead ID is already in CHANGELOG.md
 - The change is infrastructure/tooling (build scripts, CI workflows, slash commands)
 
