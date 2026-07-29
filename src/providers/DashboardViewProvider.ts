@@ -35,14 +35,17 @@ export class DashboardViewProvider extends BaseViewProvider {
         type: "setSummary",
         summary: {
           total: 0,
-          byStatus: { open: 0, in_progress: 0, blocked: 0, closed: 0 },
+          byStatus: Object.fromEntries(BUILT_IN_STATUSES.map((s) => [s, 0])),
           byPriority: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 },
           readyCount: 0,
           blockedCount: 0,
           inProgressCount: 0,
         },
       });
+      // No project/backend: clear loading so the webview shows the empty state
+      // instead of spinning forever (#76)
       this.postMessage({ type: "setBeads", beads: [] });
+      this.setLoading(false);
       return;
     }
 

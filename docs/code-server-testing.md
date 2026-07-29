@@ -77,6 +77,18 @@ Open it with `?folder=<FIXTURE_DIR>` and accept the workspace-trust prompt.
   (exercises CLI backend routing and the `All` filter)
 - `example-project` — pre-1.1 schema (`depends_on_id`), per-project Dolt server
 
+Throwaway fixture for the "no project found" path (#76) — folder with no `.beads` and a
+`beads.pathToBd` that does not resolve:
+
+```bash
+mkdir -p /tmp/beads-fixture-noproject/.vscode
+echo '{"beads.pathToBd": "tools/bd"}' > /tmp/beads-fixture-noproject/.vscode/settings.json
+# open via http://127.0.0.1:<port>/?folder=/tmp/beads-fixture-noproject
+```
+
+Expected: Dashboard and Issues show "No Beads project found" (no spinner), and Beads.log
+warns about the unresolved `beads.pathToBd` and the failed `bd where` probe.
+
 ### Agent Protocol
 
 When testing with code-server, agents should:
@@ -103,9 +115,8 @@ Extension installed via symlink to pick up changes on reload:
 # Location (from project root)
 ~/.local/share/code-server/extensions/planet57.vscode-beads-dev -> $(pwd)
 
-# Create or REPOINT the symlink (-n, and rm first — see warning below)
-rm -f ~/.local/share/code-server/extensions/planet57.vscode-beads-dev
-ln -sn "$(pwd)" ~/.local/share/code-server/extensions/planet57.vscode-beads-dev
+# Create or REPOINT the symlink (-n is required — see warning below)
+ln -sfn "$(pwd)" ~/.local/share/code-server/extensions/planet57.vscode-beads-dev
 
 # Always read back — the link is global, but worktrees are not
 readlink ~/.local/share/code-server/extensions/planet57.vscode-beads-dev
@@ -116,10 +127,10 @@ readlink ~/.local/share/code-server/extensions/planet57.vscode-beads-dev
 > build and your changes appear to have no effect — a false pass, not a bug.
 > `start-dev-environment.sh` now repoints and verifies automatically.
 
-> **Never use `ln -sf` here.** On BSD/macOS, `ln -sf` applied to an existing
-> symlink-to-directory dereferences it and creates the new link *inside* the old
-> target rather than repointing it — leaving the stale target in place while
-> appearing to succeed. Use `rm -f` then `ln -sn`.
+> **Never use `ln -sf` without `-n` here.** On BSD/macOS, `ln -sf` applied to an
+> existing symlink-to-directory dereferences it and creates the new link *inside*
+> the old target rather than repointing it — leaving the stale target in place
+> while appearing to succeed. `-n` prevents that; `ln -sfn` is the correct idiom.
 
 ### Config
 
@@ -178,6 +189,11 @@ Use manual builds when watch mode isn't running or after major changes (new file
 - Symlinked extensions use `-dev` suffix convention
 
 ## Troubleshooting
+
+### Testing the wrong checkout (worktrees)
+`readlink ~/.local/share/code-server/extensions/planet57.vscode-beads-dev` must point at the
+checkout you are editing. `ln -sf` on an existing symlink-to-directory writes the new link
+*inside* the old target instead of replacing it — use `ln -sfn` (the start script now does).
 
 ### Extension not loading
 - Check symlink exists: `ls -la ~/.local/share/code-server/extensions/`

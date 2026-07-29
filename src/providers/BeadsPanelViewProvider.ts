@@ -41,7 +41,10 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
     const thisRequest = ++this.loadSequence;
     const client = this.projectManager.getClient();
     if (!client) {
+      // No project/backend: clear loading so the webview shows the empty state
+      // instead of spinning forever (#76)
       this.postMessage({ type: "setBeads", beads: [] });
+      this.setLoading(false);
       return;
     }
 

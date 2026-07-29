@@ -56,17 +56,21 @@ extensions_dir="$HOME/.local/share/code-server/extensions"
 symlink_path="$extensions_dir/$extension_id"
 
 mkdir -p "$extensions_dir"
+
+# A real directory here (e.g. an installed VSIX) would swallow the new link
+if [[ -e "$symlink_path" && ! -L "$symlink_path" ]]; then
+  echo "ERROR:$symlink_path exists and is not a symlink; remove it first"
+  exit 1
+fi
+
 current_link=$(readlink "$symlink_path" 2>/dev/null || echo "")
 
 if [[ "$current_link" == "$project_dir" ]]; then
   echo "SYMLINK:verified"
 else
-  # Must be -n (and rm first): on BSD/macOS `ln -sf` DEREFERENCES an existing
-  # symlink-to-directory and silently creates the link *inside* the old target
-  # instead of repointing it. That left code-server running a different
-  # worktree's build while this script reported success.
-  rm -f "$symlink_path"
-  ln -sn "$project_dir" "$symlink_path"
+  # -n: don't follow an existing symlink, otherwise the new link lands *inside*
+  # the old target directory and the stale extension keeps loading
+  ln -sfn "$project_dir" "$symlink_path"
   echo "SYMLINK:created"
 fi
 

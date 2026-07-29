@@ -120,6 +120,14 @@
           "default": "bd",
           "description": "Path to the bd CLI executable. Supports ${env:VAR} placeholders."
         },
+        "beads.projects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Additional Beads projects to load. Absolute paths to project roots or .beads directories."
+        },
         "beads.refreshInterval": {
           "type": "number",
           "default": 3000,
