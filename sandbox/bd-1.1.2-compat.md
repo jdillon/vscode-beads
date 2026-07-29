@@ -64,7 +64,7 @@ The `null` then propagates:
 
 **Verified.** Ran the real source:
 
-```
+```text
 $ bun -e 'import {normalizeStatus, issueToWebviewBead} from "./src/backend/types.ts" ...'
 open             -> "open"
 in_progress      -> "in_progress"
@@ -119,7 +119,7 @@ First release containing it: **v1.0.5**. Confirmed not in v1.0.4, present in v1.
 
 **Verified live against bd 1.1.2** (issue with `dependent_count: 1`):
 
-```
+```text
 $ bd show vsbeads-yjr --json | keys
 id, title, description, status, priority, issue_type, owner, estimated_minutes,
 created_at, created_by, updated_at, labels, dependencies, parent,
@@ -161,7 +161,7 @@ But it is **not safe unconditionally**. `minSupportedVersion` is `"0.51.0"`
 (`BeadsProjectManager.ts:397`, defaulted again at `BeadsCommandRunner.ts:66`), and the
 flag does not exist before v1.0.5. bd exits non-zero on an unknown flag — verified:
 
-```
+```text
 $ bd create --title x --definitely-not-a-flag y --json --dry-run
 Error: unknown flag: --definitely-not-a-flag
 ```
@@ -199,7 +199,7 @@ migration 0043 — and 0.51.0 is long-dead.
 
 `decision` is the one that matters — it is offered in the user-facing create help:
 
-```
+```text
 -t, --type string  Issue type (bug|feature|task|epic|chore|decision); custom types
                    require types.custom config; aliases: enhancement/feat→feature,
                    dec/adr→decision
@@ -230,7 +230,7 @@ only one a normal user creates by hand.
 
 `bd list` hides several bead classes unless explicitly asked:
 
-```
+```text
 --include-gates      Include gate issues in output (normally hidden)
 --include-infra      Include infrastructure beads (agent/role/message) in output
 --include-templates  Include template molecules in output
@@ -250,7 +250,7 @@ backends disagree.
 
 **Verified: not firing today.** Both paths return identical results on this database:
 
-```
+```text
 SQL backend list count: 110
 by type: feature=44, task=35, bug=17, epic=9, chore=5
 
@@ -327,7 +327,7 @@ needed*. F1 and F2 are pre-existing bugs this audit happened to surface.
 This repo's own Dolt database has pending schema migrations against dirty tables, so bd
 **writes** currently fail:
 
-```
+```text
 Error: failed to open database: failed to initialize schema: schema migration: pending
 schema migrations alter pre-existing dirty tables: comments, compaction_snapshots,
 dependencies, events, issue_snapshots, issues, labels; run 'bd dolt commit' to commit
@@ -389,7 +389,17 @@ There is no status *icon* in this extension — status renders as a colored text
 `STATUS_COLORS`. Only *types* have SVG icons. So extending those two maps plus the
 fallbacks above is the complete visual surface for statuses.
 
-**Verification.** `tsc --noEmit` clean, `eslint` clean, 21/21 jest tests pass
-(9 new, covering status passthrough and the `show` flag/version floor). The new
+**Verification.** `tsc --noEmit` clean, `eslint` clean. At the time of the audit,
+21/21 jest tests passed (9 new, covering status passthrough and the `show`
+flag/version floor); after merging main the suite is **23/23 across 5 suites**,
+the extra suite being main's no-project loading-state tests from #83. The new
 `list()` query was executed against the live bd 1.1.2 database and returns 110 rows,
 identical to `bd list --all --limit 0 --json`.
+
+**Post-review fix.** Code review caught a defect this audit missed: the Issues
+view's initial `columnFilters` hardcoded `["open", "in_progress", "blocked"]`
+while the `not-closed` preset had been widened to six statuses, so the default
+table *and* board views still hid `deferred`/`pinned`/`hooked` behind a chip
+reading "Not Closed". This is the `7 of 11` visible in the first round of manual
+testing, which was wrongly attributed to stale persisted filter state. The
+initial filter is now derived from the preset so the two cannot drift.

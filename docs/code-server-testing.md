@@ -126,7 +126,7 @@ readlink ~/.local/share/code-server/extensions/planet57.vscode-beads-dev
 > it last. If it points elsewhere, code-server silently tests *that* worktree's
 > build and your changes appear to have no effect — a false pass, not a bug.
 > `start-dev-environment.sh` now repoints and verifies automatically.
-
+>
 > **Never use `ln -sf` without `-n` here.** On BSD/macOS, `ln -sf` applied to an
 > existing symlink-to-directory dereferences it and creates the new link *inside*
 > the old target rather than repointing it — leaving the stale target in place

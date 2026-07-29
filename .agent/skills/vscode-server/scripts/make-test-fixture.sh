@@ -23,12 +23,33 @@ set -euo pipefail
 target_dir="${1:-/tmp/bd-test-fixture}"
 prefix="fixture"
 
-if ! command -v bd >/dev/null 2>&1; then
-  echo "ERROR:bd not found on PATH"
+for tool in bd jq; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    echo "ERROR:$tool not found on PATH"
+    exit 1
+  fi
+done
+
+# This script deletes its target, so constrain what it will accept: a typo or an
+# empty variable must not be able to take out a real directory.
+case "$target_dir" in
+  /tmp/*|/private/tmp/*|"${TMPDIR:-/nonexistent}"*) ;;
+  *) echo "ERROR:target must live under /tmp (or \$TMPDIR); got '$target_dir'"; exit 1 ;;
+esac
+case "$target_dir" in
+  *..*) echo "ERROR:target must not contain '..'; got '$target_dir'"; exit 1 ;;
+esac
+if [ "${#target_dir}" -lt 12 ]; then
+  echo "ERROR:target path suspiciously short, refusing to delete '$target_dir'"
+  exit 1
+fi
+# Only reuse a path that is absent or already a fixture this script created.
+if [ -e "$target_dir" ] && [ ! -d "$target_dir/.beads" ]; then
+  echo "ERROR:'$target_dir' exists and is not a bd fixture; refusing to delete it"
   exit 1
 fi
 
-rm -rf "$target_dir"
+rm -rf -- "$target_dir"
 mkdir -p "$target_dir"
 cd "$target_dir"
 git init -q .
@@ -85,6 +106,20 @@ bd update "$s_custom" --status awaiting_review >/dev/null
 # --- a comment, so the Details comments section is non-empty ---------------
 bd comments add "$t_task" "Fixture comment" >/dev/null
 
-count=$(bd list --all --limit 0 --json | grep -c '"id"' || true)
+# Validate structurally and fail closed: `| grep -c` prints 0 on a failed
+# `bd list` and still reads like a successful result.
+if ! listing=$(bd list --all --limit 0 --json 2>/dev/null); then
+  echo "ERROR:bd list failed in $target_dir"
+  exit 1
+fi
+if ! count=$(printf '%s' "$listing" | jq -e 'if type == "array" then length else error("not an array") end' 2>/dev/null); then
+  echo "ERROR:could not parse bd list --json output"
+  exit 1
+fi
+if [ "$count" -lt 1 ]; then
+  echo "ERROR:fixture created no beads"
+  exit 1
+fi
+
 echo "FIXTURE_DIR:$target_dir"
 echo "FIXTURE_BEADS:$count"

@@ -97,6 +97,11 @@ const FILTER_PRESETS: FilterPreset[] = [
   { id: "closed", label: "Closed", statuses: ["closed"] },
 ];
 
+const DEFAULT_PRESET_ID = "not-closed";
+
+const presetStatuses = (id: string): BeadStatus[] =>
+  FILTER_PRESETS.find((p) => p.id === id)?.statuses ?? [];
+
 const columnHelper = createColumnHelper<Bead>();
 
 export function IssuesView({
@@ -130,7 +135,10 @@ export function IssuesView({
 
   // Non-persisted TanStack state
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
-    { id: "status", value: ["open", "in_progress", "blocked"] }, // Default: Not Closed
+    // Derived from the preset so the two cannot drift. A hardcoded list here
+    // silently hid deferred/pinned/hooked beads while the UI showed the
+    // "Not Closed" preset as active.
+    { id: "status", value: presetStatuses(DEFAULT_PRESET_ID) },
   ]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
@@ -139,7 +147,7 @@ export function IssuesView({
 
   // UI state
   const [viewMode, setViewMode] = useState<"table" | "board">("table");
-  const [activePreset, setActivePreset] = useState<string>("not-closed");
+  const [activePreset, setActivePreset] = useState<string>(DEFAULT_PRESET_ID);
   const [filterBarOpen, setFilterBarOpen] = useState(true);
   const [filterMenuOpen, setFilterMenuOpen] = useState<string | null>(null);
   const [columnMenuOpen, setColumnMenuOpen] = useState(false);
