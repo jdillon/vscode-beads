@@ -14,6 +14,7 @@ import {
   BeadsSummary,
   BeadStatus,
   STATUS_COLORS,
+  UNKNOWN_STATUS_COLOR,
 } from "../types";
 import { ErrorMessage } from "../common/ErrorMessage";
 import { Loading } from "../common/Loading";
@@ -160,7 +161,7 @@ export function DashboardView({
                       <span className="bar-count">{count}</span>
                     </div>
                     <div className="bar-track">
-                      <div className="bar-fill" style={{ width: `${percentage}%`, backgroundColor: STATUS_COLORS[status] }} />
+                      <div className="bar-fill" style={{ width: `${percentage}%`, backgroundColor: STATUS_COLORS[status] ?? UNKNOWN_STATUS_COLOR }} />
                     </div>
                   </div>
                 );

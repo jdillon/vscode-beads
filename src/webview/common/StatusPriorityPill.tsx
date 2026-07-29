@@ -11,6 +11,7 @@ import {
   BeadPriority,
   STATUS_LABELS,
   STATUS_COLORS,
+  UNKNOWN_STATUS_COLOR,
   PRIORITY_COLORS,
   PRIORITY_TEXT_COLORS,
   UNKNOWN_PRIORITY_COLOR,
@@ -29,8 +30,9 @@ export function StatusPriorityPill({
   // Need at least one value to render
   if (!status && priority === undefined) return null;
 
-  const statusLabel = status ? STATUS_LABELS[status] : null;
-  const statusColor = status ? STATUS_COLORS[status] : null;
+  // Custom statuses have no label/color entry; fall back to the raw text.
+  const statusLabel = status ? (STATUS_LABELS[status] ?? status) : null;
+  const statusColor = status ? (STATUS_COLORS[status] ?? UNKNOWN_STATUS_COLOR) : null;
 
   const priorityLabel = priority !== undefined ? `P${priority}` : "P?";
   const priorityBgColor = priority !== undefined

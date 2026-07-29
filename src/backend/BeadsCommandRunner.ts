@@ -9,6 +9,7 @@ import {
   CloseIssueArgs,
   CreateIssueArgs,
   DependencyArgs,
+  MIN_SUPPORTED_BD_VERSION,
   UpdateIssueArgs,
 } from "./BeadsBackend";
 
@@ -42,6 +43,17 @@ export function createListCommandArgs(): string[] {
   return ["list", "--all", "--limit", "0", "--json"];
 }
 
+/**
+ * bd >= 1.0.5 emits only `dependent_count` by default and streams the
+ * `dependents` array behind --include-dependents. Without the flag the details
+ * panel's "blocks" list is always empty on the CLI backend (embedded Dolt
+ * projects). Comments are fetched separately via `bd comments`, so
+ * --include-comments is not needed here.
+ */
+export function createShowCommandArgs(id: string): string[] {
+  return ["show", id, "--json", "--include-dependents"];
+}
+
 export class BeadsCommandRunner implements BeadsBackend {
   private readonly bdPath: string;
   private readonly cwd: string;
@@ -63,7 +75,7 @@ export class BeadsCommandRunner implements BeadsBackend {
     this.cwd = params.cwd;
     this.beadsDir = params.beadsDir;
     this.log = params.log.child("CLIBackend");
-    this.minSupportedVersion = params.minSupportedVersion ?? "0.51.0";
+    this.minSupportedVersion = params.minSupportedVersion ?? MIN_SUPPORTED_BD_VERSION;
   }
 
   async dispose(): Promise<void> {
@@ -110,7 +122,7 @@ export class BeadsCommandRunner implements BeadsBackend {
   }
 
   async show(id: string): Promise<BeadsIssue | null> {
-    const result = await this.runReadJson(["show", id, "--json"], { cacheTtlMs: 250 });
+    const result = await this.runReadJson(createShowCommandArgs(id), { cacheTtlMs: 250 });
     if (Array.isArray(result)) {
       return (result[0] as BeadsIssue | undefined) ?? null;
     }

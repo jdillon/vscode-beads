@@ -8,17 +8,41 @@
  * - "open" -> "open"
  * - "in_progress" / "in-progress" / "active" -> "in_progress"
  * - "blocked" -> "blocked"
+ * - "deferred" / "pinned" / "hooked" -> passed through unchanged
  * - "closed" / "done" / "completed" / "cancelled" -> "closed"
- * - anything else -> throws error
+ * - anything else -> passed through unchanged (bd supports user-defined
+ *   statuses via `bd config set status.custom`, so this set is open-ended)
  *
  * Priority Mapping:
  * - Beads uses 0-4 where 0 is highest priority (P0/Critical)
  * - 0: Critical/P0, 1: High/P1, 2: Medium/P2, 3: Low/P3, 4: None/P4
  */
 
-// Bead status values used in the UI
-// Matches beads canonical statuses: open, in_progress, blocked, closed
-export type BeadStatus = "open" | "in_progress" | "blocked" | "closed";
+// Bead status values used in the UI.
+//
+// These are bd's seven built-in statuses (internal/types/types.go). bd also
+// allows arbitrary user-defined statuses via `bd config set status.custom`,
+// which arrive as plain strings and are passed through by normalizeStatus.
+// Treat this union as "the ones we style", not "the only legal values".
+export type BeadStatus =
+  | "open"
+  | "in_progress"
+  | "blocked"
+  | "deferred"
+  | "closed"
+  | "pinned"
+  | "hooked";
+
+// The built-in statuses, in display order.
+export const BUILT_IN_STATUSES: BeadStatus[] = [
+  "open",
+  "in_progress",
+  "blocked",
+  "deferred",
+  "pinned",
+  "hooked",
+  "closed",
+];
 
 // Priority levels (0 = highest/critical, 4 = lowest/none)
 export type BeadPriority = 0 | 1 | 2 | 3 | 4;
@@ -32,12 +56,17 @@ export const PRIORITY_LABELS: Record<BeadPriority, string> = {
   4: "None",
 };
 
-// Status display labels for the UI
-export const STATUS_LABELS: Record<BeadStatus, string> = {
+// Status display labels for the UI.
+// Indexed by string because custom statuses are unbounded; callers fall back
+// to the raw status text when a status has no label here.
+export const STATUS_LABELS: Record<string, string> = {
   open: "Open",
   in_progress: "In Progress",
   blocked: "Blocked",
+  deferred: "Deferred",
   closed: "Closed",
+  pinned: "Pinned",
+  hooked: "Hooked",
 };
 
 // Core Bead interface representing a single issue
@@ -135,7 +164,9 @@ export interface BackendProcessInfo {
 // Summary statistics for dashboard
 export interface BeadsSummary {
   total: number;
-  byStatus: Record<BeadStatus, number>;
+  // Keyed by string: custom statuses are unbounded, so this is not a total map
+  // over BeadStatus. Read with `byStatus[s] ?? 0`.
+  byStatus: Record<string, number>;
   byPriority: Record<BeadPriority, number>;
   readyCount: number;
   blockedCount: number;
@@ -223,7 +254,7 @@ export interface BeadSort {
 const warnedStatuses = new Set<string>();
 
 export function normalizeStatus(status: string | undefined): BeadStatus | null {
-  if (!status) {
+  if (!status || !status.trim()) {
     if (!warnedStatuses.has("__missing__")) {
       warnedStatuses.add("__missing__");
       console.warn("[vscode-beads] Bead missing status field - skipping");
@@ -239,6 +270,12 @@ export function normalizeStatus(status: string | undefined): BeadStatus | null {
       return "in_progress";
     case "blocked":
       return "blocked";
+    case "deferred":
+      return "deferred";
+    case "pinned":
+      return "pinned";
+    case "hooked":
+      return "hooked";
     case "closed":
     case "done":
     case "completed":
@@ -246,11 +283,16 @@ export function normalizeStatus(status: string | undefined): BeadStatus | null {
     case "canceled":
       return "closed";
     default:
+      // bd supports user-defined statuses (`bd config set status.custom`), so an
+      // unrecognized value is legal data, not corruption. Pass it through rather
+      // than dropping the bead - an unstyled badge beats an invisible issue.
+      // The original casing/punctuation is preserved so filters and writes still
+      // round-trip to bd.
       if (!warnedStatuses.has(status)) {
         warnedStatuses.add(status);
-        console.warn(`[vscode-beads] Unknown bead status "${status}" - skipping`);
+        console.warn(`[vscode-beads] Unrecognized bead status "${status}" - passing through unstyled`);
       }
-      return null;
+      return status as BeadStatus;
   }
 }
 

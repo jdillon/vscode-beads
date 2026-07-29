@@ -6,7 +6,15 @@
  */
 
 import React, { useState, useMemo } from "react";
-import { Bead, BeadStatus, BeadType, STATUS_LABELS, STATUS_COLORS } from "../types";
+import {
+  Bead,
+  BeadStatus,
+  BeadType,
+  STATUS_LABELS,
+  STATUS_COLORS,
+  UNKNOWN_STATUS_COLOR,
+  BUILT_IN_STATUSES,
+} from "../types";
 import { TypeIcon } from "../common/TypeIcon";
 import { PriorityBadge } from "../common/PriorityBadge";
 import { LabelBadge } from "../common/LabelBadge";
@@ -20,10 +28,13 @@ interface KanbanBoardProps {
   /** Whether any filters are active (affects empty state messaging) */
   hasActiveFilters?: boolean;
   /** Unfiltered counts per status (to show "0 of N" when filtering) */
-  unfilteredCounts?: Record<BeadStatus, number>;
+  unfilteredCounts?: Record<string, number>;
 }
 
-const COLUMNS: BeadStatus[] = ["open", "in_progress", "blocked", "closed"];
+// Columns rendered even when empty. Other built-in statuses (deferred, pinned,
+// hooked) and user-defined custom statuses get a column only when beads
+// actually have them, so the board stays narrow on typical projects.
+const CORE_COLUMNS: BeadStatus[] = ["open", "in_progress", "blocked", "closed"];
 
 export function KanbanBoard({ beads, selectedBeadId, onSelectBead, onUpdateBead, hasActiveFilters, unfilteredCounts }: KanbanBoardProps): React.ReactElement {
   // Track which columns are collapsed (closed is collapsed by default)
@@ -96,15 +107,27 @@ export function KanbanBoard({ beads, selectedBeadId, onSelectBead, onUpdateBead,
     }
   };
 
+  // Core columns always render; anything else appears only if beads use it.
+  const columns = useMemo(() => {
+    const present = new Set<string>(effectiveBeads.map((b) => b.status));
+    const builtIn = BUILT_IN_STATUSES.filter(
+      (s) => CORE_COLUMNS.includes(s) || present.has(s)
+    );
+    const custom = [...present]
+      .filter((s) => !BUILT_IN_STATUSES.includes(s as BeadStatus))
+      .sort() as BeadStatus[];
+    return [...builtIn, ...custom];
+  }, [effectiveBeads]);
+
   // Group beads by status (using effective beads with optimistic overrides)
-  const grouped = COLUMNS.reduce((acc, status) => {
+  const grouped = columns.reduce((acc, status) => {
     acc[status] = effectiveBeads.filter((b) => b.status === status);
     return acc;
-  }, {} as Record<BeadStatus, Bead[]>);
+  }, {} as Record<string, Bead[]>);
 
   return (
     <div className="kanban-board">
-      {COLUMNS.map((status) => {
+      {columns.map((status) => {
         const isCollapsed = collapsedColumns.has(status);
         const items = grouped[status] || [];
         const isDragOver = dragOverColumn === status;
@@ -113,7 +136,7 @@ export function KanbanBoard({ beads, selectedBeadId, onSelectBead, onUpdateBead,
           <div
             key={status}
             className={`kanban-column ${isCollapsed ? "collapsed" : ""} ${isDragOver ? "drag-over" : ""}`}
-            style={{ "--column-color": STATUS_COLORS[status] } as React.CSSProperties}
+            style={{ "--column-color": STATUS_COLORS[status] ?? UNKNOWN_STATUS_COLOR } as React.CSSProperties}
             onDragOver={(e) => handleDragOver(e, status)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, status)}
@@ -122,7 +145,7 @@ export function KanbanBoard({ beads, selectedBeadId, onSelectBead, onUpdateBead,
               className="kanban-column-header"
               onClick={() => toggleColumn(status)}
             >
-              <span className="kanban-column-title">{STATUS_LABELS[status]}</span>
+              <span className="kanban-column-title">{STATUS_LABELS[status] ?? status}</span>
               <span className="kanban-column-count">
                 {hasActiveFilters && unfilteredCounts && unfilteredCounts[status] !== items.length
                   ? `${items.length}/${unfilteredCounts[status]}`

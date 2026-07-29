@@ -32,6 +32,7 @@ import {
   BeadType,
   STATUS_LABELS,
   STATUS_COLORS,
+  UNKNOWN_STATUS_COLOR,
   PRIORITY_COLORS,
   TYPE_LABELS,
   TYPE_COLORS,
@@ -90,8 +91,8 @@ interface FilterPreset {
 
 const FILTER_PRESETS: FilterPreset[] = [
   { id: "all", label: "All", statuses: [] },
-  { id: "not-closed", label: "Not Closed", statuses: ["open", "in_progress", "blocked"] },
-  { id: "active", label: "Active", statuses: ["in_progress", "blocked"] },
+  { id: "not-closed", label: "Not Closed", statuses: ["open", "in_progress", "blocked", "deferred", "pinned", "hooked"] },
+  { id: "active", label: "Active", statuses: ["in_progress", "blocked", "hooked"] },
   { id: "blocked", label: "Blocked", statuses: ["blocked"] },
   { id: "closed", label: "Closed", statuses: ["closed"] },
 ];
@@ -543,13 +544,13 @@ export function IssuesView({
   const typeFacets = table.getColumn("type")?.getFacetedUniqueValues() ?? new Map();
   const assigneeFacets = table.getColumn("assignee")?.getFacetedUniqueValues() ?? new Map();
 
-  // Unfiltered counts per status (for kanban empty state messaging)
+  // Unfiltered counts per status (for kanban empty state messaging).
+  // Tallies every status present, including custom ones, so board columns for
+  // non-built-in statuses still get an accurate "n/N" count.
   const unfilteredStatusCounts = useMemo(() => {
-    const counts: Record<BeadStatus, number> = { open: 0, in_progress: 0, blocked: 0, closed: 0 };
+    const counts: Record<string, number> = {};
     for (const bead of beads) {
-      if (bead.status in counts) {
-        counts[bead.status as BeadStatus]++;
-      }
+      counts[bead.status] = (counts[bead.status] ?? 0) + 1;
     }
     return counts;
   }, [beads]);
@@ -695,8 +696,8 @@ export function IssuesView({
           {statusFilter.map((status) => (
             <FilterChip
               key={`status-${status}`}
-              label={STATUS_LABELS[status]}
-              accentColor={STATUS_COLORS[status]}
+              label={STATUS_LABELS[status] ?? status}
+              accentColor={STATUS_COLORS[status] ?? UNKNOWN_STATUS_COLOR}
               onRemove={() => removeStatusFilter(status)}
             />
           ))}
@@ -754,7 +755,13 @@ export function IssuesView({
 
             {filterMenuOpen === "status" && (
               <div className="filter-menu">
-                {(Object.keys(STATUS_LABELS) as BeadStatus[])
+                {/* Built-in statuses plus any custom status present in the data */}
+                {([
+                  ...Object.keys(STATUS_LABELS),
+                  ...[...statusFacets.keys()].filter(
+                    (s): s is string => typeof s === "string" && !(s in STATUS_LABELS)
+                  ),
+                ] as BeadStatus[])
                   .filter((s) => !statusFilter.includes(s))
                   .map((status) => {
                     const count = statusFacets.get(status) ?? 0;

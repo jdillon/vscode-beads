@@ -1,5 +1,14 @@
 import type { BackendBeadDependency } from "./types";
 
+/**
+ * Oldest bd release the extension supports.
+ *
+ * Floor is 1.0.5 because `bd show --json` gained --include-dependents there
+ * (bd commit cfcc95799); older builds reject the flag outright, and the
+ * details panel relies on it to populate the "blocks" list.
+ */
+export const MIN_SUPPORTED_BD_VERSION = "1.0.5";
+
 export interface BeadsIssue {
   id: string;
   title: string;

@@ -4,9 +4,31 @@
  * These mirror the backend types but are used in the React webview.
  */
 
-// Re-export types that are shared between extension and webview
-// These match beads canonical statuses: open, in_progress, blocked, closed
-export type BeadStatus = "open" | "in_progress" | "blocked" | "closed";
+// Re-export types that are shared between extension and webview.
+//
+// These are bd's seven built-in statuses. bd also allows arbitrary user-defined
+// statuses via `bd config set types.custom`/`status.custom`, which arrive as
+// plain strings; the extension passes those through unstyled rather than
+// dropping the bead. Treat this union as "the ones we style".
+export type BeadStatus =
+  | "open"
+  | "in_progress"
+  | "blocked"
+  | "deferred"
+  | "closed"
+  | "pinned"
+  | "hooked";
+
+// Built-in statuses in display order (used for filter lists and board columns).
+export const BUILT_IN_STATUSES: BeadStatus[] = [
+  "open",
+  "in_progress",
+  "blocked",
+  "deferred",
+  "pinned",
+  "hooked",
+  "closed",
+];
 
 export type BeadPriority = 0 | 1 | 2 | 3 | 4;
 
@@ -65,7 +87,8 @@ export interface BeadsProject {
 
 export interface BeadsSummary {
   total: number;
-  byStatus: Record<BeadStatus, number>;
+  // Keyed by string: custom statuses are unbounded. Read with `byStatus[s] ?? 0`.
+  byStatus: Record<string, number>;
   byPriority: Record<BeadPriority, number>;
   readyCount: number;
   blockedCount: number;
@@ -124,11 +147,16 @@ export const PRIORITY_LABELS: Record<BeadPriority, string> = {
   4: "none",
 };
 
-export const STATUS_LABELS: Record<BeadStatus, string> = {
+// Indexed by string because custom statuses are unbounded; callers fall back to
+// the raw status text when a status has no label here.
+export const STATUS_LABELS: Record<string, string> = {
   open: "open",
   in_progress: "in progress",
   blocked: "blocked",
+  deferred: "deferred",
   closed: "closed",
+  pinned: "pinned",
+  hooked: "hooked",
 };
 
 export const PRIORITY_COLORS: Record<BeadPriority, string> = {
@@ -151,43 +179,90 @@ export const PRIORITY_TEXT_COLORS: Record<BeadPriority, string> = {
 export const UNKNOWN_PRIORITY_COLOR = "#6b7280"; // gray
 export const UNKNOWN_PRIORITY_TEXT_COLOR = "#ffffff"; // white
 
-export const STATUS_COLORS: Record<BeadStatus, string> = {
+// Colors for the new statuses follow bd's own palette (internal/ui/styles.go,
+// dark variants) so the extension reads the same as the CLI.
+export const STATUS_COLORS: Record<string, string> = {
   open: "#10b981",      // green - ready to work
   in_progress: "#3b82f6", // blue
   blocked: "#ef4444",   // red
+  deferred: "#6c7680",  // muted slate - on ice (bd ColorMuted)
   closed: "#6b7280",    // gray
+  pinned: "#d2a6ff",    // violet (bd ColorStatusPinned)
+  hooked: "#59c2ff",    // sky (bd ColorStatusHooked)
 };
 
-export type BeadType = "bug" | "feature" | "task" | "epic" | "chore" | "merge-request" | "molecule";
+// Color for statuses with no entry above (user-defined via status.custom)
+export const UNKNOWN_STATUS_COLOR = "#888888";
 
-export const TYPE_LABELS: Record<BeadType, string> = {
+// bd's built-in issue types (internal/types/types.go), plus `merge-request`,
+// which bd demoted to a custom type but which existing databases still contain.
+// Custom types are unbounded, so unknown values fall back to the UNKNOWN_TYPE_*
+// styling and the notdef icon rather than being a hard error.
+export type BeadType =
+  | "bug"
+  | "feature"
+  | "task"
+  | "epic"
+  | "chore"
+  | "decision"
+  | "message"
+  | "molecule"
+  | "gate"
+  | "spike"
+  | "story"
+  | "milestone"
+  | "event"
+  | "merge-request";
+
+export const TYPE_LABELS: Record<string, string> = {
   bug: "bug",
   feature: "feature",
   task: "task",
   epic: "epic",
   chore: "chore",
-  "merge-request": "merge-request",
+  decision: "decision",
+  message: "message",
   molecule: "molecule",
+  gate: "gate",
+  spike: "spike",
+  story: "story",
+  milestone: "milestone",
+  event: "event",
+  "merge-request": "merge-request",
 };
 
-export const TYPE_COLORS: Record<BeadType, string> = {
+export const TYPE_COLORS: Record<string, string> = {
   bug: "#dc2626",           // red
   feature: "#16a34a",       // green
   task: "#eab308",          // yellow
   epic: "#9333ea",          // purple
   chore: "#2563eb",         // blue
-  "merge-request": "#0ea5e9", // sky blue
+  decision: "#ea580c",      // orange
+  message: "#0891b2",       // cyan
   molecule: "#14b8a6",      // teal
+  gate: "#78716c",          // stone - coordination infra
+  spike: "#c026d3",         // fuchsia - investigation
+  story: "#65a30d",         // lime
+  milestone: "#db2777",     // pink
+  event: "#64748b",         // slate - internal audit trail
+  "merge-request": "#0ea5e9", // sky blue
 };
 
-export const TYPE_TEXT_COLORS: Record<BeadType, string> = {
+export const TYPE_TEXT_COLORS: Record<string, string> = {
   bug: "#ffffff",
   feature: "#ffffff",
   task: "#1a1a1a",          // dark on yellow
   epic: "#ffffff",
   chore: "#ffffff",
-  "merge-request": "#ffffff",
+  decision: "#ffffff",
+  message: "#ffffff",
   molecule: "#ffffff",
+  gate: "#ffffff",
+  spike: "#ffffff",
+  story: "#ffffff",
+  milestone: "#ffffff",
+  event: "#ffffff",
+  "merge-request": "#ffffff",
 };
 
 // Colors for unknown/undefined type (shown with question mark icon)
@@ -195,15 +270,23 @@ export const UNKNOWN_TYPE_COLOR = "#888888"; // gray
 export const UNKNOWN_TYPE_TEXT_COLOR = "#ffffff"; // white
 
 // Sort order for type display (lower = first)
-// Epic first, then feature (story), bug, task, chore, then newer workflow types
+// Planning scope first (epic/milestone/story), then work items, then the
+// coordination/infrastructure types bd uses internally.
 export const TYPE_SORT_ORDER: Record<string, number> = {
   epic: 0,
-  feature: 1,
-  bug: 2,
-  task: 3,
-  chore: 4,
-  "merge-request": 5,
-  molecule: 6,
+  milestone: 1,
+  story: 2,
+  feature: 3,
+  bug: 4,
+  task: 5,
+  spike: 6,
+  chore: 7,
+  decision: 8,
+  "merge-request": 9,
+  molecule: 10,
+  gate: 11,
+  message: 12,
+  event: 13,
 };
 
 // Default sort order for unknown types (sorts after known types)

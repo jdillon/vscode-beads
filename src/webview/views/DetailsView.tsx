@@ -18,7 +18,9 @@ import {
   STATUS_LABELS,
   PRIORITY_COLORS,
   STATUS_COLORS,
+  UNKNOWN_STATUS_COLOR,
   TYPE_COLORS,
+  UNKNOWN_TYPE_COLOR,
   TYPE_LABELS,
   getTypeSortOrder,
   sortLabels,
@@ -109,19 +111,25 @@ function groupDependenciesByType(deps: BeadDependency[]): Record<DependencyType,
   return groups;
 }
 
-// Sort order for dependency status: blocked first, closed last
-const STATUS_SORT_ORDER: Record<BeadStatus, number> = {
+// Sort order for dependency status: blocked first, closed last.
+// Statuses with no entry (custom ones) sort with the unknown bucket below.
+const STATUS_SORT_ORDER: Record<string, number> = {
   blocked: 0,
-  in_progress: 1,
-  open: 2,
-  closed: 3,
+  hooked: 1,
+  in_progress: 2,
+  open: 3,
+  pinned: 4,
+  deferred: 5,
+  closed: 7,
 };
+// Custom and missing statuses sort after the built-ins but ahead of closed.
+const UNKNOWN_STATUS_SORT_ORDER = 6;
 
 function sortDependencies(deps: BeadDependency[]): BeadDependency[] {
   return [...deps].sort((a, b) => {
     // Primary: status (blocked first, closed last)
-    const aStatusOrder = a.status ? STATUS_SORT_ORDER[a.status] : 4;
-    const bStatusOrder = b.status ? STATUS_SORT_ORDER[b.status] : 4;
+    const aStatusOrder = (a.status ? STATUS_SORT_ORDER[a.status] : undefined) ?? UNKNOWN_STATUS_SORT_ORDER;
+    const bStatusOrder = (b.status ? STATUS_SORT_ORDER[b.status] : undefined) ?? UNKNOWN_STATUS_SORT_ORDER;
     if (aStatusOrder !== bStatusOrder) {
       return aStatusOrder - bStatusOrder;
     }
@@ -156,6 +164,21 @@ const STATUS_OPTIONS: ColoredSelectOption<BeadStatus>[] = (Object.keys(STATUS_LA
   label: STATUS_LABELS[s],
   color: STATUS_COLORS[s],
 }));
+
+/**
+ * bd allows user-defined statuses and issue types, so a bead's current value
+ * may not be in the built-in option list. Append it rather than rendering a
+ * select whose value matches none of its options (which reads as "empty").
+ */
+function withCurrentValue<T extends string>(
+  options: ColoredSelectOption<T>[],
+  current: T | undefined,
+  label: string,
+  color: string
+): ColoredSelectOption<T>[] {
+  if (!current || options.some((o) => o.value === current)) return options;
+  return [...options, { value: current, label, color }];
+}
 
 const PRIORITY_OPTIONS: ColoredSelectOption<BeadPriority>[] = ([0, 1, 2, 3, 4] as BeadPriority[]).map((p) => ({
   value: p,
@@ -303,6 +326,22 @@ export function DetailsView({
 
   const displayBead = { ...bead, ...editedBead };
 
+  // Custom statuses/types aren't in the built-in lists; keep the bead's own
+  // value selectable so the dropdown doesn't render as empty.
+  const statusOptions = withCurrentValue(
+    STATUS_OPTIONS,
+    displayBead.status,
+    STATUS_LABELS[displayBead.status] ?? displayBead.status,
+    STATUS_COLORS[displayBead.status] ?? UNKNOWN_STATUS_COLOR
+  );
+  const currentType = (displayBead.type || "task") as BeadType;
+  const typeOptions = withCurrentValue(
+    TYPE_OPTIONS,
+    currentType,
+    TYPE_LABELS[currentType] ?? currentType,
+    TYPE_COLORS[currentType] ?? UNKNOWN_TYPE_COLOR
+  );
+
   return (
     <div className="bead-details">
       {/* Header with icon, ID and actions */}
@@ -364,12 +403,12 @@ export function DetailsView({
           <>
             <ColoredSelect
               value={(displayBead.type || "task") as BeadType}
-              options={TYPE_OPTIONS}
+              options={typeOptions}
               onChange={(v) => handleFieldChange("type", v)}
             />
             <ColoredSelect
               value={displayBead.status}
-              options={STATUS_OPTIONS}
+              options={statusOptions}
               onChange={(v) => handleFieldChange("status", v)}
             />
             <ColoredSelect
@@ -434,7 +473,7 @@ export function DetailsView({
           <>
             <ColoredSelect
               value={(displayBead.type || "task") as BeadType}
-              options={TYPE_OPTIONS}
+              options={typeOptions}
               onChange={(v) => handleInlineUpdate("type", v)}
               renderTrigger={() => <TypeBadge type={(displayBead.type || "task") as BeadType} size="small" />}
               renderOption={(opt) => <TypeBadge type={opt.value as BeadType} size="small" />}
@@ -442,7 +481,7 @@ export function DetailsView({
             />
             <ColoredSelect
               value={displayBead.status}
-              options={STATUS_OPTIONS}
+              options={statusOptions}
               onChange={(v) => handleInlineUpdate("status", v)}
               renderTrigger={() => <StatusBadge status={displayBead.status} size="small" />}
               renderOption={(opt) => <StatusBadge status={opt.value as BeadStatus} size="small" />}

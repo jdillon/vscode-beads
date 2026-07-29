@@ -6,7 +6,7 @@ import * as util from "util";
 import * as vscode from "vscode";
 import { Logger } from "../utils/logger";
 import { resolveEnvVariables } from "../utils/resolve-env-variables";
-import { BeadsBackend } from "./BeadsBackend";
+import { BeadsBackend, MIN_SUPPORTED_BD_VERSION } from "./BeadsBackend";
 import { createBeadsBackend } from "./BeadsBackendFactory";
 import { BeadsProject } from "./types";
 
@@ -394,7 +394,7 @@ export class BeadsProjectManager implements vscode.Disposable {
       cwd: project.rootPath,
       beadsDir: project.beadsDir,
       log: this.log,
-      minSupportedVersion: "0.51.0",
+      minSupportedVersion: MIN_SUPPORTED_BD_VERSION,
     });
 
     project.backendStatus = "unknown";

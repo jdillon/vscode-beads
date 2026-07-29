@@ -11,7 +11,7 @@
 import * as vscode from "vscode";
 import { BaseViewProvider } from "./BaseViewProvider";
 import { BeadsProjectManager } from "../backend/BeadsProjectManager";
-import { Bead, BeadsSummary, issueToWebviewBead, BeadStatus, BeadPriority } from "../backend/types";
+import { Bead, BeadsSummary, issueToWebviewBead, BeadPriority, BUILT_IN_STATUSES } from "../backend/types";
 import { Logger } from "../utils/logger";
 
 export class DashboardViewProvider extends BaseViewProvider {
@@ -65,11 +65,15 @@ export class DashboardViewProvider extends BaseViewProvider {
       }
 
       const beads = issues.map(issueToWebviewBead).filter((b): b is Bead => b !== null);
-      const byStatus: Record<BeadStatus, number> = { open: 0, in_progress: 0, blocked: 0, closed: 0 };
+      // Seed the built-in statuses so they report 0 rather than undefined;
+      // custom statuses are added on demand as they are encountered.
+      const byStatus: Record<string, number> = Object.fromEntries(
+        BUILT_IN_STATUSES.map((s) => [s, 0])
+      );
       const byPriority: Record<BeadPriority, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
 
       for (const bead of beads) {
-        byStatus[bead.status]++;
+        byStatus[bead.status] = (byStatus[bead.status] ?? 0) + 1;
         if (bead.priority !== undefined) byPriority[bead.priority]++;
       }
 

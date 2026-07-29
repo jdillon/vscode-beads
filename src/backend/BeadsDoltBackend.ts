@@ -35,6 +35,17 @@ interface DoltShowInfo {
 
 type SqlRow = Record<string, unknown>;
 
+/**
+ * Issue types `bd list` hides unless asked for explicitly (--include-gates,
+ * --include-infra). This backend reads the database directly, so it has to
+ * apply the same filter or server-mode projects show coordination beads that
+ * embedded-mode (CLI backend) projects hide.
+ *
+ * `molecule` is deliberately absent - bd lists those; only *template*
+ * molecules are hidden, which the is_template check covers.
+ */
+const HIDDEN_LIST_TYPES = ["gate", "agent", "role", "message"];
+
 export class BeadsDoltBackend implements BeadsBackend {
   private readonly cli: BeadsCommandRunner;
   private readonly bdPath: string;
@@ -129,8 +140,10 @@ export class BeadsDoltBackend implements BeadsBackend {
           closed_at
         FROM issues
         WHERE (ephemeral = 0 OR ephemeral IS NULL)
+          AND issue_type NOT IN (${HIDDEN_LIST_TYPES.map(() => "?").join(",")})
+          AND (is_template = 0 OR is_template IS NULL)
         ORDER BY updated_at DESC
-      `);
+      `, HIDDEN_LIST_TYPES);
 
       const ids = rows.map((row) => String(row.id));
       const labelsByIssue = await this.loadLabels(ids);

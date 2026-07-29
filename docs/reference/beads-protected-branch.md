@@ -40,7 +40,7 @@ If you have an existing beads setup committing to main:
 
 ```bash
 git checkout main              # must be on main
-bd daemon --stop
+bd dolt stop                   # bd >= 1.0 has no daemon; stop the Dolt server
 mkdir -p tmp
 cp .beads/*.jsonl tmp/         # backup for safety
 cp .beads/config.yaml tmp/     # preserve custom config (prefix, settings)

@@ -7,8 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Icons, labels and colors for bd issue types `decision`, `message`, `gate`, `spike`, `story`, `milestone` and `event`
+- Kanban columns for `deferred`, `pinned`, `hooked` and custom statuses, shown when beads use them
+
+### Changed
+
+- Minimum supported bd version raised to 1.0.5 (required for `bd show --include-dependents`)
+- Dolt SQL backend now hides gate, infrastructure and template beads, matching `bd list` defaults
+
 ### Fixed
 
+- Beads with `deferred`, `pinned`, `hooked` or user-defined custom statuses no longer disappear from every view
+- Status/type dropdowns keep a bead's own custom value selectable instead of rendering as empty
+- Dashboard "by status" bars fall back to the unknown-status color instead of rendering uncolored
+- Bead Details panel now lists dependents on embedded Dolt projects, which bd 1.0.5+ omits from `bd show --json` unless requested
 - `beads.userId` and `beads.pathToBd` now expand `${env:VAR}` placeholders (#60)
 - Embedded Dolt projects now load Dashboard and Issues through the CLI backend without calling `bd dolt start`, including closed issues for the `All` filter (#77)
 - Bead Details panel loads on bd >= 1.1 databases where the `dependencies` schema dropped `depends_on_id`; both old and new schemas supported (#79)
