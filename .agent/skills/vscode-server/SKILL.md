@@ -49,6 +49,30 @@ Files:
 - `scripts/status.sh` - Show status of watch mode and code-server
 - `scripts/stop.sh` - Stop all processes and clean up temp files
 - `scripts/get-port.sh` - Get the code-server port from temp file
+- `scripts/make-test-fixture.sh` - Build a throwaway beads project covering every
+  status and issue type (see Test Data below)
+
+## Test Data
+
+Build a fixture; never mutate a real project's database to create test state.
+A real database may lack the states under test, or be mid schema-migration and
+refuse writes, which looks like a broken feature.
+
+```bash
+.agent/skills/vscode-server/scripts/make-test-fixture.sh   # -> /tmp/bd-test-fixture
+```
+
+Open with `?folder=<FIXTURE_DIR>`. Embedded Dolt (CLI backend) by default;
+re-init with `--server` for the Dolt SQL backend.
+
+## Symlink Is Global, Worktrees Are Not
+
+One symlink (`planet57.vscode-beads-dev`) serves every worktree and points at
+whichever one set it last. If it points at another worktree, code-server tests
+*that* build and your changes appear to do nothing — a false pass. The start
+script repoints and verifies, emitting `SYMLINK_TARGET:<path>`; confirm it
+matches the worktree under test. Never repoint with `ln -sf` (BSD dereferences
+an existing symlink-to-dir and links *inside* it); use `rm -f` then `ln -sn`.
 
 ## DevTools Note
 

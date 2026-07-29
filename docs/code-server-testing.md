@@ -45,7 +45,31 @@ folder to the workspace re-triggers Restricted Mode for the whole workspace.
 
 ## Test Fixtures
 
-Reusable fixture projects in `beads-test.code-workspace`:
+**Build a fixture. Never mutate a real project's database to produce test data.**
+A real database may not contain the states under test, and may be mid
+schema-migration and refuse writes entirely (`beads#4566`) — which reads as "the
+feature is broken" when it is really the fixture that is missing.
+
+### Generated fixture (preferred)
+
+```bash
+.agent/skills/vscode-server/scripts/make-test-fixture.sh [target-dir]
+# default target: /tmp/bd-test-fixture
+# prints FIXTURE_DIR:<path> and FIXTURE_BEADS:<count>
+```
+
+Destroys and recreates the target, so it is safe to re-run. Covers every bd
+built-in status (`open`, `in_progress`, `blocked`, `deferred`, `pinned`,
+`hooked`, `closed`), a user-defined status via `status.custom`, nine issue
+types, a `blocks` dependency (non-empty Details BLOCKS list) and a comment.
+
+Uses embedded Dolt, which routes through the **CLI backend**. Re-init with
+`--server` to exercise the **Dolt SQL backend** — the two backends differ, so a
+change touching either must be tested on the matching fixture.
+
+Open it with `?folder=<FIXTURE_DIR>` and accept the workspace-trust prompt.
+
+### Long-lived fixtures in `beads-test.code-workspace`
 
 - `~/ws/jdillon/beads-fixture` — shared Dolt server mode, bd 1.1.0+ schema
   (`depends_on_issue_id`), issues with a `blocks` dependency
@@ -59,9 +83,15 @@ When testing with code-server, agents should:
 
 1. **Start watch mode first** (background task) - keeps it running for the session
 2. **Start code-server** (background task)
-3. **Open browser** via Chrome DevTools MCP
-4. **After edits**: just reload the browser window - no manual compile needed
-5. **Check watch output** if changes aren't appearing (may need restart after new files)
+3. **Confirm the symlink target** (see below) — this is the #1 source of false passes
+4. **Build a fixture** with the state under test
+5. **Open browser** via Chrome DevTools MCP
+6. **After edits**: just reload the browser window - no manual compile needed
+7. **Check watch output** if changes aren't appearing (may need restart after new files)
+
+Before trusting any UI result, confirm the change is actually in the running
+build — e.g. `grep -c "<new string>" dist/extension.js`. A UI that looks
+unchanged is more often a stale/mispointed build than a broken fix.
 
 ## Setup
 
@@ -73,9 +103,23 @@ Extension installed via symlink to pick up changes on reload:
 # Location (from project root)
 ~/.local/share/code-server/extensions/planet57.vscode-beads-dev -> $(pwd)
 
-# Create symlink
-ln -s "$(pwd)" ~/.local/share/code-server/extensions/planet57.vscode-beads-dev
+# Create or REPOINT the symlink (-n, and rm first — see warning below)
+rm -f ~/.local/share/code-server/extensions/planet57.vscode-beads-dev
+ln -sn "$(pwd)" ~/.local/share/code-server/extensions/planet57.vscode-beads-dev
+
+# Always read back — the link is global, but worktrees are not
+readlink ~/.local/share/code-server/extensions/planet57.vscode-beads-dev
 ```
+
+> **Multiple worktrees share one symlink.** It points at whichever worktree set
+> it last. If it points elsewhere, code-server silently tests *that* worktree's
+> build and your changes appear to have no effect — a false pass, not a bug.
+> `start-dev-environment.sh` now repoints and verifies automatically.
+
+> **Never use `ln -sf` here.** On BSD/macOS, `ln -sf` applied to an existing
+> symlink-to-directory dereferences it and creates the new link *inside* the old
+> target rather than repointing it — leaving the stale target in place while
+> appearing to succeed. Use `rm -f` then `ln -sn`.
 
 ### Config
 
