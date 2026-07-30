@@ -2,7 +2,7 @@
 
 <img src="resources/icon.png" alt="Beads icon" width="128" align="right">
 
-VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issues. Uses `bd` for project discovery and Dolt lifecycle control, and reads issue data directly from Dolt SQL for a faster UI.
+VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issues. Uses `bd` for project discovery and Dolt lifecycle control. Projects backed by a Dolt SQL server are read directly over SQL for a faster UI; projects using embedded Dolt go through the `bd` CLI.
 
 ![Beads VS Code Extension](docs/images/beads-vscode-screenshot.png)
 
@@ -12,7 +12,7 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 
 - Toggle between Table and Board views for issues
 - Drag cards between columns to change status
-- See status distribution at a glance (Open, In Progress, Blocked, Closed)
+- See status distribution at a glance, including deferred, pinned, hooked and custom statuses
 - All columns collapsible for focused workflow (closed by default)
 - Cards show title, ID, type, priority, assignee, and labels
 - Filter-aware: shows "3/5" count when filters hide items
@@ -26,7 +26,7 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 - Filter by status, priority, type, assignee, and labels
 - Multi-column sorting (shift+click for secondary sort)
 - Persistent column visibility, order, and sort preferences
-- Filter presets: Not Closed, Blocked, Epics
+- Filter presets: All, Not Closed, Active, Blocked, Closed
 - Click-to-copy bead IDs
 
 **Details Panel**
@@ -34,7 +34,7 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 - View/edit title, description, status, priority, type, labels, assignee
 - Colored inline dropdowns for quick field editing
 - Markdown rendering in description/notes with timezone-aware timestamps
-- Dependency management with grouped relationship types (blocks, related, parent-child)
+- Dependency management with grouped relationship types (blocks, parent-child, related, discovered-from)
 
 **Multi-Project & Dolt-Aware UI**
 
@@ -50,7 +50,7 @@ See [docs/development.md](docs/development.md) for build commands, architecture,
 ## Requirements
 
 - VS Code 1.85.0+
-- Beads CLI (`bd`) in PATH
+- Beads CLI (`bd`) 1.0.5+ in PATH
 - Initialized project (`bd init`)
 
 ## Installation
@@ -82,20 +82,25 @@ Install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
 
 ## Commands
 
-| Command                   | Description                     |
-| ------------------------- | ------------------------------- |
-| `Beads: Switch Project`   | Select active project           |
-| `Beads: Refresh`          | Refresh all views               |
-| `Beads: Create New Issue` | Create issue via quick input    |
-| `Beads: Start Dolt Server` | Start Dolt for active project  |
-| `Beads: Stop Dolt Server`  | Stop Dolt for active project   |
-| `Beads: Show Dolt Status`  | Log Dolt status for the project |
+Available in the Command Palette:
+
+| Command                     | Description             |
+| --------------------------- | ----------------------- |
+| `Beads: Switch Project`     | Select active project   |
+| `Beads: Refresh`            | Refresh all views       |
+| `Beads: Open Issues Panel`  | Focus the Issues view   |
+| `Beads: Open Issue Details` | Focus the Details view  |
+| `Beads: Copy Issue ID`      | Copy the selected bead ID |
+
+Starting and stopping Dolt, showing Dolt status, and opening the Dolt log are dashboard
+controls rather than palette commands.
 
 ## Settings
 
 | Setting                 | Default | Description                                         |
 | ----------------------- | ------- | --------------------------------------------------- |
 | `beads.pathToBd`          | `"bd"`  | Path to `bd` CLI                                     |
+| `beads.projects`          | `[]`    | Extra project paths to load (project root or `.beads`) |
 | `beads.refreshInterval`   | `3000`  | Dolt change polling interval in ms (0 = disable)     |
 | `beads.renderMarkdown`    | `true`  | Render markdown in text fields                       |
 | `beads.userId`            | `""`    | Your user ID for "Assign to me" (defaults to $USER)  |

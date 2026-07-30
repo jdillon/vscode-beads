@@ -53,21 +53,55 @@ feature is broken" when it is really the fixture that is missing.
 ### Generated fixture (preferred)
 
 ```bash
-.agent/skills/vscode-server/scripts/make-test-fixture.sh [target-dir]
+.agent/skills/vscode-server/scripts/make-test-fixture.sh [--server] [target-dir]
 # default target: /tmp/bd-test-fixture
-# prints FIXTURE_DIR:<path> and FIXTURE_BEADS:<count>
+# prints FIXTURE_DIR:<path>, FIXTURE_MODE:<embedded|server>, FIXTURE_BEADS:<count>
 ```
 
-Destroys and recreates the target, so it is safe to re-run. Covers every bd
-built-in status (`open`, `in_progress`, `blocked`, `deferred`, `pinned`,
-`hooked`, `closed`), a user-defined status via `status.custom`, nine issue
-types, a `blocks` dependency (non-empty Details BLOCKS list) and a comment.
+Destroys and recreates the target, so it is safe to re-run. 23 beads covering:
 
-Uses embedded Dolt, which routes through the **CLI backend**. Re-init with
-`--server` to exercise the **Dolt SQL backend** — the two backends differ, so a
-change touching either must be tested on the matching fixture.
+- every bd built-in status (`open`, `in_progress`, `blocked`, `deferred`,
+  `pinned`, `hooked`, `closed`) plus a user-defined one via `status.custom`
+- every issue type the extension styles, plus `gate` and `message` — the types
+  bd hides from a default `bd list`, which must stay out of the UI too
+- all four dependency types (`blocks`, `parent-child`, `related`,
+  `discovered-from`) and an epic with two children
+- priorities P0–P4, three assignees plus unassigned beads
+- a fully populated bead: markdown description (headings, list, code fence,
+  link, blockquote), design, acceptance criteria, notes, three labels,
+  estimate, external ref, due date, two comments from different authors
 
-Open it with `?folder=<FIXTURE_DIR>` and accept the workspace-trust prompt.
+Without `--server` the fixture uses embedded Dolt, routing through the **CLI
+backend**. With `--server` bd runs a real `dolt sql-server`, routing through the
+**Dolt SQL backend**. The two backends have separate query paths and have
+diverged before (#79, F2/F4 of the bd 1.1.2 audit), so a release check needs
+both:
+
+```bash
+.agent/skills/vscode-server/scripts/make-test-fixture.sh /tmp/bd-release-fixture
+.agent/skills/vscode-server/scripts/make-test-fixture.sh --server /tmp/bd-release-fixture-server
+```
+
+Stop a server fixture with `bd dolt stop` from its directory when done; re-running
+the script against the same path does this for you.
+
+Open either with `?folder=<FIXTURE_DIR>` and accept the workspace-trust prompt.
+
+### Release verification pass
+
+Against both fixtures, checking Dashboard, Issues and Details:
+
+| Check | Expected |
+|---|---|
+| Bead count | 23 total; `gate` and `message` beads absent from the issue list |
+| Dashboard BY STATUS | all 8 statuses listed, badge and bar colors agree, fills proportional |
+| Type icons | every type renders its own icon and color, none fall back to a blank |
+| Filters | status chips include deferred/pinned/hooked; custom `awaiting_review` filterable |
+| Details → rich bead | markdown renders; design, acceptance, notes sections present; labels, assignee, estimate, external ref in header |
+| Details → dependencies | BLOCKS, related, discovered-from and parent-child all render; dependents ("blocked by") non-empty |
+| Details → dropdowns | status dropdown on the `awaiting_review` bead shows its own value as selected |
+| Details → comments | rich bead shows 2 comments with distinct authors |
+| Kanban | columns derived from data, including the custom status |
 
 ### Long-lived fixtures in `beads-test.code-workspace`
 

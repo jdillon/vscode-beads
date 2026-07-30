@@ -67,7 +67,7 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 - All Beads operations go through CLI (`bd list --json`, `bd show <id> --json`, etc.) - never access `.beads` files directly
 - Status/priority normalization in `src/backend/types.ts` - CLI returns various formats, extension normalizes to internal types
 - Webview↔Extension communication via typed messages (`ExtensionToWebviewMessage`, `WebviewToExtensionMessage`)
-- Single webview bundle at `dist/webview/main.js` serves all 5 views; view type determines which component renders
+- Single webview bundle at `dist/webview/main.js` serves all views (Dashboard, Issues, Details); view type determines which component renders
 - **Prefer components over ad-hoc markup**: Extract reusable UI elements into `src/webview/common/` components (e.g., `StatusBadge`, `FilterChip`) rather than inline spans with class names
 - **No native HTML controls**: Don't use native `<select>`, `<input type="checkbox">`, etc. Use custom components (`Dropdown`, `ColoredSelect`) for consistent VS Code-themed styling
 
