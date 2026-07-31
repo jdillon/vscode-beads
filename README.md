@@ -18,7 +18,7 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 - Filter-aware: shows "3/5" count when filters hide items
 - Click any card to open details
 
-<img src="docs/images/beads-board.png" alt="Kanban Board View" width="1450">
+<img src="docs/images/beads-board.png" alt="Kanban Board View" width="750">
 
 **Issues Panel**
 
@@ -36,7 +36,7 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 - Markdown rendering in description/notes with timezone-aware timestamps
 - Dependency management with grouped relationship types (blocks, parent-child, related, discovered-from)
 
-<img src="docs/images/beads-details.png" alt="Details Panel" width="812">
+<img src="docs/images/beads-details.png" alt="Details Panel" width="750">
 
 **Multi-Project & Dolt-Aware UI**
 
