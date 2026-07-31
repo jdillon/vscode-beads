@@ -110,6 +110,23 @@ Against both fixtures, checking Dashboard, Issues and Details:
 | Details → comments | rich bead shows 2 comments with distinct authors |
 | Kanban | columns derived from data, including the custom status |
 
+### Demo fixture (screenshots)
+
+```bash
+.agent/skills/vscode-server/scripts/make-demo-fixture.sh [--server] [target-dir]
+# default target: tmp/bd-demo-fixture
+```
+
+Same coverage as the test fixture — every status including a custom one, every
+styled issue type, all dependency kinds, a markdown-heavy Details panel — but the
+titles read like a product backlog ("Orbit", prefix `orbit-`), so the output is
+usable in the README and marketplace listing. Use it, not the test fixture, for
+anything a user will see.
+
+For screenshots, create it at a neutral path (`/tmp/orbit-app`): the Dashboard
+prints PROJECT DIR verbatim, so a fixture under the repo leaks the local checkout
+path into the image.
+
 ### Long-lived fixtures in `beads-test.code-workspace`
 
 - `~/ws/jdillon/beads-fixture` — shared Dolt server mode, bd 1.1.0+ schema

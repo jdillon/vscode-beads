@@ -2146,10 +2146,17 @@ textarea {
 .markdown-content ul,
 .markdown-content ol {
   margin: 0 !important;
-  padding: 0 0 0 1.2em !important;
+  /* px, not em: the font-size: 0 below collapses any em padding to 0, which
+     pushes the markers outside the box and clips them */
+  padding: 0 0 0 16px !important;
   list-style-position: outside;
   /* Eliminate whitespace between list items */
   font-size: 0;
+}
+
+/* GFM task lists carry their own checkbox; the marker just doubles up */
+.markdown-content li:has(> input[type="checkbox"]) {
+  list-style: none;
 }
 
 .markdown-content li {

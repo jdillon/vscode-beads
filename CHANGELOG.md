@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Markdown list bullets and numbers no longer get clipped out of description, design and notes fields
+
 ## [0.14.0] - 2026-07-30
 
 ### Added

@@ -4,7 +4,7 @@
 
 VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issues. Uses `bd` for project discovery and Dolt lifecycle control. Projects backed by a Dolt SQL server are read directly over SQL for a faster UI; projects using embedded Dolt go through the `bd` CLI.
 
-![Beads VS Code Extension](docs/images/beads-vscode-screenshot.png)
+![Beads VS Code Extension](docs/images/beads-issues.png)
 
 ## Features
 
@@ -18,7 +18,7 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 - Filter-aware: shows "3/5" count when filters hide items
 - Click any card to open details
 
-![Kanban Board View](https://github.com/user-attachments/assets/e1d742bc-186a-448a-83cd-4578a0b984f3)
+![Kanban Board View](docs/images/beads-board.png)
 
 **Issues Panel**
 
@@ -35,6 +35,8 @@ VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issu
 - Colored inline dropdowns for quick field editing
 - Markdown rendering in description/notes with timezone-aware timestamps
 - Dependency management with grouped relationship types (blocks, parent-child, related, discovered-from)
+
+![Details Panel](docs/images/beads-details.png)
 
 **Multi-Project & Dolt-Aware UI**
 
