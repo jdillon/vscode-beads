@@ -107,6 +107,18 @@ vsce publish                         # Publish to marketplace
 vsce unpublish planet57.vscode-beads # Remove from marketplace
 ```
 
+## README on the Listing
+
+`vsce package` copies README.md **markup** into the VSIX, so wording, layout and
+`<img width>` attributes only reach the listing on the next publish. Relative
+image links are rewritten to `https://github.com/jdillon/vscode-beads/raw/HEAD/<path>`
+and fetched live from the default branch.
+
+Consequence: renaming or deleting an image that the *published* README references
+breaks the live listing the moment it lands on `main`, and stays broken until the
+next release. Either keep the old path until after the release, or ship the README
+change and the release together.
+
 ## Publisher Domain Verification (Optional)
 
 Adds a verified checkmark next to your publisher name on the marketplace.
