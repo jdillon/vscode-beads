@@ -1,6 +1,6 @@
 # Upstream Beads Sync
 
-Tracks synchronization between vscode-beads and upstream [beads](https://github.com/steveyegge/beads).
+Tracks synchronization between vscode-beads and upstream [beads](https://github.com/gastownhall/beads).
 
 ## Current Sync Point
 

@@ -9,7 +9,7 @@ Notes on beads behavior, naming changes, and gotchas encountered during developm
 - Changed in beads v0.25.1 (JSONL Canonicalization, bd-6xd)
 - Old `beads.jsonl` name is legacy
 - Source: `internal/configfile/configfile.go:24`
-- Reference: https://github.com/steveyegge/beads/issues/409#issuecomment-3592298397
+- Reference: https://github.com/gastownhall/beads/issues/409#issuecomment-3592298397
 
 If you have an older setup with `beads.jsonl`, beads should handle migration automatically, but verify your `.beads/.gitignore` references the correct filename.
 
@@ -17,7 +17,7 @@ If you have an older setup with `beads.jsonl`, beads should handle migration aut
 
 `bd doctor` may show warnings immediately after `bd init` - this is a known UX issue. A fresh init shouldn't require doctor fixes.
 
-Reference: https://github.com/steveyegge/beads/issues/409
+Reference: https://github.com/gastownhall/beads/issues/409
 
 ## Protected Branch Worktree
 

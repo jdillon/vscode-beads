@@ -2,7 +2,7 @@
 
 <img src="resources/icon.png" alt="Beads icon" width="128" align="right">
 
-VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issues. Uses `bd` for project discovery and Dolt lifecycle control. Projects backed by a Dolt SQL server are read directly over SQL for a faster UI; projects using embedded Dolt go through the `bd` CLI.
+VS Code extension for managing [Beads](https://github.com/gastownhall/beads) issues. Uses `bd` for project discovery and Dolt lifecycle control. Projects backed by a Dolt SQL server are read directly over SQL for a faster UI; projects using embedded Dolt go through the `bd` CLI.
 
 <img src="docs/images/beads-issues.png" alt="Beads VS Code Extension" width="750">
 

@@ -53,7 +53,7 @@ code --install-extension vscode-beads-0.1.0.vsix
 
 ## Architecture
 
-VS Code extension for managing [Beads](https://github.com/steveyegge/beads) issues via `bd` CLI.
+VS Code extension for managing [Beads](https://github.com/gastownhall/beads) issues via `bd` CLI.
 
 ### Data Flow
 
@@ -105,7 +105,7 @@ Use [Font Awesome Free](https://fontawesome.com) icons unless there's a good rea
 
 ## Upstream Sync
 
-Periodically check [steveyegge/beads](https://github.com/steveyegge/beads) for changes that affect this extension:
+Periodically check [gastownhall/beads](https://github.com/gastownhall/beads) for changes that affect this extension:
 
 - **Daemon API**: Check `internal/rpc/protocol.go` and `internal/types/types.go` for new operations, fields, or type changes. Update `BeadsDaemonClient.ts` and `docs/reference/beads-daemon-api.md`.
 - **Bead types**: Check for new `issue_type` values (e.g., `merge-request`, `molecule`). Update `BeadType`, `TYPE_LABELS`, `TYPE_COLORS`, `TYPE_SORT_ORDER` in `src/webview/types.ts` and add icons.

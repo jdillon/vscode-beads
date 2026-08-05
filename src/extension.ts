@@ -332,7 +332,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       "Learn More"
     ).then((action) => {
       if (action === "Learn More") {
-        vscode.env.openExternal(vscode.Uri.parse("https://github.com/steveyegge/beads"));
+        vscode.env.openExternal(vscode.Uri.parse("https://github.com/gastownhall/beads"));
       }
     });
   }
