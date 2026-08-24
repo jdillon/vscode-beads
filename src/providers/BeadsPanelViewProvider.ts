@@ -17,6 +17,8 @@ import { Logger } from "../utils/logger";
 
 export class BeadsPanelViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsPanel";
+  protected readonly panelViewType = "beads.issuesEditor";
+  protected readonly panelTitle = "Beads Issues";
   private static readonly MIN_LOADING_MS = 500;
   private selectedBeadId: string | null = null;
   private loadSequence = 0;

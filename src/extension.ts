@@ -11,6 +11,7 @@ import { BeadsProjectManager } from "./backend/BeadsProjectManager";
 import { DashboardViewProvider } from "./providers/DashboardViewProvider";
 import { BeadsPanelViewProvider } from "./providers/BeadsPanelViewProvider";
 import { BeadDetailsViewProvider } from "./providers/BeadDetailsViewProvider";
+import { BaseViewProvider } from "./providers/BaseViewProvider";
 import { createLogger, Logger } from "./utils/logger";
 
 let log: Logger;
@@ -81,6 +82,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     })
   );
 
+  // Restore Beads editor tabs after a window reload (#88)
+  const editorPanelProviders: Array<[string, BaseViewProvider]> = [
+    ["beads.dashboardEditor", dashboardProvider],
+    ["beads.issuesEditor", beadsPanelProvider],
+    ["beads.detailsEditor", detailsProvider],
+  ];
+  for (const [panelViewType, provider] of editorPanelProviders) {
+    context.subscriptions.push(
+      vscode.window.registerWebviewPanelSerializer(panelViewType, {
+        async deserializeWebviewPanel(panel: vscode.WebviewPanel): Promise<void> {
+          provider.adoptEditorPanel(panel);
+        },
+      })
+    );
+  }
+
   // Register commands
   context.subscriptions.push(
     vscode.commands.registerCommand("beads.switchProject", async () => {
@@ -89,6 +106,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     vscode.commands.registerCommand("beads.openBeadsPanel", () => {
       vscode.commands.executeCommand("beadsPanel.focus");
+    }),
+
+    // Editor-tab entry points to the same views (#88)
+    vscode.commands.registerCommand("beads.openDashboardInEditor", () => {
+      dashboardProvider.showInEditor();
+    }),
+
+    vscode.commands.registerCommand("beads.openIssuesInEditor", () => {
+      beadsPanelProvider.showInEditor();
+    }),
+
+    vscode.commands.registerCommand("beads.openDetailsInEditor", () => {
+      detailsProvider.showInEditor();
     }),
 
     vscode.commands.registerCommand("beads.openBeadDetails", async (beadId?: string) => {
