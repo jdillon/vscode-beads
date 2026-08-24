@@ -11,7 +11,7 @@
 import * as vscode from "vscode";
 import { BaseViewProvider } from "./BaseViewProvider";
 import { BeadsProjectManager } from "../backend/BeadsProjectManager";
-import { Bead, BeadsSummary, issueToWebviewBead, BeadPriority, BUILT_IN_STATUSES } from "../backend/types";
+import { dashboardHighlights, emptySummary, loadBeads, summarizeBeads } from "./bead-data";
 import { Logger } from "../utils/logger";
 
 export class DashboardViewProvider extends BaseViewProvider {
@@ -33,17 +33,7 @@ export class DashboardViewProvider extends BaseViewProvider {
     const thisRequest = ++this.loadSequence;
     const client = this.projectManager.getClient();
     if (!client) {
-      this.postMessage({
-        type: "setSummary",
-        summary: {
-          total: 0,
-          byStatus: Object.fromEntries(BUILT_IN_STATUSES.map((s) => [s, 0])),
-          byPriority: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 },
-          readyCount: 0,
-          blockedCount: 0,
-          inProgressCount: 0,
-        },
-      });
+      this.postMessage({ type: "setSummary", summary: emptySummary() });
       // No project/backend: clear loading so the webview shows the empty state
       // instead of spinning forever (#76)
       this.postMessage({ type: "setBeads", beads: [] });
@@ -61,7 +51,7 @@ export class DashboardViewProvider extends BaseViewProvider {
     this.setError(null);
 
     try {
-      const issues = await client.list();
+      const beads = await loadBeads(client);
       if (showLoading) {
         await this.waitForMinimumLoading(loadingStartedAt);
       }
@@ -69,34 +59,8 @@ export class DashboardViewProvider extends BaseViewProvider {
         return;
       }
 
-      const beads = issues.map(issueToWebviewBead).filter((b): b is Bead => b !== null);
-      // Seed the built-in statuses so they report 0 rather than undefined;
-      // custom statuses are added on demand as they are encountered.
-      const byStatus: Record<string, number> = Object.fromEntries(
-        BUILT_IN_STATUSES.map((s) => [s, 0])
-      );
-      const byPriority: Record<BeadPriority, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
-
-      for (const bead of beads) {
-        byStatus[bead.status] = (byStatus[bead.status] ?? 0) + 1;
-        if (bead.priority !== undefined) byPriority[bead.priority]++;
-      }
-
-      const summary: BeadsSummary = {
-        total: beads.length,
-        byStatus,
-        byPriority,
-        readyCount: byStatus.open,
-        blockedCount: byStatus.blocked,
-        inProgressCount: byStatus.in_progress,
-      };
-
-      this.postMessage({ type: "setSummary", summary });
-
-      const openBeads = beads.filter((b) => b.status === "open").slice(0, 5);
-      const blockedBeads = beads.filter((b) => b.status === "blocked").slice(0, 5);
-      const inProgressBeads = beads.filter((b) => b.status === "in_progress").slice(0, 5);
-      this.postMessage({ type: "setBeads", beads: [...openBeads, ...blockedBeads, ...inProgressBeads] });
+      this.postMessage({ type: "setSummary", summary: summarizeBeads(beads) });
+      this.postMessage({ type: "setBeads", beads: dashboardHighlights(beads) });
       this.setLoading(false);
     } catch (err) {
       if (showLoading) {

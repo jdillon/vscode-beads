@@ -279,7 +279,7 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
       }
 
       case "selectBead":
-        vscode.commands.executeCommand("beads.openBeadDetails", message.beadId);
+        this.openBeadDetails(message.beadId, host);
         break;
 
       case "showDoltStatus":
@@ -307,7 +307,7 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
       }
 
       case "openBeadDetails":
-        vscode.commands.executeCommand("beads.openBeadDetails", message.beadId);
+        this.openBeadDetails(message.beadId, host);
         break;
 
       case "viewInGraph":
@@ -329,6 +329,16 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
       default:
         await this.handleCustomMessage(message);
     }
+  }
+
+  /**
+   * Opens a bead's details. A request from an editor tab keeps the user in the
+   * editor area rather than revealing the sidebar Details view (#88).
+   */
+  private openBeadDetails(beadId: string, host?: WebviewHost): void {
+    vscode.commands.executeCommand("beads.openBeadDetails", beadId, {
+      preferEditor: host?.kind === "editor",
+    });
   }
 
   /**

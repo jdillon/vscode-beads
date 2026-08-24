@@ -11,6 +11,7 @@ import { BeadsProjectManager } from "./backend/BeadsProjectManager";
 import { DashboardViewProvider } from "./providers/DashboardViewProvider";
 import { BeadsPanelViewProvider } from "./providers/BeadsPanelViewProvider";
 import { BeadDetailsViewProvider } from "./providers/BeadDetailsViewProvider";
+import { BeadsWorkbenchViewProvider } from "./providers/BeadsWorkbenchViewProvider";
 import { BaseViewProvider } from "./providers/BaseViewProvider";
 import { createLogger, Logger } from "./utils/logger";
 
@@ -19,6 +20,7 @@ let projectManager: BeadsProjectManager;
 let dashboardProvider: DashboardViewProvider;
 let beadsPanelProvider: BeadsPanelViewProvider;
 let detailsProvider: BeadDetailsViewProvider;
+let workbenchProvider: BeadsWorkbenchViewProvider;
 let statusBar: vscode.StatusBarItem;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
@@ -69,6 +71,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     log
   );
 
+  // Combined Dashboard/Issues/Details panel - editor tabs only, never a sidebar view
+  workbenchProvider = new BeadsWorkbenchViewProvider(
+    context.extensionUri,
+    projectManager,
+    log
+  );
+
   // Register webview providers
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("beadsDashboard", dashboardProvider, {
@@ -87,6 +96,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     ["beads.dashboardEditor", dashboardProvider],
     ["beads.issuesEditor", beadsPanelProvider],
     ["beads.detailsEditor", detailsProvider],
+    ["beads.workbenchEditor", workbenchProvider],
   ];
   for (const [panelViewType, provider] of editorPanelProviders) {
     context.subscriptions.push(
@@ -121,7 +131,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       detailsProvider.showInEditor();
     }),
 
-    vscode.commands.registerCommand("beads.openBeadDetails", async (beadId?: string) => {
+    vscode.commands.registerCommand("beads.openWorkbench", () => {
+      workbenchProvider.showInEditor();
+    }),
+
+    vscode.commands.registerCommand("beads.openBeadDetails", async (
+      beadId?: string,
+      options?: { preferEditor?: boolean }
+    ) => {
       if (!beadId) {
         // Prompt for bead ID
         const client = projectManager.getClient();
@@ -153,6 +170,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       if (beadId) {
+        // Requested from an editor tab: keep the user in the editor area
+        // instead of pulling open the sidebar Details view (#88)
+        if (options?.preferEditor) {
+          detailsProvider.showInEditor();
+        }
         detailsProvider.showBead(beadId);
         beadsPanelProvider.setSelectedBead(beadId);
       }
@@ -164,6 +186,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       dashboardProvider.hardRefresh();
       beadsPanelProvider.hardRefresh();
       detailsProvider.hardRefresh();
+      workbenchProvider.hardRefresh();
       log.info("Refresh complete");
       vscode.window.setStatusBarMessage("$(check) Beads: Refreshed", 2000);
     }),
@@ -183,6 +206,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         dashboardProvider.refresh();
         beadsPanelProvider.refresh();
         detailsProvider.refresh();
+        workbenchProvider.refresh();
         await updateStatusBar();
         vscode.window.showInformationMessage(`Dolt server started for ${project.name}.`);
       } catch (err) {
@@ -205,6 +229,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         dashboardProvider.refresh();
         beadsPanelProvider.refresh();
         detailsProvider.refresh();
+        workbenchProvider.refresh();
         await updateStatusBar();
         vscode.window.showInformationMessage(`Dolt server stopped for ${project.name}.`);
       } catch (err) {
@@ -311,6 +336,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       dashboardProvider.refresh();
       beadsPanelProvider.refresh();
       detailsProvider.refresh();
+      workbenchProvider.refresh();
     }),
 
     projectManager.onActiveProjectChanged(() => {
@@ -318,6 +344,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       dashboardProvider.refreshForProjectChange();
       beadsPanelProvider.refreshForProjectChange();
       detailsProvider.refreshForProjectChange();
+      workbenchProvider.refreshForProjectChange();
       updateStatusBar();
     }),
 
@@ -343,6 +370,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       dashboardProvider.refresh();
       beadsPanelProvider.refresh();
       detailsProvider.refresh();
+      workbenchProvider.refresh();
     })
   );
 

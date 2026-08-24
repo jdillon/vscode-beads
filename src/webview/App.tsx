@@ -17,6 +17,7 @@ import {
 import { DashboardView } from "./views/DashboardView";
 import { IssuesView } from "./views/IssuesView";
 import { DetailsView } from "./views/DetailsView";
+import { WorkbenchView } from "./views/WorkbenchView";
 import { Loading } from "./common/Loading";
 import { NoProject } from "./common/NoProject";
 import { ToastProvider, triggerToast } from "./common/Toast";
@@ -122,6 +123,21 @@ export function App(): React.ReactElement {
       }
 
       switch (state.viewType) {
+      case "beadsWorkbench":
+        return (
+          <WorkbenchView
+            summary={state.summary}
+            beads={state.beads}
+            selectedBead={state.selectedBead}
+            selectedBeadId={state.selectedBeadId}
+            loading={state.loading}
+            error={state.error}
+            projects={state.projects}
+            activeProject={state.project}
+            settings={state.settings}
+          />
+        );
+
       case "beadsDashboard":
         return (
           <DashboardView

@@ -98,6 +98,11 @@
         "icon": "$(link-external)"
       },
       {
+        "command": "beads.openWorkbench",
+        "title": "Beads: Open All Views in Editor",
+        "icon": "$(layout)"
+      },
+      {
         "command": "beads.refresh",
         "title": "Beads: Refresh",
         "icon": "$(refresh)"

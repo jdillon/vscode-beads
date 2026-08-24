@@ -12,7 +12,9 @@
 import * as vscode from "vscode";
 import { BaseViewProvider } from "./BaseViewProvider";
 import { BeadsProjectManager } from "../backend/BeadsProjectManager";
-import { WebviewToExtensionMessage, Bead, issueToWebviewBead } from "../backend/types";
+import { WebviewToExtensionMessage } from "../backend/types";
+import { loadBeads } from "./bead-data";
+import { applyBeadMutation, isBeadMutation } from "./bead-mutations";
 import { Logger } from "../utils/logger";
 
 export class BeadsPanelViewProvider extends BaseViewProvider {
@@ -59,14 +61,13 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
     this.setError(null);
 
     try {
-      const issues = await client.list();
+      const beads = await loadBeads(client);
       if (showLoading) {
         await this.waitForMinimumLoading(loadingStartedAt);
       }
       if (thisRequest !== this.loadSequence) {
         return;
       }
-      const beads = issues.map(issueToWebviewBead).filter((b): b is Bead => b !== null);
       this.postMessage({ type: "setBeads", beads });
       this.setLoading(false);
     } catch (err) {
@@ -103,24 +104,16 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
       return;
     }
 
-    switch (message.type) {
-      case "updateBead":
-        try {
-          await client.update({
-            id: message.beadId,
-            ...message.updates,
-          });
-          // Data will refresh via mutation events
-        } catch (err) {
-          vscode.window.showErrorMessage(`Failed to update bead: ${err}`);
-        }
-        break;
+    if (isBeadMutation(message)) {
+      // Data refreshes via mutation events
+      await applyBeadMutation(client, message, this.log);
+      return;
+    }
 
-      case "deleteBead":
-        vscode.window.showWarningMessage(
-          "Delete functionality is not yet implemented"
-        );
-        break;
+    if (message.type === "deleteBead") {
+      vscode.window.showWarningMessage(
+        "Delete functionality is not yet implemented"
+      );
     }
   }
 }

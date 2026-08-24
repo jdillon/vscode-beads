@@ -11,7 +11,9 @@
 import * as vscode from "vscode";
 import { BaseViewProvider } from "./BaseViewProvider";
 import { BeadsProjectManager } from "../backend/BeadsProjectManager";
-import { WebviewToExtensionMessage, issueToWebviewBead } from "../backend/types";
+import { WebviewToExtensionMessage } from "../backend/types";
+import { loadBeadDetails } from "./bead-data";
+import { applyBeadMutation, isBeadMutation } from "./bead-mutations";
 import { Logger } from "../utils/logger";
 
 export class BeadDetailsViewProvider extends BaseViewProvider {
@@ -101,14 +103,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
     this.setError(null);
 
     try {
-      // Fetch issue and comments in parallel
-      const [issue, comments] = await Promise.all([
-        client.show(this.currentBeadId),
-        client.listComments(this.currentBeadId).catch((err) => {
-          this.log.trace(`Failed to fetch comments: ${err}`);
-          return [];
-        }),
-      ]);
+      const { bead, error } = await loadBeadDetails(client, this.currentBeadId, this.log);
 
       // Check if a newer request has started - if so, discard this stale response
       if (thisRequest !== this.loadSequence) {
@@ -116,25 +111,10 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
         return;
       }
 
-      const commentsArray = comments || [];
-      this.log.debug(`Loaded ${commentsArray.length} comments for ${this.currentBeadId}`);
-      if (issue) {
-        // Merge comments into issue data
-        const issueWithComments = {
-          ...issue,
-          comments: commentsArray as Array<{ id: string; author: string; text: string; created_at: string }>,
-        };
-        const bead = issueToWebviewBead(issueWithComments);
-        if (bead) {
-          this.postMessage({ type: "setBead", bead });
-        } else {
-          this.setError("Invalid bead status");
-          this.postMessage({ type: "setBead", bead: null });
-        }
-      } else {
-        this.setError("Bead not found");
-        this.postMessage({ type: "setBead", bead: null });
+      if (error) {
+        this.setError(error);
       }
+      this.postMessage({ type: "setBead", bead });
     } catch (err) {
       // Only handle error if this is still the current request
       if (thisRequest !== this.loadSequence) {
@@ -159,91 +139,16 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
       return;
     }
 
-    switch (message.type) {
-      case "updateBead":
-        this.log.debug(`Updating bead ${message.beadId}: ${JSON.stringify(message.updates)}`);
+    if (isBeadMutation(message)) {
+      if (await applyBeadMutation(client, message, this.log)) {
+        // Comments do not come back through mutation events
+        await this.loadData();
+      }
+      return;
+    }
 
-        try {
-          // Map webview field names (camelCase) to CLI/backend field names (snake_case)
-          const {
-            labels,
-            externalRef,
-            acceptanceCriteria,
-            estimatedMinutes,
-            ...rest
-          } = message.updates;
-          const updateArgs: Record<string, unknown> = {
-            id: message.beadId,
-            ...rest,
-          };
-          // CLI uses set_labels instead of labels
-          if (labels !== undefined) {
-            updateArgs.set_labels = labels;
-          }
-          // Map camelCase to snake_case
-          if (externalRef !== undefined) {
-            updateArgs.external_ref = externalRef;
-          }
-          if (acceptanceCriteria !== undefined) {
-            updateArgs.acceptance_criteria = acceptanceCriteria;
-          }
-          if (estimatedMinutes !== undefined) {
-            updateArgs.estimated_minutes = estimatedMinutes;
-          }
-          await client.update(updateArgs as unknown as Parameters<typeof client.update>[0]);
-          // Data will refresh via mutation events
-        } catch (err) {
-          vscode.window.showErrorMessage(`Failed to update bead: ${err}`);
-        }
-        break;
-
-      case "addDependency":
-        try {
-          // When reverse=true, swap direction: target depends on current bead
-          const fromId = message.reverse ? message.targetId : message.beadId;
-          const toId = message.reverse ? message.beadId : message.targetId;
-          await client.addDependency({
-            from_id: fromId,
-            to_id: toId,
-            dep_type: message.dependencyType,
-          });
-          // Data will refresh via mutation events
-        } catch (err) {
-          vscode.window.showErrorMessage(`Failed to add dependency: ${err}`);
-        }
-        break;
-
-      case "removeDependency":
-        try {
-          await client.removeDependency({
-            from_id: message.beadId,
-            to_id: message.dependsOnId,
-          });
-          // Data will refresh via mutation events
-        } catch (err) {
-          vscode.window.showErrorMessage(`Failed to remove dependency: ${err}`);
-        }
-        break;
-
-      case "addComment":
-        try {
-          // Get username from environment or default
-          const author = process.env.USER || process.env.USERNAME || "vscode";
-          await client.addComment({
-            id: message.beadId,
-            author,
-            text: message.text,
-          });
-          // Refresh to show new comment
-          await this.loadData();
-        } catch (err) {
-          vscode.window.showErrorMessage(`Failed to add comment: ${err}`);
-        }
-        break;
-
-      case "viewInGraph":
-        vscode.commands.executeCommand("beadsGraph.focus");
-        break;
+    if (message.type === "viewInGraph") {
+      vscode.commands.executeCommand("beadsGraph.focus");
     }
   }
 }

@@ -42,7 +42,9 @@ VS Code extension for managing [Beads](https://github.com/gastownhall/beads) iss
 
 - Open Dashboard, Issues or Details as a full editor tab, not just a sidebar panel
 - Use the ⧉ button in a view's title bar, or the `Beads: Open ... in Editor` commands
+- Or open all three in one tab with `Beads: Open All Views in Editor` - a section selector at the top, and clicking an issue moves to Details without leaving the panel
 - Sidebar and editor tab stay in sync; selecting an issue updates whichever Details surface is open
+- Clicking an issue from an editor tab opens Details in the editor, not the sidebar
 - Tabs are restored when the window reloads
 
 **Multi-Project & Dolt-Aware UI**
@@ -103,6 +105,7 @@ Available in the Command Palette:
 | `Beads: Open Dashboard in Editor` | Open the Dashboard as an editor tab |
 | `Beads: Open Issues in Editor`    | Open Issues as an editor tab |
 | `Beads: Open Details in Editor`   | Open Details as an editor tab |
+| `Beads: Open All Views in Editor` | Open Dashboard, Issues and Details in one editor tab |
 
 Starting and stopping Dolt, showing Dolt status, and opening the Dolt log are dashboard
 controls rather than palette commands.
