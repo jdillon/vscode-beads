@@ -16,6 +16,8 @@ import { Logger } from "../utils/logger";
 
 export class BeadDetailsViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsDetails";
+  protected readonly panelViewType = "beads.detailsEditor";
+  protected readonly panelTitle = "Beads Details";
   private currentBeadId: string | null = null;
   private currentProjectId: string | null = null;
   private loadSequence = 0; // Tracks request order to prevent stale responses
@@ -38,12 +40,23 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
     // Update context for conditional menu items
     vscode.commands.executeCommand("setContext", "beads.hasSelectedBead", true);
 
-    // Auto-expand the details panel
-    if (this._view) {
-      this._view.show(true); // true = preserve focus
-    }
+    // Auto-expand the details view - the editor tab if one is open, otherwise
+    // the sidebar view.
+    this.revealHost();
+    this.setEditorPanelTitle(beadId);
 
     await this.loadData();
+  }
+
+  /**
+   * Title the editor tab with the bead already being viewed, for tabs opened
+   * (or restored) after a selection was made.
+   */
+  public adoptEditorPanel(panel: vscode.WebviewPanel): void {
+    super.adoptEditorPanel(panel);
+    if (this.currentBeadId) {
+      this.setEditorPanelTitle(this.currentBeadId);
+    }
   }
 
   /**
@@ -59,6 +72,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
   public clearBead(): void {
     this.currentBeadId = null;
     vscode.commands.executeCommand("setContext", "beads.hasSelectedBead", false);
+    this.setEditorPanelTitle(this.panelTitle);
     this.postMessage({ type: "setBead", bead: null });
     this.setLoading(false);
   }

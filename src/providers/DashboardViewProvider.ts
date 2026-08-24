@@ -16,6 +16,8 @@ import { Logger } from "../utils/logger";
 
 export class DashboardViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsDashboard";
+  protected readonly panelViewType = "beads.dashboardEditor";
+  protected readonly panelTitle = "Beads Dashboard";
   private static readonly MIN_LOADING_MS = 500;
   private loadSequence = 0;
 

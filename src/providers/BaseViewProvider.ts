@@ -6,6 +6,11 @@
  * - Message passing between extension and webview
  * - Loading/error states
  * - Project context
+ *
+ * A provider can drive more than one webview surface at a time: the sidebar
+ * view registered through `registerWebviewViewProvider`, and an editor tab
+ * created through `createWebviewPanel`. Both are wrapped as `WebviewHost` so
+ * the rest of the provider does not care which surface it is talking to.
  */
 
 import * as path from "path";
@@ -18,12 +23,32 @@ import {
 import { Logger } from "../utils/logger";
 import { resolveEnvVariables } from "../utils/resolve-env-variables";
 
+/**
+ * A webview surface hosting a Beads view - either the sidebar view or an
+ * editor tab. VS Code models the two with unrelated types, so providers work
+ * against this common shape instead.
+ */
+export interface WebviewHost {
+  readonly kind: "sidebar" | "editor";
+  readonly webview: vscode.Webview;
+  readonly visible: boolean;
+  reveal(preserveFocus: boolean): void;
+}
+
 export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
-  protected _view?: vscode.WebviewView;
+  /** Every surface currently showing this view. */
+  protected readonly hosts = new Set<WebviewHost>();
+  /** The editor tab, when one is open. At most one per view. */
+  private editorPanel?: vscode.WebviewPanel;
   protected readonly extensionUri: vscode.Uri;
   protected readonly projectManager: BeadsProjectManager;
   protected readonly log: Logger;
+  /** Identifies the view to the webview app, which routes on it. */
   protected abstract readonly viewType: string;
+  /** Webview type of the editor tab, used to register its serializer. */
+  protected abstract readonly panelViewType: string;
+  /** Title shown on the editor tab. */
+  protected abstract readonly panelTitle: string;
 
   constructor(
     extensionUri: vscode.Uri,
@@ -40,28 +65,33 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
     _context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
   ): void {
-    this._view = webviewView;
-
-    webviewView.webview.options = {
-      enableScripts: true,
-      localResourceRoots: [
-        vscode.Uri.joinPath(this.extensionUri, "dist"),
-        vscode.Uri.joinPath(this.extensionUri, "resources"),
-      ],
-    };
-
+    webviewView.webview.options = this.getWebviewOptions();
     webviewView.webview.html = this.getHtmlForWebview(webviewView.webview);
+
+    const host: WebviewHost = {
+      kind: "sidebar",
+      webview: webviewView.webview,
+      get visible() {
+        return webviewView.visible;
+      },
+      reveal: (preserveFocus) => webviewView.show(preserveFocus),
+    };
+    this.hosts.add(host);
 
     // Handle messages from the webview
     webviewView.webview.onDidReceiveMessage(async (message: WebviewToExtensionMessage) => {
-      await this.handleMessage(message);
+      await this.handleMessage(message, host);
     });
 
     // Refresh data when the view becomes visible again (e.g., after being hidden)
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
-        this.initializeView();
+        this.initializeView(host);
       }
+    });
+
+    webviewView.onDidDispose(() => {
+      this.hosts.delete(host);
     });
 
     // Note: We don't call initializeView() here because the webview's React app
@@ -70,23 +100,129 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
   }
 
   /**
-   * Initializes the view with current data
+   * Opens this view as an editor tab, or reveals the tab if already open.
    */
-  protected async initializeView(): Promise<void> {
-    if (!this._view) {
+  public showInEditor(column: vscode.ViewColumn = vscode.ViewColumn.Active): void {
+    if (this.editorPanel) {
+      this.editorPanel.reveal(column, false);
+      return;
+    }
+
+    const panel = vscode.window.createWebviewPanel(
+      this.panelViewType,
+      this.panelTitle,
+      column,
+      { ...this.getWebviewOptions(), retainContextWhenHidden: true }
+    );
+    this.adoptEditorPanel(panel);
+  }
+
+  /**
+   * Wires an editor tab to this provider. Used both for freshly created panels
+   * and for panels VS Code restores after a window reload.
+   */
+  public adoptEditorPanel(panel: vscode.WebviewPanel): void {
+    if (this.editorPanel && this.editorPanel !== panel) {
+      // Only one editor tab per view; a restored duplicate replaces the old one.
+      this.editorPanel.dispose();
+    }
+
+    // Options and HTML are not preserved across a reload, so always re-apply.
+    panel.webview.options = this.getWebviewOptions();
+    panel.webview.html = this.getHtmlForWebview(panel.webview);
+    panel.iconPath = vscode.Uri.joinPath(this.extensionUri, "resources", "beads-icon.svg");
+    this.editorPanel = panel;
+
+    const host: WebviewHost = {
+      kind: "editor",
+      webview: panel.webview,
+      get visible() {
+        return panel.visible;
+      },
+      reveal: (preserveFocus) => panel.reveal(undefined, preserveFocus),
+    };
+    this.hosts.add(host);
+
+    panel.webview.onDidReceiveMessage(async (message: WebviewToExtensionMessage) => {
+      await this.handleMessage(message, host);
+    });
+
+    // onDidChangeViewState also fires on focus changes, so only re-initialize on
+    // an actual hidden -> visible transition.
+    let wasVisible = panel.visible;
+    panel.onDidChangeViewState(() => {
+      if (panel.visible && !wasVisible) {
+        this.initializeView(host);
+      }
+      wasVisible = panel.visible;
+    });
+
+    panel.onDidDispose(() => {
+      this.hosts.delete(host);
+      if (this.editorPanel === panel) {
+        this.editorPanel = undefined;
+      }
+    });
+  }
+
+  /**
+   * Reveals this view, preferring an open editor tab over the sidebar so a
+   * user working in editor tabs is not pulled back to the side bar.
+   */
+  protected revealHost(): void {
+    const hosts = [...this.hosts];
+    const target = hosts.find((h) => h.kind === "editor") ?? hosts[0];
+    target?.reveal(true); // true = preserve focus
+  }
+
+  /**
+   * Renames the editor tab, e.g. to show the bead currently being viewed.
+   */
+  protected setEditorPanelTitle(title: string): void {
+    if (this.editorPanel) {
+      this.editorPanel.title = title;
+    }
+  }
+
+  /** True when any surface showing this view is visible. */
+  protected get isVisible(): boolean {
+    for (const host of this.hosts) {
+      if (host.visible) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private getWebviewOptions(): vscode.WebviewOptions {
+    return {
+      enableScripts: true,
+      localResourceRoots: [
+        vscode.Uri.joinPath(this.extensionUri, "dist"),
+        vscode.Uri.joinPath(this.extensionUri, "resources"),
+      ],
+    };
+  }
+
+  /**
+   * Initializes the view with current data. When `target` is given, only that
+   * surface is seeded - the others already have this state.
+   */
+  protected async initializeView(target?: WebviewHost): Promise<void> {
+    if (this.hosts.size === 0) {
       return;
     }
 
     // Send view type
-    this.postMessage({ type: "setViewType", viewType: this.viewType });
+    this.postMessage({ type: "setViewType", viewType: this.viewType }, target);
 
     // Send current project
     const project = this.projectManager.getActiveProject();
-    this.postMessage({ type: "setProject", project });
+    this.postMessage({ type: "setProject", project }, target);
 
     // Send all available projects
     const projects = this.projectManager.getProjects();
-    this.postMessage({ type: "setProjects", projects });
+    this.postMessage({ type: "setProjects", projects }, target);
 
     // Send settings
     const config = vscode.workspace.getConfiguration("beads");
@@ -100,10 +236,10 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
         userId,
         tooltipHoverDelay: config.get<number>("tooltipHoverDelay", 1000),
       },
-    });
+    }, target);
 
-    // Load view-specific data only for visible views.
-    if (this._view.visible) {
+    // Load view-specific data only while some surface is visible.
+    if (this.isVisible) {
       await this.loadData("initial");
     }
   }
@@ -116,10 +252,13 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
   /**
    * Handles messages from the webview. Override in subclasses for custom handling.
    */
-  protected async handleMessage(message: WebviewToExtensionMessage): Promise<void> {
+  protected async handleMessage(
+    message: WebviewToExtensionMessage,
+    host?: WebviewHost
+  ): Promise<void> {
     switch (message.type) {
       case "ready":
-        await this.initializeView();
+        await this.initializeView(host);
         break;
 
       case "refresh":
@@ -140,7 +279,7 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
       }
 
       case "selectBead":
-        vscode.commands.executeCommand("beads.openBeadDetails", message.beadId);
+        this.openBeadDetails(message.beadId, host);
         break;
 
       case "showDoltStatus":
@@ -168,7 +307,7 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
       }
 
       case "openBeadDetails":
-        vscode.commands.executeCommand("beads.openBeadDetails", message.beadId);
+        this.openBeadDetails(message.beadId, host);
         break;
 
       case "viewInGraph":
@@ -190,6 +329,16 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
       default:
         await this.handleCustomMessage(message);
     }
+  }
+
+  /**
+   * Opens a bead's details. A request from an editor tab keeps the user in the
+   * editor area rather than revealing the sidebar Details view.
+   */
+  private openBeadDetails(beadId: string, host?: WebviewHost): void {
+    vscode.commands.executeCommand("beads.openBeadDetails", beadId, {
+      preferEditor: host?.kind === "editor",
+    });
   }
 
   /**
@@ -242,11 +391,16 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
   }
 
   /**
-   * Sends a message to the webview
+   * Sends a message to the webview. Broadcasts to every surface showing this
+   * view unless a specific `target` is given.
    */
-  protected postMessage(message: ExtensionToWebviewMessage): void {
-    if (this._view) {
-      this._view.webview.postMessage(message);
+  protected postMessage(message: ExtensionToWebviewMessage, target?: WebviewHost): void {
+    if (target) {
+      target.webview.postMessage(message);
+      return;
+    }
+    for (const host of this.hosts) {
+      host.webview.postMessage(message);
     }
   }
 
@@ -278,32 +432,20 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
    * Triggers a refresh of the view
    */
   public refresh(): void {
-    if (!this._view?.visible) {
+    if (!this.isVisible) {
       return;
     }
 
-    // Update project state in webview
-    const project = this.projectManager.getActiveProject();
-    this.postMessage({ type: "setProject", project });
-
-    // Also update projects list (for dropdown status indicators)
-    const projects = this.projectManager.getProjects();
-    this.postMessage({ type: "setProjects", projects });
-
+    this.postProjectState();
     this.loadData("background");
   }
 
   public hardRefresh(): void {
-    if (!this._view?.visible) {
+    if (!this.isVisible) {
       return;
     }
 
-    const project = this.projectManager.getActiveProject();
-    this.postMessage({ type: "setProject", project });
-
-    const projects = this.projectManager.getProjects();
-    this.postMessage({ type: "setProjects", projects });
-
+    this.postProjectState();
     this.loadData("manualRefresh");
   }
 
@@ -311,17 +453,24 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
    * Triggers a refresh intended for active project switches.
    */
   public refreshForProjectChange(): void {
-    if (!this._view?.visible) {
+    if (!this.isVisible) {
       return;
     }
 
+    this.postProjectState();
+    this.loadData("projectChange");
+  }
+
+  /**
+   * Pushes the active project and the project list (for dropdown status
+   * indicators) to the webview.
+   */
+  private postProjectState(): void {
     const project = this.projectManager.getActiveProject();
     this.postMessage({ type: "setProject", project });
 
     const projects = this.projectManager.getProjects();
     this.postMessage({ type: "setProjects", projects });
-
-    this.loadData("projectChange");
   }
 
   /**
