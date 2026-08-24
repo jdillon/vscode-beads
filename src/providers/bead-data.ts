@@ -3,8 +3,8 @@
  *
  * The single-view providers and the combined workbench panel need exactly the
  * same data, so fetching lives here rather than in one provider that the other
- * would have to duplicate - duplicated query paths are how the CLI and Dolt
- * backends drifted apart before (#79).
+ * would have to duplicate. Divergent query paths between the CLI and Dolt
+ * backends are hard to spot once they exist.
  */
 
 import { BeadsBackend } from "../backend/BeadsBackend";

@@ -12,7 +12,7 @@ import {
   BeadsSummary,
   ExtensionMessage,
   WebviewSettings,
-  vscode,
+  postToExtension,
 } from "./types";
 import { DashboardView } from "./views/DashboardView";
 import { IssuesView } from "./views/IssuesView";
@@ -32,6 +32,8 @@ interface AppState {
   summary: BeadsSummary | null;
   loading: boolean;
   error: string | null;
+  /** Scoped to the workbench Details section, so it cannot blank its siblings */
+  detailsError: string | null;
   settings: WebviewSettings;
 }
 
@@ -45,6 +47,7 @@ const initialState: AppState = {
   summary: null,
   loading: true,
   error: null,
+  detailsError: null,
   settings: { renderMarkdown: true, userId: "", tooltipHoverDelay: 1000 },
 };
 
@@ -83,11 +86,14 @@ export function App(): React.ReactElement {
       case "setError":
         setState((prev) => ({ ...prev, error: message.error }));
         break;
+      case "setDetailsError":
+        setState((prev) => ({ ...prev, detailsError: message.error }));
+        break;
       case "setSettings":
         setState((prev) => ({ ...prev, settings: message.settings }));
         break;
       case "refresh":
-        vscode.postMessage({ type: "refresh" });
+        postToExtension({ type: "refresh" });
         break;
       case "showToast":
         triggerToast(message.text, "top-right");
@@ -100,7 +106,7 @@ export function App(): React.ReactElement {
     window.addEventListener("message", handleMessage);
 
     // Notify extension that webview is ready
-    vscode.postMessage({ type: "ready" });
+    postToExtension({ type: "ready" });
 
     return () => {
       window.removeEventListener("message", handleMessage);
@@ -132,6 +138,7 @@ export function App(): React.ReactElement {
             selectedBeadId={state.selectedBeadId}
             loading={state.loading}
             error={state.error}
+            detailsError={state.detailsError}
             projects={state.projects}
             activeProject={state.project}
             settings={state.settings}
@@ -148,22 +155,22 @@ export function App(): React.ReactElement {
             projects={state.projects}
             activeProject={state.project}
             onSelectProject={(project) =>
-              vscode.postMessage({
+              postToExtension({
                 type: "selectProject",
                 projectId: project.id,
                 projectRootPath: project.rootPath,
               })
             }
             onSelectBead={(beadId) =>
-              vscode.postMessage({ type: "openBeadDetails", beadId })
+              postToExtension({ type: "openBeadDetails", beadId })
             }
-            onShowStatus={() => vscode.postMessage({ type: "showDoltStatus" })}
-            onStartDolt={() => vscode.postMessage({ type: "startDoltServer" })}
-            onStopDolt={() => vscode.postMessage({ type: "stopDoltServer" })}
-            onOpenDoltLog={() => vscode.postMessage({ type: "openDoltLog" })}
-            onOpenProjectFolder={() => vscode.postMessage({ type: "openProjectFolder" })}
+            onShowStatus={() => postToExtension({ type: "showDoltStatus" })}
+            onStartDolt={() => postToExtension({ type: "startDoltServer" })}
+            onStopDolt={() => postToExtension({ type: "stopDoltServer" })}
+            onOpenDoltLog={() => postToExtension({ type: "openDoltLog" })}
+            onOpenProjectFolder={() => postToExtension({ type: "openProjectFolder" })}
             onRetry={() =>
-              vscode.postMessage({ type: "refresh" })
+              postToExtension({ type: "refresh" })
             }
           />
         );
@@ -177,13 +184,13 @@ export function App(): React.ReactElement {
             selectedBeadId={state.selectedBeadId}
             tooltipHoverDelay={state.settings.tooltipHoverDelay}
             onSelectBead={(beadId) =>
-              vscode.postMessage({ type: "openBeadDetails", beadId })
+              postToExtension({ type: "openBeadDetails", beadId })
             }
             onUpdateBead={(beadId, updates) =>
-              vscode.postMessage({ type: "updateBead", beadId, updates })
+              postToExtension({ type: "updateBead", beadId, updates })
             }
             onRetry={() =>
-              vscode.postMessage({ type: "refresh" })
+              postToExtension({ type: "refresh" })
             }
           />
         );
@@ -211,25 +218,25 @@ export function App(): React.ReactElement {
             userId={state.settings.userId}
             knownAssignees={knownAssignees}
             onUpdateBead={(beadId, updates) =>
-              vscode.postMessage({ type: "updateBead", beadId, updates })
+              postToExtension({ type: "updateBead", beadId, updates })
             }
             onAddDependency={(beadId, targetId, dependencyType, reverse) =>
-              vscode.postMessage({ type: "addDependency", beadId, targetId, dependencyType, reverse })
+              postToExtension({ type: "addDependency", beadId, targetId, dependencyType, reverse })
             }
             onRemoveDependency={(beadId, dependsOnId) =>
-              vscode.postMessage({ type: "removeDependency", beadId, dependsOnId })
+              postToExtension({ type: "removeDependency", beadId, dependsOnId })
             }
             onAddComment={(beadId, text) =>
-              vscode.postMessage({ type: "addComment", beadId, text })
+              postToExtension({ type: "addComment", beadId, text })
             }
             onViewInGraph={(beadId) =>
-              vscode.postMessage({ type: "viewInGraph", beadId })
+              postToExtension({ type: "viewInGraph", beadId })
             }
             onSelectBead={(beadId) =>
-              vscode.postMessage({ type: "openBeadDetails", beadId })
+              postToExtension({ type: "openBeadDetails", beadId })
             }
             onCopyId={(beadId) =>
-              vscode.postMessage({ type: "copyBeadId", beadId })
+              postToExtension({ type: "copyBeadId", beadId })
             }
           />
         );

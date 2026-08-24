@@ -4,7 +4,7 @@
  * Editor-only: it is never registered as a sidebar view. Unlike the
  * single-view providers, clicking an issue is handled inside this provider
  * rather than delegated to `beads.openBeadDetails`, so navigation never leaves
- * the panel (#88).
+ * the panel.
  */
 
 import * as vscode from "vscode";
@@ -48,7 +48,7 @@ export class BeadsWorkbenchViewProvider extends BaseViewProvider {
 
     if (!client) {
       // No project/backend: clear loading so the webview shows the empty state
-      // instead of spinning forever (#76)
+      // instead of spinning forever
       this.postMessage({ type: "setSummary", summary: emptySummary() });
       this.postMessage({ type: "setBeads", beads: [] });
       this.postMessage({ type: "setBead", bead: null });
@@ -100,9 +100,15 @@ export class BeadsWorkbenchViewProvider extends BaseViewProvider {
     await this.loadDetails();
   }
 
+  /** The bead open in this panel's Details section, if any. */
+  public getCurrentBeadId(): string | null {
+    return this.currentBeadId;
+  }
+
   private async loadDetails(): Promise<void> {
     const thisRequest = ++this.detailsSequence;
     const client = this.projectManager.getClient();
+    this.setDetailsError(null);
 
     if (!client || !this.currentBeadId) {
       this.postMessage({ type: "setBead", bead: null });
@@ -116,17 +122,26 @@ export class BeadsWorkbenchViewProvider extends BaseViewProvider {
         return;
       }
       if (error) {
-        this.setError(error);
+        this.setDetailsError(error);
       }
       this.postMessage({ type: "setBead", bead });
     } catch (err) {
       if (thisRequest !== this.detailsSequence) {
         return;
       }
-      this.setError(String(err));
+      this.setDetailsError(String(err));
       this.postMessage({ type: "setBead", bead: null });
       this.handleBackendError("Failed to load bead details", err);
     }
+  }
+
+  /**
+   * Details failures are scoped to the Details section. The shared error state
+   * hides the Dashboard and Issues content, so a bead that will not load must
+   * not blank the sections next to it.
+   */
+  private setDetailsError(error: string | null): void {
+    this.postMessage({ type: "setDetailsError", error });
   }
 
   protected async handleMessage(

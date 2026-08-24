@@ -108,10 +108,11 @@ export type ExtensionMessage =
   | { type: "setBeads"; beads: Bead[] }
   | { type: "setBead"; bead: Bead | null }
   | { type: "setSelectedBeadId"; beadId: string | null }
-  | { type: "setSummary"; summary: BeadsSummary }
+  | { type: "setSummary"; summary: BeadsSummary | null }
   | { type: "setProjects"; projects: BeadsProject[] }
   | { type: "setLoading"; loading: boolean }
   | { type: "setError"; error: string | null }
+  | { type: "setDetailsError"; error: string | null }
   | { type: "setSettings"; settings: WebviewSettings }
   | { type: "refresh" }
   | { type: "showToast"; text: string };
@@ -316,3 +317,11 @@ declare global {
 }
 
 export const vscode = window.acquireVsCodeApi();
+
+/**
+ * Single typed boundary for webview -> extension messages. Every send goes
+ * through here so the payloads stay checked against `WebviewMessage`.
+ */
+export function postToExtension(message: WebviewMessage): void {
+  vscode.postMessage(message);
+}

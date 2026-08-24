@@ -100,7 +100,7 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
   }
 
   /**
-   * Opens this view as an editor tab, or reveals the tab if already open (#88).
+   * Opens this view as an editor tab, or reveals the tab if already open.
    */
   public showInEditor(column: vscode.ViewColumn = vscode.ViewColumn.Active): void {
     if (this.editorPanel) {
@@ -333,7 +333,7 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
 
   /**
    * Opens a bead's details. A request from an editor tab keeps the user in the
-   * editor area rather than revealing the sidebar Details view (#88).
+   * editor area rather than revealing the sidebar Details view.
    */
   private openBeadDetails(beadId: string, host?: WebviewHost): void {
     vscode.commands.executeCommand("beads.openBeadDetails", beadId, {

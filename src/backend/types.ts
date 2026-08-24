@@ -198,6 +198,7 @@ export type ExtensionToWebviewMessage =
   | { type: "setProjects"; projects: BeadsProject[] }
   | { type: "setLoading"; loading: boolean }
   | { type: "setError"; error: string | null }
+  | { type: "setDetailsError"; error: string | null }
   | { type: "setSettings"; settings: WebviewSettings }
   | { type: "refresh" };
 

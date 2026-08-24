@@ -91,7 +91,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     })
   );
 
-  // Restore Beads editor tabs after a window reload (#88)
+  // Restore Beads editor tabs after a window reload
   const editorPanelProviders: Array<[string, BaseViewProvider]> = [
     ["beads.dashboardEditor", dashboardProvider],
     ["beads.issuesEditor", beadsPanelProvider],
@@ -118,7 +118,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       vscode.commands.executeCommand("beadsPanel.focus");
     }),
 
-    // Editor-tab entry points to the same views (#88)
+    // Editor-tab entry points to the same views
     vscode.commands.registerCommand("beads.openDashboardInEditor", () => {
       dashboardProvider.showInEditor();
     }),
@@ -171,7 +171,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
       if (beadId) {
         // Requested from an editor tab: keep the user in the editor area
-        // instead of pulling open the sidebar Details view (#88)
+        // rather than revealing the sidebar Details view
         if (options?.preferEditor) {
           detailsProvider.showInEditor();
         }
@@ -271,7 +271,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
 
     vscode.commands.registerCommand("beads.copyBeadId", async () => {
-      const beadId = detailsProvider.getCurrentBeadId();
+      // The command is reachable from the palette with only the workbench
+      // open, so fall back to that panel's selection
+      const beadId = detailsProvider.getCurrentBeadId() ?? workbenchProvider.getCurrentBeadId();
       if (beadId) {
         await vscode.env.clipboard.writeText(beadId);
         vscode.window.setStatusBarMessage(`$(check) Copied: ${beadId}`, 2000);
