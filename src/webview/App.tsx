@@ -12,6 +12,7 @@ import {
   BeadsSummary,
   ExtensionMessage,
   WebviewSettings,
+  patchState,
   vscode,
 } from "./types";
 import { DashboardView } from "./views/DashboardView";
@@ -97,7 +98,7 @@ export function App(): React.ReactElement {
   // Persist enough for a restored editor tab to come back on the same bead.
   // VS Code hands this to the panel serializer after a window reload.
   useEffect(() => {
-    vscode.setState({
+    patchState({
       viewType: state.viewType,
       beadId: state.selectedBead?.id ?? state.selectedBeadId ?? null,
     });

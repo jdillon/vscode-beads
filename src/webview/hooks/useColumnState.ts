@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { SortingState, VisibilityState, ColumnOrderState } from "@tanstack/react-table";
-import { vscode } from "../types";
+import { patchState, vscode } from "../types";
 
 /**
  * Persisted column state for TanStack Table.
@@ -77,9 +77,10 @@ export function useColumnState(options: UseColumnStateOptions = {}): UseColumnSt
     savedState?.columnOrder ?? defaultOrder
   );
 
-  // Persist state changes to VS Code
+  // Persist state changes to VS Code. Merged, so this does not erase the
+  // selection the app persists for editor-tab restoration.
   useEffect(() => {
-    vscode.setState({ sorting, columnVisibility, columnOrder });
+    patchState({ sorting, columnVisibility, columnOrder });
   }, [sorting, columnVisibility, columnOrder]);
 
   const resetVisibility = () => {
