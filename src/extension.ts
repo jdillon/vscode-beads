@@ -11,7 +11,7 @@ import { BeadsProjectManager } from "./backend/BeadsProjectManager";
 import { DashboardViewProvider } from "./providers/DashboardViewProvider";
 import { BeadsPanelViewProvider } from "./providers/BeadsPanelViewProvider";
 import { BeadDetailsViewProvider } from "./providers/BeadDetailsViewProvider";
-import { BaseViewProvider } from "./providers/BaseViewProvider";
+import { BaseViewProvider, NavigationOrigin } from "./providers/BaseViewProvider";
 import { createLogger, Logger } from "./utils/logger";
 
 let log: Logger;
@@ -91,8 +91,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   for (const [panelViewType, provider] of editorPanelProviders) {
     context.subscriptions.push(
       vscode.window.registerWebviewPanelSerializer(panelViewType, {
-        async deserializeWebviewPanel(panel: vscode.WebviewPanel): Promise<void> {
-          provider.adoptEditorPanel(panel);
+        async deserializeWebviewPanel(panel: vscode.WebviewPanel, state: unknown): Promise<void> {
+          provider.adoptEditorPanel(panel, state);
         },
       })
     );
@@ -123,7 +123,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     vscode.commands.registerCommand("beads.openBeadDetails", async (
       beadId?: string,
-      options?: { preferEditor?: boolean }
+      origin?: NavigationOrigin
     ) => {
       if (!beadId) {
         // Prompt for bead ID
@@ -156,12 +156,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       if (beadId) {
-        // Requested from an editor tab: keep the user in the editor area
-        // rather than revealing the sidebar Details view
-        if (options?.preferEditor) {
-          detailsProvider.showInEditor();
-        }
-        detailsProvider.showBead(beadId);
+        // The provider keeps the request on the surface it came from; a palette
+        // invocation has no origin and lands in the sidebar
+        detailsProvider.showBead(beadId, origin);
         beadsPanelProvider.setSelectedBead(beadId);
       }
     }),

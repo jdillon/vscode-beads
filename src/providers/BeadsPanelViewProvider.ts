@@ -14,6 +14,7 @@ import { BaseViewProvider } from "./BaseViewProvider";
 import { BeadsProjectManager } from "../backend/BeadsProjectManager";
 import { WebviewToExtensionMessage, Bead, issueToWebviewBead } from "../backend/types";
 import { Logger } from "../utils/logger";
+import { buildUpdateArgs } from "./bead-updates";
 
 export class BeadsPanelViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsPanel";
@@ -104,17 +105,24 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
     }
 
     switch (message.type) {
-      case "updateBead":
+      case "updateBead": {
+        const result = buildUpdateArgs(message.beadId, message.updates);
+        if ("error" in result) {
+          this.log.warn(`Ignoring malformed bead update: ${result.error}`);
+          return;
+        }
+        if (result.dropped.length > 0) {
+          this.log.warn(`Ignoring unsupported update fields: ${result.dropped.join(", ")}`);
+        }
+
         try {
-          await client.update({
-            id: message.beadId,
-            ...message.updates,
-          });
+          await client.update(result.args);
           // Data will refresh via mutation events
         } catch (err) {
           vscode.window.showErrorMessage(`Failed to update bead: ${err}`);
         }
         break;
+      }
 
       case "deleteBead":
         vscode.window.showWarningMessage(

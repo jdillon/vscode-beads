@@ -32,7 +32,18 @@ export interface WebviewHost {
   readonly kind: "sidebar" | "editor";
   readonly webview: vscode.Webview;
   readonly visible: boolean;
+  /** Editor group this surface occupies; undefined for the sidebar. */
+  readonly viewColumn: vscode.ViewColumn | undefined;
   reveal(preserveFocus: boolean): void;
+}
+
+/**
+ * Where a navigation request came from. Carried so a follow-up view opens on
+ * the same surface, and in the same editor group, as the click that caused it.
+ */
+export interface NavigationOrigin {
+  surface: WebviewHost["kind"];
+  viewColumn?: vscode.ViewColumn;
 }
 
 export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
@@ -74,6 +85,7 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
       get visible() {
         return webviewView.visible;
       },
+      viewColumn: undefined,
       reveal: (preserveFocus) => webviewView.show(preserveFocus),
     };
     this.hosts.add(host);
@@ -104,10 +116,17 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
    */
   public showInEditor(column: vscode.ViewColumn = vscode.ViewColumn.Active): void {
     if (this.editorPanel) {
-      this.editorPanel.reveal(column, false);
+      // Reveal where the tab already lives; moving it between groups would
+      // rearrange the editor layout out from under the user. An explicit
+      // command takes focus, unlike navigation.
+      this.editorPanel.reveal(undefined, false);
       return;
     }
 
+    this.createEditorPanel(column);
+  }
+
+  private createEditorPanel(column: vscode.ViewColumn): void {
     const panel = vscode.window.createWebviewPanel(
       this.panelViewType,
       this.panelTitle,
@@ -121,10 +140,16 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
    * Wires an editor tab to this provider. Used both for freshly created panels
    * and for panels VS Code restores after a window reload.
    */
-  public adoptEditorPanel(panel: vscode.WebviewPanel): void {
+  public adoptEditorPanel(panel: vscode.WebviewPanel, restoredState?: unknown): void {
     if (this.editorPanel && this.editorPanel !== panel) {
       // Only one editor tab per view; a restored duplicate replaces the old one.
       this.editorPanel.dispose();
+    }
+
+    // Restore before the HTML loads, so the first data load already targets
+    // whatever the tab was showing when the window closed
+    if (restoredState !== undefined) {
+      this.restoreEditorState(restoredState);
     }
 
     // Options and HTML are not preserved across a reload, so always re-apply.
@@ -138,6 +163,9 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
       webview: panel.webview,
       get visible() {
         return panel.visible;
+      },
+      get viewColumn() {
+        return panel.viewColumn;
       },
       reveal: (preserveFocus) => panel.reveal(undefined, preserveFocus),
     };
@@ -166,13 +194,53 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
   }
 
   /**
-   * Reveals this view, preferring an open editor tab over the sidebar so a
-   * user working in editor tabs is not pulled back to the side bar.
+   * Reveals this view on the surface the request came from, so a sidebar
+   * action stays in the sidebar and an editor action stays in the editor.
+   * Falls back to whatever surface exists when the preferred one does not.
    */
-  protected revealHost(): void {
-    const hosts = [...this.hosts];
-    const target = hosts.find((h) => h.kind === "editor") ?? hosts[0];
-    target?.reveal(true); // true = preserve focus
+  protected revealHost(origin?: NavigationOrigin): void {
+    if (origin?.surface === "editor") {
+      this.revealEditorHost(origin.viewColumn);
+      return;
+    }
+    this.revealSidebarHost();
+  }
+
+  /**
+   * Guarantees the editor surface exists before revealing it, so the caller
+   * cannot leave a request stranded on the wrong surface. Never falls back to
+   * the sidebar: doing nothing beats moving the user somewhere they did not ask
+   * to go.
+   */
+  private revealEditorHost(column?: vscode.ViewColumn): void {
+    if (!this.editorPanel) {
+      // Open beside the view the request came from, not wherever focus happens
+      // to be
+      this.createEditorPanel(column ?? vscode.ViewColumn.Active);
+      return;
+    }
+
+    // Navigation reveals in place and leaves focus where the user put it
+    this.editorPanel.reveal(undefined, true);
+  }
+
+  private revealSidebarHost(): void {
+    const sidebar = [...this.hosts].find((host) => host.kind === "sidebar");
+    if (sidebar) {
+      sidebar.reveal(true); // true = preserve focus
+      return;
+    }
+
+    // The sidebar view has never been resolved; focusing it registers a host
+    vscode.commands.executeCommand(`${this.viewType}.focus`);
+  }
+
+  /**
+   * Restores state persisted by the webview when an editor tab is recreated.
+   * Override in subclasses that carry a selection.
+   */
+  protected restoreEditorState(_state: unknown): void {
+    // Default: nothing to restore
   }
 
   /**
@@ -336,9 +404,12 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
    * editor area rather than revealing the sidebar Details view.
    */
   private openBeadDetails(beadId: string, host?: WebviewHost): void {
-    vscode.commands.executeCommand("beads.openBeadDetails", beadId, {
-      preferEditor: host?.kind === "editor",
-    });
+    const origin: NavigationOrigin =
+      host?.kind === "editor"
+        ? { surface: "editor", viewColumn: host.viewColumn }
+        : { surface: "sidebar" };
+
+    vscode.commands.executeCommand("beads.openBeadDetails", beadId, origin);
   }
 
   /**

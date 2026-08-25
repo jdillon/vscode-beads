@@ -9,10 +9,11 @@
  */
 
 import * as vscode from "vscode";
-import { BaseViewProvider } from "./BaseViewProvider";
+import { BaseViewProvider, NavigationOrigin } from "./BaseViewProvider";
 import { BeadsProjectManager } from "../backend/BeadsProjectManager";
 import { WebviewToExtensionMessage, issueToWebviewBead } from "../backend/types";
 import { Logger } from "../utils/logger";
+import { buildUpdateArgs } from "./bead-updates";
 
 export class BeadDetailsViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsDetails";
@@ -33,27 +34,41 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
   /**
    * Show details for a specific bead
    */
-  public async showBead(beadId: string): Promise<void> {
+  public async showBead(beadId: string, origin?: NavigationOrigin): Promise<void> {
     this.currentBeadId = beadId;
     this.currentProjectId = this.projectManager.getActiveProject()?.id || null;
 
     // Update context for conditional menu items
     vscode.commands.executeCommand("setContext", "beads.hasSelectedBead", true);
 
-    // Auto-expand the details view - the editor tab if one is open, otherwise
-    // the sidebar view.
-    this.revealHost();
+    // Auto-expand the details view on the surface the request came from,
+    // creating the editor tab if that is where the request originated
+    this.revealHost(origin);
     this.setEditorPanelTitle(beadId);
 
     await this.loadData();
   }
 
   /**
+   * Restores the bead an editor tab was showing before a window reload.
+   */
+  protected restoreEditorState(state: unknown): void {
+    const beadId = (state as { beadId?: unknown } | null | undefined)?.beadId;
+    if (typeof beadId !== "string" || beadId.length === 0) {
+      return;
+    }
+
+    this.currentBeadId = beadId;
+    this.currentProjectId = this.projectManager.getActiveProject()?.id || null;
+    vscode.commands.executeCommand("setContext", "beads.hasSelectedBead", true);
+  }
+
+  /**
    * Title the editor tab with the bead already being viewed, for tabs opened
    * (or restored) after a selection was made.
    */
-  public adoptEditorPanel(panel: vscode.WebviewPanel): void {
-    super.adoptEditorPanel(panel);
+  public adoptEditorPanel(panel: vscode.WebviewPanel, restoredState?: unknown): void {
+    super.adoptEditorPanel(panel, restoredState);
     if (this.currentBeadId) {
       this.setEditorPanelTitle(this.currentBeadId);
     }
@@ -85,10 +100,11 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
     const client = this.projectManager.getClient();
     const activeProjectId = this.projectManager.getActiveProject()?.id;
 
-    // Clear selection if project changed
+    // Clear selection if project changed. Goes through clearBead so the menu
+    // context and the editor tab title are reset too, not just the id.
     if (this.currentProjectId && activeProjectId !== this.currentProjectId) {
-      this.currentBeadId = null;
       this.currentProjectId = activeProjectId || null;
+      this.clearBead();
     }
 
     if (!client || !this.currentBeadId) {
@@ -160,42 +176,25 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
     }
 
     switch (message.type) {
-      case "updateBead":
-        this.log.debug(`Updating bead ${message.beadId}: ${JSON.stringify(message.updates)}`);
+      case "updateBead": {
+        const result = buildUpdateArgs(message.beadId, message.updates);
+        if ("error" in result) {
+          this.log.warn(`Ignoring malformed bead update: ${result.error}`);
+          return;
+        }
+        if (result.dropped.length > 0) {
+          this.log.warn(`Ignoring unsupported update fields: ${result.dropped.join(", ")}`);
+        }
 
+        this.log.debug(`Updating bead ${message.beadId}: ${JSON.stringify(result.args)}`);
         try {
-          // Map webview field names (camelCase) to CLI/backend field names (snake_case)
-          const {
-            labels,
-            externalRef,
-            acceptanceCriteria,
-            estimatedMinutes,
-            ...rest
-          } = message.updates;
-          const updateArgs: Record<string, unknown> = {
-            id: message.beadId,
-            ...rest,
-          };
-          // CLI uses set_labels instead of labels
-          if (labels !== undefined) {
-            updateArgs.set_labels = labels;
-          }
-          // Map camelCase to snake_case
-          if (externalRef !== undefined) {
-            updateArgs.external_ref = externalRef;
-          }
-          if (acceptanceCriteria !== undefined) {
-            updateArgs.acceptance_criteria = acceptanceCriteria;
-          }
-          if (estimatedMinutes !== undefined) {
-            updateArgs.estimated_minutes = estimatedMinutes;
-          }
-          await client.update(updateArgs as unknown as Parameters<typeof client.update>[0]);
+          await client.update(result.args);
           // Data will refresh via mutation events
         } catch (err) {
           vscode.window.showErrorMessage(`Failed to update bead: ${err}`);
         }
         break;
+      }
 
       case "addDependency":
         try {

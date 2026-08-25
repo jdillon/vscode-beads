@@ -31,7 +31,10 @@
     "dashboard"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onWebviewPanel:beads.dashboardEditor",
+    "onWebviewPanel:beads.issuesEditor",
+    "onWebviewPanel:beads.detailsEditor"
   ],
   "main": "./dist/extension.js",
   "contributes": {
