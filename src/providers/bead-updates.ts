@@ -34,6 +34,7 @@ export type UpdateArgsResult =
   | { args: UpdateIssueArgs; dropped: string[] }
   | { error: string };
 
+/** Checks a value against the runtime type its field is declared to hold. */
 function isValid(value: unknown, kind: FieldKind): boolean {
   switch (kind) {
     case "string":

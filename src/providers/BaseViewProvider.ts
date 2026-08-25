@@ -71,6 +71,10 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
     this.log = logger;
   }
 
+  /**
+   * Registers the sidebar view as a host. VS Code calls this the first time
+   * the view is resolved, which may never happen if the user leaves it closed.
+   */
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
     _context: vscode.WebviewViewResolveContext,
@@ -126,6 +130,7 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
     this.createEditorPanel(column);
   }
 
+  /** Opens the editor tab in the given group and wires it to this provider. */
   private createEditorPanel(column: vscode.ViewColumn): void {
     const panel = vscode.window.createWebviewPanel(
       this.panelViewType,
@@ -196,7 +201,7 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
   /**
    * Reveals this view on the surface the request came from, so a sidebar
    * action stays in the sidebar and an editor action stays in the editor.
-   * Falls back to whatever surface exists when the preferred one does not.
+   * Never crosses surfaces: a missing one is created or focused instead.
    */
   protected revealHost(origin?: NavigationOrigin): void {
     if (origin?.surface === "editor") {
@@ -224,6 +229,7 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
     this.editorPanel.reveal(undefined, true);
   }
 
+  /** Reveals the sidebar view, resolving it first if it was never opened. */
   private revealSidebarHost(): void {
     const sidebar = [...this.hosts].find((host) => host.kind === "sidebar");
     if (sidebar) {
@@ -262,6 +268,10 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
     return false;
   }
 
+  /**
+   * Options shared by both surfaces: scripts enabled, and local resources
+   * limited to what this extension ships.
+   */
   private getWebviewOptions(): vscode.WebviewOptions {
     return {
       enableScripts: true,
@@ -511,6 +521,7 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
     this.loadData("background");
   }
 
+  /** Refreshes as a user-initiated action, which shows the loading state. */
   public hardRefresh(): void {
     if (!this.isVisible) {
       return;

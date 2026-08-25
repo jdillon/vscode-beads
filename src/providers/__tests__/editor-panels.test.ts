@@ -25,12 +25,17 @@ interface Harness<T> {
   setActiveProjectId: (id: string | null) => void;
 }
 
+/** A logger backed by the mock output channel. */
 function makeLogger(): Logger {
   return new Logger(
     vscode.window.createOutputChannel() as unknown as vscode.LogOutputChannel
   );
 }
 
+/**
+ * Builds a provider with a stubbed project manager that has no backend client,
+ * so tests exercise surface behavior without touching bd.
+ */
 function harness<T>(
   Provider: new (uri: vscode.Uri, pm: BeadsProjectManager, log: Logger) => T,
   activeProjectId: string | null = "project-a"

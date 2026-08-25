@@ -38,6 +38,7 @@ export interface FakeWebview {
   emit: (message: unknown) => unknown;
 }
 
+/** Builds a webview stub that records posted messages and can replay one back. */
 export function createFakeWebview(posted: unknown[] = []): FakeWebview {
   let listener: ((message: unknown) => unknown) | undefined;
   return {
@@ -75,6 +76,7 @@ export interface FakePanel {
   setVisible: (visible: boolean) => void;
 }
 
+/** Clears panels recorded by earlier tests. Call between test cases. */
 export function resetWebviewPanels(): void {
   createdPanels.length = 0;
 }

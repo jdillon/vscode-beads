@@ -5,6 +5,7 @@
 
 import { buildUpdateArgs } from "../bead-updates";
 
+/** Unwraps a successful build, failing the test if validation rejected it. */
 function expectArgs(result: ReturnType<typeof buildUpdateArgs>) {
   if ("error" in result) {
     throw new Error(`expected args, got error: ${result.error}`);
