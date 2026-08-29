@@ -12,6 +12,7 @@ import {
   BeadsSummary,
   ExtensionMessage,
   WebviewSettings,
+  patchState,
   vscode,
 } from "./types";
 import { DashboardView } from "./views/DashboardView";
@@ -93,6 +94,21 @@ export function App(): React.ReactElement {
         break;
     }
   }, []);
+
+  // Persist enough for a restored editor tab to come back on the same bead.
+  // VS Code hands this to the panel serializer after a window reload.
+  useEffect(() => {
+    // Skip the pre-initialization render: writing placeholders here would
+    // clear a selection a restored tab still needs.
+    if (!state.viewType) {
+      return;
+    }
+
+    patchState({
+      viewType: state.viewType,
+      beadId: state.selectedBead?.id ?? state.selectedBeadId ?? null,
+    });
+  }, [state.viewType, state.selectedBead?.id, state.selectedBeadId]);
 
   useEffect(() => {
     // Listen for messages from the extension

@@ -11,6 +11,7 @@ import { BeadsProjectManager } from "./backend/BeadsProjectManager";
 import { DashboardViewProvider } from "./providers/DashboardViewProvider";
 import { BeadsPanelViewProvider } from "./providers/BeadsPanelViewProvider";
 import { BeadDetailsViewProvider } from "./providers/BeadDetailsViewProvider";
+import { BaseViewProvider, NavigationOrigin } from "./providers/BaseViewProvider";
 import { createLogger, Logger } from "./utils/logger";
 
 let log: Logger;
@@ -81,6 +82,22 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     })
   );
 
+  // Restore Beads editor tabs after a window reload
+  const editorPanelProviders: Array<[string, BaseViewProvider]> = [
+    ["beads.dashboardEditor", dashboardProvider],
+    ["beads.issuesEditor", beadsPanelProvider],
+    ["beads.detailsEditor", detailsProvider],
+  ];
+  for (const [panelViewType, provider] of editorPanelProviders) {
+    context.subscriptions.push(
+      vscode.window.registerWebviewPanelSerializer(panelViewType, {
+        async deserializeWebviewPanel(panel: vscode.WebviewPanel, state: unknown): Promise<void> {
+          provider.adoptEditorPanel(panel, state);
+        },
+      })
+    );
+  }
+
   // Register commands
   context.subscriptions.push(
     vscode.commands.registerCommand("beads.switchProject", async () => {
@@ -91,7 +108,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       vscode.commands.executeCommand("beadsPanel.focus");
     }),
 
-    vscode.commands.registerCommand("beads.openBeadDetails", async (beadId?: string) => {
+    // Editor-tab entry points to the same views
+    vscode.commands.registerCommand("beads.openDashboardInEditor", () => {
+      dashboardProvider.showInEditor();
+    }),
+
+    vscode.commands.registerCommand("beads.openIssuesInEditor", () => {
+      beadsPanelProvider.showInEditor();
+    }),
+
+    vscode.commands.registerCommand("beads.openDetailsInEditor", () => {
+      detailsProvider.showInEditor();
+    }),
+
+    vscode.commands.registerCommand("beads.openBeadDetails", async (
+      beadId?: string,
+      origin?: NavigationOrigin
+    ) => {
       if (!beadId) {
         // Prompt for bead ID
         const client = projectManager.getClient();
@@ -123,7 +156,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       if (beadId) {
-        detailsProvider.showBead(beadId);
+        // The provider keeps the request on the surface it came from; a palette
+        // invocation has no origin and lands in the sidebar
+        detailsProvider.showBead(beadId, origin);
         beadsPanelProvider.setSelectedBead(beadId);
       }
     }),

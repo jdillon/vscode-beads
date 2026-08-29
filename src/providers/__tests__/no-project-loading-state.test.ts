@@ -26,10 +26,12 @@ function createProvider(Provider: ProviderCtor) {
   const provider = new Provider({} as vscode.Uri, projectManager, logger);
 
   // Stand in for the resolved webview view
-  (provider as unknown as { _view: unknown })._view = {
+  (provider as unknown as { hosts: Set<unknown> }).hosts.add({
+    kind: "sidebar",
     visible: true,
     webview: { postMessage: (message: ExtensionToWebviewMessage) => posted.push(message) },
-  };
+    reveal: () => undefined,
+  });
 
   const loadData = (provider as unknown as {
     loadData: (reason: "initial") => Promise<void>;

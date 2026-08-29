@@ -316,3 +316,12 @@ declare global {
 }
 
 export const vscode = window.acquireVsCodeApi();
+
+/**
+ * Merges a patch into the webview's persisted state. `setState` replaces the
+ * whole blob, so independent writers have to merge or they erase each other.
+ */
+export function patchState(patch: Record<string, unknown>): void {
+  const current = (vscode.getState() as Record<string, unknown> | undefined) ?? {};
+  vscode.setState({ ...current, ...patch });
+}

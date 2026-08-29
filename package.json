@@ -31,7 +31,10 @@
     "dashboard"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onWebviewPanel:beads.dashboardEditor",
+    "onWebviewPanel:beads.issuesEditor",
+    "onWebviewPanel:beads.detailsEditor"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -83,6 +86,21 @@
         "icon": "$(file-text)"
       },
       {
+        "command": "beads.openDashboardInEditor",
+        "title": "Beads: Open Dashboard in Editor",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "beads.openIssuesInEditor",
+        "title": "Beads: Open Issues in Editor",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "beads.openDetailsInEditor",
+        "title": "Beads: Open Details in Editor",
+        "icon": "$(link-external)"
+      },
+      {
         "command": "beads.refresh",
         "title": "Beads: Refresh",
         "icon": "$(refresh)"
@@ -101,14 +119,29 @@
           "group": "navigation@1"
         },
         {
+          "command": "beads.openDashboardInEditor",
+          "when": "view == beadsDashboard",
+          "group": "navigation@2"
+        },
+        {
           "command": "beads.refresh",
           "when": "view == beadsPanel",
           "group": "navigation@1"
         },
         {
+          "command": "beads.openIssuesInEditor",
+          "when": "view == beadsPanel",
+          "group": "navigation@2"
+        },
+        {
           "command": "beads.copyBeadId",
           "when": "view == beadsDetails && beads.hasSelectedBead",
           "group": "navigation@1"
+        },
+        {
+          "command": "beads.openDetailsInEditor",
+          "when": "view == beadsDetails",
+          "group": "navigation@2"
         }
       ]
     },
