@@ -76,6 +76,23 @@ describe("buildUpdateArgs", () => {
     expect(buildUpdateArgs("bd-1", { priority: 1.5 })).toHaveProperty("error");
   });
 
+  it("accepts the supported clear-value representations", () => {
+    const { args } = expectArgs(
+      buildUpdateArgs("bd-1", {
+        externalRef: "",
+        estimatedMinutes: 0,
+        labels: [],
+      })
+    );
+
+    expect(args).toEqual({
+      id: "bd-1",
+      external_ref: "",
+      estimated_minutes: 0,
+      set_labels: [],
+    });
+  });
+
   it("rejects a message with no usable target or payload", () => {
     expect(buildUpdateArgs("", { status: "open" })).toHaveProperty("error");
     expect(buildUpdateArgs(42, { status: "open" })).toHaveProperty("error");

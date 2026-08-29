@@ -12,9 +12,11 @@ import {
   FakeWebview,
 } from "../../__mocks__/vscode";
 import { BeadDetailsViewProvider } from "../BeadDetailsViewProvider";
+import { BeadsPanelViewProvider } from "../BeadsPanelViewProvider";
 import { DashboardViewProvider } from "../DashboardViewProvider";
 import { BeadsProjectManager } from "../../backend/BeadsProjectManager";
 import { ExtensionToWebviewMessage } from "../../backend/types";
+import { BeadsBackend, BeadsIssue } from "../../backend/BeadsBackend";
 import { Logger } from "../../utils/logger";
 
 interface Harness<T> {
@@ -38,13 +40,14 @@ function makeLogger(): Logger {
  */
 function harness<T>(
   Provider: new (uri: vscode.Uri, pm: BeadsProjectManager, log: Logger) => T,
-  activeProjectId: string | null = "project-a"
+  activeProjectId: string | null = "project-a",
+  client: Partial<BeadsBackend> | null = null
 ): Harness<T> {
   const posted: ExtensionToWebviewMessage[] = [];
   let projectId = activeProjectId;
 
   const projectManager = {
-    getClient: () => null,
+    getClient: () => client,
     getActiveProject: () => (projectId ? { id: projectId, name: projectId } : null),
     getProjects: () => [],
   } as unknown as BeadsProjectManager;
@@ -221,36 +224,163 @@ describe("serializer restoration", () => {
 
     provider.adoptEditorPanel(
       vscode.window.createWebviewPanel("beads.detailsEditor", "Beads Details", 1, {}) as unknown as vscode.WebviewPanel,
-      { beadId: "bd-42" }
+      { version: 1, projectId: "project-a", beadId: "bd-42" }
     );
 
     expect(provider.getCurrentBeadId()).toBe("bd-42");
   });
 
-  it("ignores malformed persisted state", () => {
+  it("ignores persisted state for another project", () => {
     const { provider } = harness(BeadDetailsViewProvider);
 
     provider.adoptEditorPanel(
       vscode.window.createWebviewPanel("beads.detailsEditor", "Beads Details", 1, {}) as unknown as vscode.WebviewPanel,
-      { beadId: 42 }
+      { version: 1, projectId: "project-b", beadId: "bd-42" }
     );
 
     expect(provider.getCurrentBeadId()).toBeNull();
   });
+
+  it("ignores legacy and malformed persisted state", () => {
+    const { provider } = harness(BeadDetailsViewProvider);
+
+    provider.adoptEditorPanel(
+      vscode.window.createWebviewPanel("beads.detailsEditor", "Beads Details", 1, {}) as unknown as vscode.WebviewPanel,
+      { beadId: "bd-42" }
+    );
+
+    expect(provider.getCurrentBeadId()).toBeNull();
+  });
+
+  it("seeds a hidden restored tab with its bead id before loading", async () => {
+    const { provider } = harness(BeadDetailsViewProvider);
+    const panel = vscode.window.createWebviewPanel(
+      "beads.detailsEditor",
+      "Beads Details",
+      1,
+      {}
+    ) as unknown as vscode.WebviewPanel;
+    provider.adoptEditorPanel(panel, {
+      version: 1,
+      projectId: "project-a",
+      beadId: "bd-42",
+    });
+    const fakePanel = createdPanels[0];
+    fakePanel.setVisible(false);
+    const seen: ExtensionToWebviewMessage[] = [];
+    fakePanel.webview.postMessage = (message) => seen.push(message as ExtensionToWebviewMessage);
+
+    await fakePanel.webview.emit({ type: "ready" });
+
+    expect(seen).toContainEqual({ type: "setSelectedBeadId", beadId: "bd-42" });
+  });
 });
 
 describe("project switching", () => {
-  it("clears the Details selection and its menu context", async () => {
+  it("clears a hidden Details selection and its menu context immediately", async () => {
     const spy = jest.spyOn(vscode.commands, "executeCommand");
     const { provider, setActiveProjectId } = harness(BeadDetailsViewProvider);
 
-    await provider.showBead("bd-1");
+    await provider.showBead("bd-1", { surface: "editor" });
     expect(provider.getCurrentBeadId()).toBe("bd-1");
+    createdPanels[0].setVisible(false);
+    const seen: ExtensionToWebviewMessage[] = [];
+    createdPanels[0].webview.postMessage = (message) => seen.push(message as ExtensionToWebviewMessage);
 
     setActiveProjectId("project-b");
-    await (provider as unknown as { loadData: () => Promise<void> }).loadData();
+    provider.refreshForProjectChange();
 
     expect(provider.getCurrentBeadId()).toBeNull();
+    expect(createdPanels[0].title).toBe("Beads Details");
     expect(spy).toHaveBeenCalledWith("setContext", "beads.hasSelectedBead", false);
+    expect(seen).toContainEqual({ type: "setSelectedBeadId", beadId: null });
+  });
+});
+
+describe("host seeding", () => {
+  it("seeds a newly opened Issues host with the current selection", async () => {
+    const { provider } = harness(BeadsPanelViewProvider);
+    provider.setSelectedBead("bd-1");
+    provider.showInEditor();
+
+    const seen: ExtensionToWebviewMessage[] = [];
+    createdPanels[0].webview.postMessage = (message) => seen.push(message as ExtensionToWebviewMessage);
+    await createdPanels[0].webview.emit({ type: "ready" });
+
+    expect(seen).toContainEqual({ type: "setSelectedBeadId", beadId: "bd-1" });
+  });
+
+  it("replays cached Issues data only to the newly opened host", async () => {
+    const issue: BeadsIssue = {
+      id: "bd-1",
+      title: "Cached issue",
+      status: "open",
+      priority: 2,
+      issue_type: "task",
+      created_at: "2026-08-29T00:00:00Z",
+      updated_at: "2026-08-29T00:00:00Z",
+    };
+    const list = jest.fn().mockResolvedValue([issue]);
+    const { provider, posted, attachSidebar } = harness(
+      BeadsPanelViewProvider,
+      "project-a",
+      { list }
+    );
+    attachSidebar();
+    await (provider as unknown as {
+      loadData: (reason: "background") => Promise<void>;
+    }).loadData("background");
+    posted.length = 0;
+
+    provider.showInEditor();
+    const editorMessages: ExtensionToWebviewMessage[] = [];
+    createdPanels[0].webview.postMessage = (message) =>
+      editorMessages.push(message as ExtensionToWebviewMessage);
+    await createdPanels[0].webview.emit({ type: "ready" });
+
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(editorMessages).toContainEqual(expect.objectContaining({ type: "setBeads" }));
+    expect(posted).toEqual([]);
+  });
+
+  it("does not let an older targeted load replace a newer refresh", async () => {
+    let resolveInitial!: (issues: BeadsIssue[]) => void;
+    const initial = new Promise<BeadsIssue[]>((resolve) => {
+      resolveInitial = resolve;
+    });
+    const oldIssue: BeadsIssue = {
+      id: "bd-old",
+      title: "Old issue",
+      status: "open",
+      priority: 2,
+      issue_type: "task",
+      created_at: "2026-08-29T00:00:00Z",
+      updated_at: "2026-08-29T00:00:00Z",
+    };
+    const newIssue = { ...oldIssue, id: "bd-new", title: "New issue" };
+    const list = jest.fn()
+      .mockReturnValueOnce(initial)
+      .mockResolvedValueOnce([newIssue]);
+    const { provider } = harness(BeadsPanelViewProvider, "project-a", { list });
+    provider.showInEditor();
+    const seen: ExtensionToWebviewMessage[] = [];
+    createdPanels[0].webview.postMessage = (message) => seen.push(message as ExtensionToWebviewMessage);
+
+    const ready = createdPanels[0].webview.emit({ type: "ready" });
+    await (provider as unknown as {
+      loadData: (reason: "background") => Promise<void>;
+    }).loadData("background");
+    resolveInitial([oldIssue]);
+    await ready;
+
+    const beadMessages = seen.filter((message) => message.type === "setBeads");
+    expect(beadMessages).toContainEqual({
+      type: "setBeads",
+      beads: [expect.objectContaining({ id: "bd-new" })],
+    });
+    expect(beadMessages).not.toContainEqual({
+      type: "setBeads",
+      beads: [expect.objectContaining({ id: "bd-old" })],
+    });
   });
 });
