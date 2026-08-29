@@ -160,7 +160,10 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
     // Options and HTML are not preserved across a reload, so always re-apply.
     panel.webview.options = this.getWebviewOptions();
     panel.webview.html = this.getHtmlForWebview(panel.webview);
-    panel.iconPath = vscode.Uri.joinPath(this.extensionUri, "resources", "beads-icon.svg");
+    panel.iconPath = {
+      light: vscode.Uri.joinPath(this.extensionUri, "resources", "beads-icon-editor-light.svg"),
+      dark: vscode.Uri.joinPath(this.extensionUri, "resources", "beads-icon-editor-dark.svg"),
+    };
     this.editorPanel = panel;
 
     const host: WebviewHost = {

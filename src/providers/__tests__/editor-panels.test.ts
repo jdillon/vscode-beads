@@ -94,6 +94,19 @@ describe("editor tab lifecycle", () => {
     expect(createdPanels[0].revealCalls).toEqual([{ column: undefined, preserveFocus: false }]);
   });
 
+  it("uses theme-specific editor tab icons", () => {
+    const { provider } = harness(DashboardViewProvider);
+
+    provider.showInEditor();
+
+    const iconPath = createdPanels[0].iconPath as {
+      light: { fsPath: string };
+      dark: { fsPath: string };
+    };
+    expect(iconPath.light.fsPath).toMatch(/beads-icon-editor-light\.svg$/);
+    expect(iconPath.dark.fsPath).toMatch(/beads-icon-editor-dark\.svg$/);
+  });
+
   it("stops posting to a panel once it is disposed", async () => {
     const { provider } = harness(DashboardViewProvider);
     provider.showInEditor();
