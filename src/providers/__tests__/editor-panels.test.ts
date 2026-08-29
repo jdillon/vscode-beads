@@ -383,4 +383,45 @@ describe("host seeding", () => {
       beads: [expect.objectContaining({ id: "bd-old" })],
     });
   });
+
+  it("does not let an older load replace a newer load for the same host", async () => {
+    let resolveInitial!: (issues: BeadsIssue[]) => void;
+    const initial = new Promise<BeadsIssue[]>((resolve) => {
+      resolveInitial = resolve;
+    });
+    const oldIssue: BeadsIssue = {
+      id: "bd-old",
+      title: "Old issue",
+      status: "open",
+      priority: 2,
+      issue_type: "task",
+      created_at: "2026-08-29T00:00:00Z",
+      updated_at: "2026-08-29T00:00:00Z",
+    };
+    const newIssue = { ...oldIssue, id: "bd-new", title: "New issue" };
+    const list = jest.fn()
+      .mockReturnValueOnce(initial)
+      .mockResolvedValueOnce([newIssue]);
+    const { provider } = harness(BeadsPanelViewProvider, "project-a", { list });
+    provider.showInEditor();
+    const seen: ExtensionToWebviewMessage[] = [];
+    const panel = createdPanels[0];
+    panel.webview.postMessage = (message) => seen.push(message as ExtensionToWebviewMessage);
+
+    const firstReady = panel.webview.emit({ type: "ready" });
+    const secondReady = panel.webview.emit({ type: "ready" });
+    await secondReady;
+    resolveInitial([oldIssue]);
+    await firstReady;
+
+    const beadMessages = seen.filter((message) => message.type === "setBeads");
+    expect(beadMessages).toContainEqual({
+      type: "setBeads",
+      beads: [expect.objectContaining({ id: "bd-new" })],
+    });
+    expect(beadMessages).not.toContainEqual({
+      type: "setBeads",
+      beads: [expect.objectContaining({ id: "bd-old" })],
+    });
+  });
 });

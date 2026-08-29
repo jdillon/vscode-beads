@@ -21,6 +21,7 @@ export class DashboardViewProvider extends BaseViewProvider {
   private static readonly MIN_LOADING_MS = 500;
   private static readonly SNAPSHOT_TTL_MS = 1000;
   private loadSequence = 0;
+  private readonly targetLoadTokens = new WeakMap<WebviewHost, symbol>();
   private snapshot: {
     projectId: string | null;
     summary: BeadsSummary;
@@ -52,7 +53,14 @@ export class DashboardViewProvider extends BaseViewProvider {
       return;
     }
 
+    const targetLoadToken = target ? Symbol() : null;
+    if (target && targetLoadToken) {
+      this.targetLoadTokens.set(target, targetLoadToken);
+    }
     const thisRequest = target ? this.loadSequence : ++this.loadSequence;
+    const isCurrentRequest = () =>
+      thisRequest === this.loadSequence &&
+      (!target || this.targetLoadTokens.get(target) === targetLoadToken);
     const client = this.projectManager.getClient();
     if (!client) {
       const summary: BeadsSummary = {
@@ -89,7 +97,7 @@ export class DashboardViewProvider extends BaseViewProvider {
       if (showLoading) {
         await this.waitForMinimumLoading(loadingStartedAt);
       }
-      if (thisRequest !== this.loadSequence ||
+      if (!isCurrentRequest() ||
           (this.projectManager.getActiveProject()?.id ?? null) !== projectId) {
         return;
       }
@@ -128,14 +136,14 @@ export class DashboardViewProvider extends BaseViewProvider {
       if (showLoading) {
         await this.waitForMinimumLoading(loadingStartedAt);
       }
-      if (thisRequest !== this.loadSequence ||
+      if (!isCurrentRequest() ||
           (this.projectManager.getActiveProject()?.id ?? null) !== projectId) {
         return;
       }
       this.setError(String(err), target);
       this.handleBackendError("Failed to load dashboard", err);
     } finally {
-      if (thisRequest === this.loadSequence) {
+      if (isCurrentRequest()) {
         this.setLoading(false, target);
       }
     }

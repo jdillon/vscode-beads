@@ -23,6 +23,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
   private currentBeadId: string | null = null;
   private currentProjectId: string | null = null;
   private loadSequence = 0; // Tracks request order to prevent stale responses
+  private readonly targetLoadTokens = new WeakMap<WebviewHost, symbol>();
   private snapshot: {
     projectId: string;
     beadId: string;
@@ -157,7 +158,14 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
 
     // Increment sequence to track this request - prevents stale responses from
     // overwriting newer data when multiple refreshes occur in rapid succession
+    const targetLoadToken = target ? Symbol() : null;
+    if (target && targetLoadToken) {
+      this.targetLoadTokens.set(target, targetLoadToken);
+    }
     const thisRequest = target ? this.loadSequence : ++this.loadSequence;
+    const isCurrentRequest = () =>
+      thisRequest === this.loadSequence &&
+      (!target || this.targetLoadTokens.get(target) === targetLoadToken);
 
     const client = this.projectManager.getClient();
 
@@ -189,7 +197,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
 
       // Check if a newer request has started - if so, discard this stale response
       if (
-        thisRequest !== this.loadSequence ||
+        !isCurrentRequest() ||
         (this.projectManager.getActiveProject()?.id ?? null) !== activeProjectId ||
         this.currentBeadId !== beadId
       ) {
@@ -224,7 +232,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
       }
     } catch (err) {
       // Only handle error if this is still the current request
-      if (thisRequest !== this.loadSequence || this.currentBeadId !== beadId) {
+      if (!isCurrentRequest() || this.currentBeadId !== beadId) {
         return;
       }
       this.setError(String(err), target);
@@ -232,7 +240,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
       this.handleBackendError("Failed to load bead details", err);
     } finally {
       // Only update loading state if this is still the current request
-      if (thisRequest === this.loadSequence) {
+      if (isCurrentRequest()) {
         this.setLoading(false, target);
       }
     }
