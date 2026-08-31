@@ -1,29 +1,14 @@
 # Reload Action
 
-Hard reload the browser with cache bypass. Useful after rebuilding the extension.
+1. Run `.agent/skills/vscode-server/scripts/status.sh` and require a validated
+   watcher, code-server process, ready port, matching symlink, and explicit
+   `BROWSER_URL`.
+2. Check `watch.log` for a successful rebuild after the latest change.
+3. Select without `bringToFront`, or open `BROWSER_URL` in a background page in
+   the isolated Chrome DevTools browser, then hard reload with cache bypass.
+4. Verify the loaded workspace still matches `WORKSPACE_DIR`, then repeat the
+   relevant populated UI assertion. Read browser console messages and the
+   current extension-host `Beads.log` when diagnosing failures.
 
-## Arguments
-
-- `--devtools` - Do a full page close/reopen instead of just reload (recovers from MCP disconnection)
-
-## Without --devtools (default)
-
-Use `mcp__chrome-devtools__navigate_page` with:
-- `type`: `"reload"`
-- `ignoreCache`: `true`
-
-This bypasses browser cache, ensuring the latest extension code is loaded.
-
-## With --devtools
-
-If the `--devtools` flag is present, do a full page close/reopen instead of just reload. This recovers from MCP disconnection (e.g., if you opened DevTools manually).
-
-1. First, get the code-server port:
-   ```bash
-   .agent/skills/vscode-server/scripts/get-port.sh
-   ```
-2. Try to close the existing page using `mcp__chrome-devtools__close_page` (ignore errors if it fails)
-3. Open a fresh page using `mcp__chrome-devtools__new_page` with URL `http://127.0.0.1:{PORT}/`
-4. Do a hard reload with `mcp__chrome-devtools__navigate_page` (type: reload, ignoreCache: true)
-
-**Note**: The `--devtools` flag name is a hint that this is useful when DevTools caused the disconnect.
+If the browser driver disconnected, restart the agent session/MCP server and
+open the recorded URL again. Do not attach manual DevTools to the MCP target.

@@ -1,7 +1,6 @@
 ---
 name: vscode-server
-description: "USE THIS SKILL for all /vscode-server:* commands"
-allowed-tools: Bash, Read, TaskOutput, mcp__chrome-devtools__new_page, mcp__chrome-devtools__list_pages, mcp__chrome-devtools__navigate_page, mcp__chrome-devtools__close_page
+description: Start, stop, reload, inspect, or test the project's code-server extension environment.
 ---
 
 # VS Code Server Skill
@@ -25,65 +24,67 @@ Read the file, then follow its instructions.
 | ------------------------------------ | ------ |
 | `/vscode-server:start`               | start  |
 | `/vscode-server:stop`                | stop   |
-| `/vscode-server:reload [--devtools]` | reload |
+| `/vscode-server:reload`              | reload |
 | `/vscode-server:status`              | status |
 
 ## Temp Directory
 
-Temp files are stored in `/tmp/vscode-dev-<hash>/` where hash is derived from project path:
+Temp files are stored in `/tmp/vscode-dev-<hash>/`, where the hash is derived
+from the canonical project path. The scripts print the exact `STATE_DIR`.
 
 ```bash
 PROJECT_HASH=$(echo "$(pwd)" | md5sum | cut -c1-8)
 TMP_DIR="/tmp/vscode-dev-${PROJECT_HASH}"
 ```
 
-Files:
+Important files:
 
-- `$TMP_DIR/port` - code-server port
-- `$TMP_DIR/watch.pid` - watch mode PID
-- `$TMP_DIR/watch.log` - watch mode output
+- `start.log` - startup markers and errors
+- `watch.log`, `watch.pid` - watcher output and validated owner PID
+- `code-server.log`, `code-server.pid` - server output and validated owner PID
+- `port` - validated code-server port
+- `browser-url` - explicit URL for the selected workspace
 
 ## Helper Scripts
 
 - `scripts/start-dev-environment.sh` - Start symlink, build, watch, and code-server
 - `scripts/status.sh` - Show status of watch mode and code-server
-- `scripts/stop.sh` - Stop all processes and clean up temp files
-- `scripts/get-port.sh` - Get the code-server port from temp file
+- `scripts/stop.sh` - Stop validated processes owned by this worktree
+- `scripts/get-port.sh` - Validate and report the port and browser URL
 - `scripts/make-test-fixture.sh` - Build a throwaway beads project covering every
-  status and issue type (see Test Data below)
+  status and issue type
 
-## Test Data
+The `.agent` skill and scripts are canonical. `.claude/skills` is a compatibility
+link; do not create an OpenCode-specific copy.
 
-Build a fixture; never mutate a real project's database to create test state.
-A real database may lack the states under test, or be mid schema-migration and
-refuse writes, which looks like a broken feature.
+## Test Protocol
 
-```bash
-.agent/skills/vscode-server/scripts/make-test-fixture.sh   # -> /tmp/bd-test-fixture
-```
-
-Open with `?folder=<FIXTURE_DIR>`. Embedded Dolt (CLI backend) by default;
-re-init with `--server` for the Dolt SQL backend.
+Default startup recreates the canonical embedded 23-bead fixture. Source and
+no-project workspaces require `--workspace source` or `--workspace no-project`.
+Use `--server` for the Dolt SQL fixture. Follow
+`docs/code-server-testing.md` for trust policy, browser capability adapters,
+readiness assertions, logs, and release coverage.
 
 ## Symlink Is Global, Worktrees Are Not
 
-One symlink (`planet57.vscode-beads-dev`) serves every worktree and points at
-whichever one set it last. If it points at another worktree, code-server tests
-*that* build and your changes appear to do nothing — a false pass. The start
-script repoints and verifies, emitting `SYMLINK_TARGET:<path>`; confirm it
-matches the worktree under test. Never repoint with `ln -sf` (BSD dereferences
-an existing symlink-to-dir and links *inside* it); use `rm -f` then `ln -sn`.
+One symlink (`planet57.vscode-beads-dev`) serves every worktree. The scripts use
+a global owner lock and fail instead of taking over a live environment. Startup
+repoints with `ln -sfn`, reads the link back, and emits `SYMLINK_TARGET`; confirm
+it matches the worktree under test.
 
 ## DevTools Note
 
-Chrome only allows one DevTools client at a time. If you manually open DevTools (F12) while chrome-devtools-mcp is connected, the MCP will crash/disconnect.
-
-**Workaround**: Configure MCP with `--devtools` flag to launch Chrome with DevTools already open.
-
-## Alternative: claude-in-chrome MCP
-
-The claude-in-chrome extension covers the same workflow in the user's real Chrome (no CDP conflict): `navigate` to open, `computer key Cmd+Shift+R` for hard reload, `read_console_messages pattern=<regex>` for filtered console. Needs site permission for `127.0.0.1`. Extension host logs are NOT in the page console — read `~/.local/share/code-server/logs/<session>/exthost*/planet57.vscode-beads/Beads.log`.
+Chrome allows only one DevTools client per target. Do not open manual DevTools
+while MCP controls its isolated Chrome. ALWAYS open new pages with
+`background: true` and select pages with `bringToFront: false`. NEVER foreground
+the browser unless the user explicitly asks to see it or an unavoidable
+interaction requires their attention; explain that requirement first. Use
+browser capabilities, not an agent-specific tool spelling: open URL, hard
+reload with cache bypass, inspect DOM/accessibility state, click, read console
+messages, and capture screenshots.
 
 ## Workspace Trust
 
-Fresh sessions and workspace-folder additions start in Restricted Mode — extension won't activate until trusted. Click "Restricted Mode" status-bar item → Trust. See `docs/code-server-testing.md`.
+Trust only the generated fixture or current repository without asking. Stop and
+ask before trusting any other folder. Extension-host logs, not the browser
+console, prove activation; see `docs/code-server-testing.md`.

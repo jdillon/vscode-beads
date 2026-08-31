@@ -1,58 +1,29 @@
 # Start Action
 
-Start code-server development environment for testing the current VS Code extension.
+Start the current worktree's code-server environment and complete fixture-backed
+browser readiness. Default to `--workspace fixture`; pass source, no-project, or
+server fixture options only when explicitly requested.
 
-## Step 1: Run the startup script
+1. Run `.agent/skills/vscode-server/scripts/start-dev-environment.sh` and wait
+   for it to exit. It writes the same output to the printed `START_LOG` location
+   (`STATE_DIR/start.log`), so runtimes that background the command can poll that
+   file without a task-output API.
+2. Require `BUILD:success`, validated watcher/server PIDs, `PORT:ready` from the
+   status action, `FIXTURE_MODE:embedded`, `FIXTURE_BEADS:23`, a matching
+   `SYMLINK_TARGET`, and `READY:true`. Stop on any `ERROR` marker.
+3. Open the emitted `BROWSER_URL` in a background page with the available Chrome
+   DevTools browser driver, then hard reload with cache bypass. Do not request
+   `bringToFront` unless the user asks to see the browser. Never open the bare
+   server root.
+4. Verify the loaded URL/workspace is the emitted `WORKSPACE_DIR`. If Restricted
+   Mode is shown, trust only the generated fixture or current repository; stop
+   and ask for any other folder.
+5. Read the current extension-host `Beads.log` and confirm `Activating` followed
+   by `Extension activated` for this code-server session.
+6. Open the Beads activity view. Assert Dashboard and Issues contain fixture
+   data and capture a screenshot showing the populated UI before declaring the
+   environment ready.
 
-Run the comprehensive startup script:
-
-```bash
-.agent/skills/vscode-server/scripts/start-dev-environment.sh
-```
-
-Use `run_in_background: true` for this command.
-
-Wait 4 seconds for everything to start up.
-
-## Step 2: Get results from script output
-
-Read the background task output using `TaskOutput` with `block: false`. Parse the structured output:
-
-- `EXTENSION_ID:<id>` - The extension identifier
-- `SYMLINK:<created|verified>` - Symlink status
-- `BUILD:<success|failed>` - Build result
-- `WATCH_PID:<pid>` - Watch mode process ID
-- `CODE_SERVER_PORT:<port>` - The port to use for browser
-- `ERROR:<message>` - If present, something failed
-
-If `ERROR:` is present, report the error and stop.
-
-If `CODE_SERVER_PORT:` not found yet, wait another second and retry (up to 3 retries).
-
-## Step 3: Open browser with Chrome DevTools MCP
-
-Use the `mcp__chrome-devtools__new_page` tool to open:
-
-- URL: `http://127.0.0.1:{PORT}/` (use the port from step 2)
-
-Then immediately do a hard reload to bypass cache:
-
-Use `mcp__chrome-devtools__navigate_page` with:
-- `type`: `"reload"`
-- `ignoreCache`: `true`
-
-## Step 4: Report status
-
-Tell the user:
-
-- Extension: `{EXTENSION_ID}`
-- Symlink: {SYMLINK status}
-- Build: {BUILD status}
-- Watch mode: running (PID: {WATCH_PID})
-- code-server: running on port {PORT}
-- Browser: opened at `http://127.0.0.1:{PORT}/`
-
-Remind them:
-
-- After code changes, reload the browser (Cmd+R or `/vscode-server reload`)
-- Watch mode auto-rebuilds on save
+Use the browser capability adapter and full assertions in
+`docs/code-server-testing.md`. Browser console output does not replace
+extension-host logs.

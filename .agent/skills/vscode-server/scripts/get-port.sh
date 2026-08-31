@@ -1,21 +1,28 @@
 #!/usr/bin/env bash
-# Get the code-server port from temp file
+# Return a validated port and explicit workspace URL for this worktree.
 
 set -euo pipefail
 
-# Project identification - prefer git root for reliability
-if command -v git &>/dev/null && git rev-parse --is-inside-work-tree &>/dev/null; then
-  project_dir="$(git rev-parse --show-toplevel)"
-else
-  project_dir="$(pwd)"
-fi
-project_hash=$(echo "$project_dir" | md5sum | cut -c1-8)
-tmp_dir="/tmp/vscode-dev-${project_hash}"
-port_file="$tmp_dir/port"
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=lifecycle-common.sh
+source "$script_dir/lifecycle-common.sh"
 
-if [[ -f "$port_file" ]]; then
-  cat "$port_file"
-else
-  echo "ERROR:port file not found at $port_file" >&2
+project_dir=$(project_root)
+tmp_dir=$(state_dir_for "$project_dir")
+if ! recorded_process_is_valid "$tmp_dir/code-server.pid" code-server "$project_dir"; then
+  printf 'ERROR:no validated code-server process for %s\n' "$project_dir" >&2
   exit 1
+fi
+if [ ! -f "$tmp_dir/port" ]; then
+  printf 'ERROR:port file not found at %s/port\n' "$tmp_dir" >&2
+  exit 1
+fi
+IFS= read -r port < "$tmp_dir/port"
+if ! port_is_ready "$port"; then
+  printf 'ERROR:recorded port %s is not accepting requests\n' "$port" >&2
+  exit 1
+fi
+printf 'CODE_SERVER_PORT:%s\n' "$port"
+if [ -f "$tmp_dir/browser-url" ]; then
+  printf 'BROWSER_URL:%s\n' "$(<"$tmp_dir/browser-url")"
 fi

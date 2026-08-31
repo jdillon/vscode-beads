@@ -1,6 +1,7 @@
 # Stop Action
 
-Stop all running processes and clean up temp files.
+Stop only processes recorded and validated for the current worktree, then remove
+its state and owner lock.
 
 Run the stop script:
 
@@ -8,4 +9,5 @@ Run the stop script:
 .agent/skills/vscode-server/scripts/stop.sh
 ```
 
-Report what was stopped to the user.
+If a PID is stale or belongs to another command/worktree, report it and leave
+that process untouched.

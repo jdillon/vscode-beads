@@ -1,47 +1,63 @@
 # code-server Testing Environment
 
-> **Living document for agents.** Keep updated with working commands, config, and lessons learned. Future SKILL candidate.
+> **Living document for agents.** Keep updated with working commands, config,
+> and lessons learned. The `vscode-server` skill is the executable procedure;
+> this document is the detailed test protocol.
 
 ## Quick Start
 
 ```bash
-# 1. Start watch mode (background) - auto-rebuilds on save
-bun run watch &
-
-# 2. Start code-server (no auth for local dev)
-code-server --auth none .
-
-# 3. Open browser (either MCP works — see Browser Automation below)
-mcp__chrome-devtools__new_page url=http://127.0.0.1:8080/
-# or: mcp__claude-in-chrome__navigate url=http://127.0.0.1:8080/
-
-# 4. After code changes: just reload browser window
-# Run: codeserver reload
+.agent/skills/vscode-server/scripts/start-dev-environment.sh
+.agent/skills/vscode-server/scripts/status.sh
 ```
+
+Startup builds the extension, starts or reuses this worktree's watcher and
+code-server, recreates the embedded 23-bead fixture, and prints `BROWSER_URL`.
+Open that exact `?folder=` URL in the isolated MCP Chrome; never open the bare
+server root, which can restore an unrelated workspace. After changes, wait for
+the watcher to rebuild and use a cache-bypassing browser reload.
 
 ## Browser Automation
 
-Two MCP options, both verified working (2026-07):
+The project pins Chrome DevTools MCP in both `.mcp.json` and `opencode.json`.
+It launches an isolated Chrome profile, not the user's main Chrome. To avoid
+interrupting the user's work, agents must always open pages with
+`background: true` and select pages with `bringToFront: false`. Never foreground
+the browser unless the user explicitly asks to see it or an unavoidable
+interaction requires their attention; explain that requirement first. Ordinary
+navigation, clicks, snapshots, screenshots, and console reads do not request
+foreground activation. Chrome may still focus its window when the visible
+browser process first launches because the MCP has no server-wide "visible but
+never activate" option. OpenCode loads project MCP configuration at process
+startup, so config changes require a fresh session.
 
-| Need | chrome-devtools MCP | claude-in-chrome |
+| Capability | Chrome DevTools MCP | claude-in-chrome fallback |
 |---|---|---|
-| Open page | `new_page` | `navigate` (or `tabs_create_mcp`) |
-| Hard reload (cache bypass) | `navigate_page type=reload ignoreCache=true` | `computer key Cmd+Shift+R` |
-| Console logs | `list_console_messages` | `read_console_messages pattern=<regex>` (filterable) |
-| Screenshot / click | yes | yes (`computer`) |
-| Browser instance | separate CDP Chrome — crashes if DevTools opened manually | user's real Chrome, no CDP conflict |
+| Open explicit URL | `new_page background=true` | `navigate` |
+| Hard reload, cache bypass | `navigate_page type=reload ignoreCache=true` | `computer key Cmd+Shift+R` |
+| Inspect UI | `take_snapshot` or DOM evaluation | `read_page` |
+| Click | `click` | `computer` |
+| Console messages | `list_console_messages` | `read_console_messages pattern=<regex>` |
+| Screenshot | `take_screenshot` | `computer` |
+| Browser instance | isolated MCP-owned Chrome | user's main Chrome |
 
-claude-in-chrome caveats:
-- Needs extension site permission for `127.0.0.1`
-- Extension host logs do NOT appear in page console — read from disk instead:
-  `~/.local/share/code-server/logs/<session>/exthost*/planet57.vscode-beads/Beads.log`
+Prefer Chrome DevTools MCP for this workflow. Do not open manual DevTools while
+MCP owns the target; Chrome permits only one DevTools client and the MCP session
+can disconnect.
 
-## Workspace Trust (gotcha)
+The fallback needs extension site permission for `127.0.0.1`. With either
+driver, extension-host logs do not appear in the page console. Read the newest
+matching `~/.local/share/code-server/logs/<session>/exthost*/planet57.vscode-beads/Beads.log`.
 
-Fresh code-server sessions (and any workspace-folder addition) start in **Restricted Mode**
-— the extension will not activate and the activity bar icon stays hidden. Click
-"Restricted Mode" in the status bar → Trust. Trust persists per folder, but adding a new
-folder to the workspace re-triggers Restricted Mode for the whole workspace.
+## Workspace Trust
+
+Fresh code-server sessions can start in **Restricted Mode**. The extension will
+not activate and the activity icon stays hidden. An agent may grant trust
+without asking only when the loaded folder exactly matches `WORKSPACE_DIR` and
+is either the current worktree or a fixture created by this repository's
+fixture script during the current workflow. Stop and ask before trusting any
+other folder. After trust changes reload the window, then confirm `Activating`
+and `Extension activated` in the current `Beads.log`.
 
 ## Test Fixtures
 
@@ -91,8 +107,7 @@ to the fixture's own `.beads` before `bd init` — without that, a fixture creat
 inside another beads project inherits that project's config and comes up in
 shared-server mode, so the "embedded" fixture would not actually be embedded.
 
-Open either with `?folder=<FIXTURE_DIR>` (the absolute path the script prints) and
-accept the workspace-trust prompt.
+Open either with the URL-encoded `?folder=<FIXTURE_DIR>` URL emitted by startup.
 
 ### Release verification pass
 
@@ -151,21 +166,27 @@ warns about the unresolved `beads.pathToBd` and the failed `bd where` probe.
 
 When testing with code-server, agents should:
 
-1. **Start watch mode first** (background task) - keeps it running for the session
-2. **Start code-server** (background task)
-3. **Confirm the symlink target** (see below) — this is the #1 source of false passes
-4. **Build a fixture** with the state under test
-5. **Open browser** via Chrome DevTools MCP
-6. **After edits**: just reload the browser window - no manual compile needed
-7. **Check watch output** if changes aren't appearing (may need restart after new files)
+1. Run `start-dev-environment.sh`; default startup owns fixture creation.
+2. Require `BUILD:success`, `FIXTURE_MODE:embedded`, `FIXTURE_BEADS:23`,
+   `READY:true`, and matching owner/symlink/worktree state.
+3. Run `status.sh` and require validated watcher/server PIDs and `PORT:ready`.
+4. Open the exact emitted `BROWSER_URL` in the isolated MCP Chrome.
+5. Confirm the loaded URL/workspace is the emitted `WORKSPACE_DIR`.
+6. Resolve trust only under the safe-folder policy above.
+7. Confirm extension activation in the current `Beads.log`.
+8. Open Beads and assert populated Dashboard and Issues state, then capture a
+   screenshot as readiness evidence.
+9. After edits, wait for successful watcher output and hard reload with cache
+   bypass. Check both browser console messages and `Beads.log` on failures.
+10. Run `stop.sh` when done; it never stops unrecorded or foreign processes.
 
 Before trusting any UI result, confirm the change is actually in the running
-build — e.g. `grep -c "<new string>" dist/extension.js`. A UI that looks
-unchanged is more often a stale/mispointed build than a broken fix.
+`dist` build. A UI that looks unchanged is more often a stale or mispointed
+build than a broken fix.
 
 ## Setup
 
-### Extension Symlink
+### Ownership and Extension Symlink
 
 Extension installed via symlink to pick up changes on reload:
 
@@ -173,17 +194,18 @@ Extension installed via symlink to pick up changes on reload:
 # Location (from project root)
 ~/.local/share/code-server/extensions/planet57.vscode-beads-dev -> $(pwd)
 
-# Create or REPOINT the symlink (-n is required — see warning below)
+# Manual recovery only; normal startup owns this operation
 ln -sfn "$(pwd)" ~/.local/share/code-server/extensions/planet57.vscode-beads-dev
 
 # Always read back — the link is global, but worktrees are not
 readlink ~/.local/share/code-server/extensions/planet57.vscode-beads-dev
 ```
 
-> **Multiple worktrees share one symlink.** It points at whichever worktree set
-> it last. If it points elsewhere, code-server silently tests *that* worktree's
-> build and your changes appear to have no effect — a false pass, not a bug.
-> `start-dev-environment.sh` now repoints and verifies automatically.
+> **Multiple worktrees share one symlink.** Startup records a single owner in
+> `/tmp/vscode-beads-dev-owner` and refuses to repoint the link while another
+> validated worktree environment is live. The error names the owner and its
+> stop command. Stop that owner explicitly, then retry; there is no silent
+> takeover mode.
 >
 > **Never use `ln -sf` without `-n` here.** On BSD/macOS, `ln -sf` applied to an
 > existing symlink-to-directory dereferences it and creates the new link *inside*
@@ -192,7 +214,8 @@ readlink ~/.local/share/code-server/extensions/planet57.vscode-beads-dev
 
 ### Config
 
-Default config at `~/.config/code-server/config.yaml` uses password auth. Override with `--auth none` flag.
+The lifecycle script overrides local config with `--auth none` and a dynamic
+localhost port. Fixed port `8080` examples below apply only to manual debugging.
 
 ```yaml
 # ~/.config/code-server/config.yaml
@@ -205,37 +228,29 @@ cert: false
 
 | Action | Command |
 |--------|---------|
-| Start (no auth) | `code-server --auth none .` |
-| Start (custom port) | `code-server --auth none --bind-addr 127.0.0.1:3000 .` |
+| Managed start | `.agent/skills/vscode-server/scripts/start-dev-environment.sh` |
+| Managed status | `.agent/skills/vscode-server/scripts/status.sh` |
+| Managed stop | `.agent/skills/vscode-server/scripts/stop.sh` |
+| Manual start on 8080 | `code-server --auth none --bind-addr 127.0.0.1:8080` |
 | Build extension | `bun run compile:quiet` |
 | Watch mode | `bun run watch` |
-| Reload window | `codeserver reload` ← cheap! (vs Cmd+Shift+P → "Developer: Reload Window") |
+| Reload window | Browser-driver hard reload with cache bypass |
 
 ## Workflow
 
-### Recommended: Background Watch Mode
+### Recommended: Managed Watch Mode
 
-Run `bun run watch` as a background task - esbuild auto-rebuilds on file save. Only reload the browser window to pick up changes.
-
-```bash
-# Start watch in background (agent manages this)
-bun run watch &
-
-# After code changes: just reload browser window
-# Run: codeserver reload
-```
-
-**Benefits:**
-- Saves context (no repeated `bun run compile:quiet` calls)
-- Fast iteration - changes rebuild in ~50ms
-- Only need full rebuild (`bun run compile`) if watch gets confused
+Startup records the watcher PID and logs output in the emitted `STATE_DIR`.
+After a source change, verify the latest rebuild in `watch.log`, then hard reload
+the browser with cache bypass. A full compile is only needed when watch mode
+cannot pick up a structural change.
 
 ### Manual Build (fallback)
 
-1. Start code-server: `code-server --auth none .`
-2. Open http://127.0.0.1:8080
+1. Start code-server: `code-server --auth none --bind-addr 127.0.0.1:8080`
+2. Open `http://127.0.0.1:8080/?folder=<url-encoded-absolute-fixture-path>`
 3. Make changes, run `bun run compile:quiet`
-4. Reload window: `codeserver reload`
+4. Hard reload with cache bypass through the browser driver
 5. Test changes
 
 Use manual builds when watch mode isn't running or after major changes (new files, config changes).
@@ -249,22 +264,28 @@ Use manual builds when watch mode isn't running or after major changes (new file
 ## Troubleshooting
 
 ### Testing the wrong checkout (worktrees)
-`readlink ~/.local/share/code-server/extensions/planet57.vscode-beads-dev` must point at the
-checkout you are editing. `ln -sf` on an existing symlink-to-directory writes the new link
-*inside* the old target instead of replacing it — use `ln -sfn` (the start script now does).
+Run `status.sh`. `OWNER:other`, `SYMLINK:other`, or mismatched
+`WORKSPACE_DIR`/URL means the UI is not testing this checkout. Stop the named
+owner instead of repointing the global link beneath a live server.
 
 ### Extension not loading
 - Check symlink exists: `ls -la ~/.local/share/code-server/extensions/`
 - Check `extensions.json` has entry
 - Rebuild: `bun run compile:quiet`
-- Full reload: restart code-server process
+- Confirm workspace trust and activation in `Beads.log`
+- Stop and restart the managed environment if reload cannot recover it
 
-### Port in use
-- Check: `lsof -i :8080`
-- Use different port: `--bind-addr 127.0.0.1:3000`
+### Stale state
+
+`status.sh` reports recorded but invalid PIDs and unresponsive ports as
+`stale`. `stop.sh` never signals stale PID values because they may have been
+reused by unrelated processes. It removes state only after validated processes
+stop; inspect retained logs before manual cleanup.
 
 ## Notes
 
-- `--auth none` safe for localhost only
-- Symlink means no reinstall needed - just rebuild and reload
-- Watch mode (`bun run watch`) + browser reload = fast iteration
+- `--auth none` is safe for localhost only.
+- The managed port is dynamic; always consume `CODE_SERVER_PORT` or
+  `BROWSER_URL` from current state.
+- Source and no-project checks are explicit modes:
+  `--workspace source` and `--workspace no-project`.

@@ -22,7 +22,9 @@ git checkout -b fix/descriptive-name   # or feat/, chore/, etc.
 ```
 Exception: If already on a feature branch and told to continue on it (e.g., multiple beads under one PR).
 
-**Testing workflow with Chrome DevTools MCP**: After building, ask the user to reload code-server and test. Don't automate the reload/test cycle via browser tools - it wastes context.
+**Testing workflow with Chrome DevTools MCP**: Use the project `vscode-server` skill to own the fixture-backed code-server start, reload, browser assertion, and stop cycle. See `docs/code-server-testing.md` for the shared protocol.
+
+**Browser focus**: Preserve the user's desktop focus during Chrome DevTools MCP automation. ALWAYS create pages with `background: true` and select them with `bringToFront: false`. NEVER foreground the browser unless the user explicitly asks to see it or an unavoidable interaction requires their attention; explain that requirement before changing focus.
 
 **code-server for testing**: See `docs/code-server-testing.md` - living document for agent reference. Keep it updated with working config and lessons learned.
 
