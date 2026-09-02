@@ -54,10 +54,11 @@ matching `~/.local/share/code-server/logs/<session>/exthost*/planet57.vscode-bea
 Fresh code-server sessions can start in **Restricted Mode**. The extension will
 not activate and the activity icon stays hidden. An agent may grant trust
 without asking only when the loaded folder exactly matches `WORKSPACE_DIR` and
-is either the current worktree or a fixture created by this repository's
-fixture script during the current workflow. Stop and ask before trusting any
-other folder. After trust changes reload the window, then confirm `Activating`
-and `Extension activated` in the current `Beads.log`.
+is a fixture created by this repository's fixture script during the current
+workflow. Trusting the current worktree requires explicit approval for that
+checkout unless the user already granted it for this task. Stop and ask before
+trusting any other folder. After trust changes reload the window, then confirm
+`Activating` and `Extension activated` in the current `Beads.log`.
 
 ## Test Fixtures
 
@@ -279,8 +280,9 @@ owner instead of repointing the global link beneath a live server.
 
 `status.sh` reports recorded but invalid PIDs and unresponsive ports as
 `stale`. `stop.sh` never signals stale PID values because they may have been
-reused by unrelated processes. It removes state only after validated processes
-stop; inspect retained logs before manual cleanup.
+reused by unrelated processes. After reporting `stale-not-stopped`, it removes
+the state directory as long as every validated process stopped successfully.
+Inspect logs before running `stop.sh` when diagnosing stale state.
 
 ## Notes
 

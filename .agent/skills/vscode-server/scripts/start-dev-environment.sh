@@ -81,10 +81,9 @@ fi
 
 case "$workspace_mode" in
   fixture)
-    fixture_args=()
-    [ "$fixture_mode" = "server" ] && fixture_args+=(--server)
-    fixture_output=$("$script_dir/make-test-fixture.sh" "${fixture_args[@]}" \
-      "$project_dir/tmp/bd-test-fixture") || {
+    fixture_args=("$project_dir/tmp/bd-test-fixture")
+    [ "$fixture_mode" = "server" ] && fixture_args=(--server "${fixture_args[@]}")
+    fixture_output=$("$script_dir/make-test-fixture.sh" "${fixture_args[@]}") || {
         printf '%s\n' "$fixture_output"
         exit 1
       }

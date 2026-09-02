@@ -8,16 +8,18 @@ server fixture options only when explicitly requested.
    for it to exit. It writes the same output to the printed `START_LOG` location
    (`STATE_DIR/start.log`), so runtimes that background the command can poll that
    file without a task-output API.
-2. Require `BUILD:success`, validated watcher/server PIDs, `PORT:ready` from the
-   status action, `FIXTURE_MODE:embedded`, `FIXTURE_BEADS:23`, a matching
-   `SYMLINK_TARGET`, and `READY:true`. Stop on any `ERROR` marker.
+2. Run `.agent/skills/vscode-server/scripts/status.sh`, then require
+   `BUILD:success`, validated watcher/server PIDs, `PORT:ready`,
+   `FIXTURE_MODE:embedded`, `FIXTURE_BEADS:23`, a matching `SYMLINK_TARGET`, and
+   `READY:true`. Stop on any `ERROR` marker.
 3. Open the emitted `BROWSER_URL` in a background page with the available Chrome
    DevTools browser driver, then hard reload with cache bypass. Do not request
    `bringToFront` unless the user asks to see the browser. Never open the bare
    server root.
 4. Verify the loaded URL/workspace is the emitted `WORKSPACE_DIR`. If Restricted
-   Mode is shown, trust only the generated fixture or current repository; stop
-   and ask for any other folder.
+   Mode is shown, trust a generated fixture without asking. Require explicit
+   approval for the current repository unless the user already granted it for
+   this task; stop and ask for any other folder.
 5. Read the current extension-host `Beads.log` and confirm `Activating` followed
    by `Extension activated` for this code-server session.
 6. Open the Beads activity view. Assert Dashboard and Issues contain fixture

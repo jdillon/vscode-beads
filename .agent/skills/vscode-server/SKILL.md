@@ -30,12 +30,8 @@ Read the file, then follow its instructions.
 ## Temp Directory
 
 Temp files are stored in `/tmp/vscode-dev-<hash>/`, where the hash is derived
-from the canonical project path. The scripts print the exact `STATE_DIR`.
-
-```bash
-PROJECT_HASH=$(echo "$(pwd)" | md5sum | cut -c1-8)
-TMP_DIR="/tmp/vscode-dev-${PROJECT_HASH}"
-```
+from the canonical project path. Consume the exact `STATE_DIR` printed by the
+scripts instead of recomputing it.
 
 Important files:
 
@@ -85,6 +81,8 @@ messages, and capture screenshots.
 
 ## Workspace Trust
 
-Trust only the generated fixture or current repository without asking. Stop and
-ask before trusting any other folder. Extension-host logs, not the browser
-console, prove activation; see `docs/code-server-testing.md`.
+Trust only a fixture generated during the current workflow without asking. For
+the current repository, require explicit approval to trust that exact checkout
+unless the user already granted it for this task. Stop and ask before trusting
+any other folder. Extension-host logs, not the browser console, prove
+activation; see `docs/code-server-testing.md`.

@@ -70,3 +70,4 @@ fi
 [ -f "$tmp_dir/workspace-dir" ] && printf 'WORKSPACE_DIR:%s\n' "$(<"$tmp_dir/workspace-dir")"
 [ -f "$tmp_dir/browser-url" ] && printf 'BROWSER_URL:%s\n' "$(<"$tmp_dir/browser-url")"
 [ -f "$tmp_dir/start.log" ] && printf 'START_LOG:%s\n' "$tmp_dir/start.log"
+exit 0
