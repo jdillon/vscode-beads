@@ -18,14 +18,12 @@ Manage code-server development environment for testing VS Code extensions.
 
 Read the file, then follow its instructions.
 
-## Commands
+## Invocation
 
-| Command                              | Action |
-| ------------------------------------ | ------ |
-| `/vscode-server:start`               | start  |
-| `/vscode-server:stop`                | stop   |
-| `/vscode-server:reload`              | reload |
-| `/vscode-server:status`              | status |
+Invoke the `vscode-server` skill with one action: `start`, `stop`, `reload`, or
+`status`. Claude uses `/vscode-server <action>`; Codex uses
+`$vscode-server <action>`. Other agents should invoke the skill through their
+native skill interface.
 
 ## Temp Directory
 
@@ -50,8 +48,8 @@ Important files:
 - `scripts/make-test-fixture.sh` - Build a throwaway beads project covering every
   status and issue type
 
-The `.agent` skill and scripts are canonical. `.claude/skills` is a compatibility
-link; do not create an OpenCode-specific copy.
+The `.agents` skill and scripts are canonical. `.claude/skills` is a
+compatibility link; do not create provider-specific copies.
 
 ## Test Protocol
 
@@ -71,13 +69,10 @@ it matches the worktree under test.
 ## DevTools Note
 
 Chrome allows only one DevTools client per target. Do not open manual DevTools
-while MCP controls its isolated Chrome. ALWAYS open new pages with
-`background: true` and select pages with `bringToFront: false`. NEVER foreground
-the browser unless the user explicitly asks to see it or an unavoidable
-interaction requires their attention; explain that requirement first. Use
-browser capabilities, not an agent-specific tool spelling: open URL, hard
-reload with cache bypass, inspect DOM/accessibility state, click, read console
-messages, and capture screenshots.
+while MCP controls its isolated Chrome. Follow
+`.agents/rules/browser-automation.md`. Use browser capabilities, not an
+agent-specific tool spelling: open URL, hard reload with cache bypass, inspect
+DOM/accessibility state, click, read console messages, and capture screenshots.
 
 ## Workspace Trust
 

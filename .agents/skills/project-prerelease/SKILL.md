@@ -1,7 +1,6 @@
 ---
+name: project-prerelease
 description: Audit changelog and draft entries for upcoming release
-allowed-tools: Bash(git:*), Bash(jq:*), Read, Edit, Grep, AskUserQuestion, mcp__plugin_beads_beads__list, mcp__plugin_beads_beads__show
-model: haiku
 ---
 
 Audit the changelog for missing entries since the last release and draft updates.
@@ -42,9 +41,9 @@ For EACH commit, decide: **INCLUDE** or **SKIP**?
 
 **SKIP if ANY of these are true:**
 - Commit type is: `docs:`, `ci:`, `test:`, `chore:`, `bd:`, `bd sync:`, `refactor:`
-- The change is in: `.agent/`, `.claude/`, `.github/`, `scripts/`, `docs/`, `.beads/`
+- The change is in: `.agents/`, `.claude/`, `.codex/`, `.github/`, `scripts/`, `docs/`, `.beads/`
 - The bead ID is already in CHANGELOG.md
-- The change is infrastructure/tooling (build scripts, CI workflows, slash commands)
+- The change is infrastructure/tooling (build scripts, CI workflows, agent skills)
 
 **Examples:**
 
@@ -53,15 +52,16 @@ For EACH commit, decide: **INCLUDE** or **SKIP**?
 | `feat(ui): add dark mode toggle` | INCLUDE | User-facing UI feature |
 | `fix: button not clickable` | INCLUDE | User-facing bug fix |
 | `docs: update README` | SKIP | Documentation only |
-| `feat: add /release command` | SKIP | Project tooling in .agent/ |
+| `feat: add release skill` | SKIP | Project tooling in .agents/ |
 | `chore: update dependencies` | SKIP | Not user-facing |
 | `fix(ci): repair workflow` | SKIP | CI/infrastructure |
 
 ### Step 4: Get bead details
 
-Use `mcp__plugin_beads_beads__list` with `status=closed` and `limit=20` to get recently closed beads.
+Run `bd list --status closed --limit 20 --json` to get recently closed beads.
 
-For each bead ID found in commits (from Step 2), use `mcp__plugin_beads_beads__show` to get the title and type.
+For each bead ID found in commits, run `bd show <id> --json` to get its title
+and type.
 
 **Hints for non-user-facing beads** (use as signals, not absolute rules):
 - Labels like `infra`, `dx`, `ci`, `docs` suggest internal work
@@ -122,15 +122,8 @@ Show this information clearly:
 
 ### Step 9: Ask for changelog confirmation
 
-**IMPORTANT:** You MUST use the `AskUserQuestion` tool here. Do not proceed without user confirmation.
-
-Use `AskUserQuestion` tool with:
-- Question: "Update CHANGELOG.md with these entries?"
-- Header: "Changelog"
-- Options:
-  - Label: "Yes, update" / Description: "Merge entries into [Unreleased] section"
-  - Label: "No, skip" / Description: "Skip changelog updates"
-- multiSelect: false
+Ask the user whether to update `CHANGELOG.md` with the proposed entries. Do not
+proceed without confirmation.
 
 ### Step 10: Update CHANGELOG.md (only if user said yes)
 
@@ -138,26 +131,21 @@ Use `AskUserQuestion` tool with:
 2. Find `## [Unreleased]`
 3. Insert new entries AFTER `## [Unreleased]` and BEFORE the next `## [x.y.z]` section
 4. If `[Unreleased]` already has entries, merge (don't duplicate)
-5. Use the Edit tool to make the change
+5. Edit the file without changing unrelated content
 6. Do NOT commit
 7. Tell user: "CHANGELOG.md updated. Review with `git diff CHANGELOG.md`"
 
 ### Step 11: Ask for README confirmation (only if updates needed)
 
-If README updates were proposed in Step 7, use `AskUserQuestion` tool with:
-- Question: "Update README.md with the proposed changes?"
-- Header: "README"
-- Options:
-  - Label: "Yes, update" / Description: "Apply the proposed README changes"
-  - Label: "No, skip" / Description: "Skip README updates"
-- multiSelect: false
+If README updates were proposed in Step 7, ask the user whether to apply them.
+Do not proceed without confirmation.
 
 If README is up to date, skip this step.
 
 ### Step 12: Update README.md (only if user said yes)
 
 1. Apply the proposed changes from Step 7
-2. Use the Edit tool to make the changes
+2. Edit the file without changing unrelated content
 3. Do NOT commit
 4. Tell user: "README.md updated. Review with `git diff README.md`"
 

@@ -74,7 +74,7 @@ symlink_path="$extensions_dir/$extension_id"
 current_link=$(readlink "$symlink_path" 2>/dev/null || true)
 if [ -n "$current_link" ] && [ "$current_link" != "$project_dir" ] && \
     project_has_live_environment "$current_link"; then
-  printf 'ERROR:extension symlink is owned by live environment %s; run %s/.agent/skills/vscode-server/scripts/stop.sh first\n' \
+  printf 'ERROR:extension symlink is owned by live environment %s; run %s/.agents/skills/vscode-server/scripts/stop.sh first\n' \
     "$current_link" "$current_link"
   exit 1
 fi

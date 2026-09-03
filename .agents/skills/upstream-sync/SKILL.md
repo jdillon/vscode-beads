@@ -1,3 +1,8 @@
+---
+name: upstream-sync
+description: Check upstream Beads changes and write this project's sync report.
+---
+
 # Upstream Beads Sync Check
 
 Check the upstream beads repo for changes that affect vscode-beads.

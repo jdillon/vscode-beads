@@ -7,8 +7,8 @@
 ## Quick Start
 
 ```bash
-.agent/skills/vscode-server/scripts/start-dev-environment.sh
-.agent/skills/vscode-server/scripts/status.sh
+.agents/skills/vscode-server/scripts/start-dev-environment.sh
+.agents/skills/vscode-server/scripts/status.sh
 ```
 
 Startup builds the extension, starts or reuses this worktree's watcher and
@@ -19,17 +19,15 @@ the watcher to rebuild and use a cache-bypassing browser reload.
 
 ## Browser Automation
 
-The project pins Chrome DevTools MCP in both `.mcp.json` and `opencode.json`.
-It launches an isolated Chrome profile, not the user's main Chrome. To avoid
-interrupting the user's work, agents must always open pages with
-`background: true` and select pages with `bringToFront: false`. Never foreground
-the browser unless the user explicitly asks to see it or an unavoidable
-interaction requires their attention; explain that requirement first. Ordinary
-navigation, clicks, snapshots, screenshots, and console reads do not request
-foreground activation. Chrome may still focus its window when the visible
-browser process first launches because the MCP has no server-wide "visible but
-never activate" option. OpenCode loads project MCP configuration at process
-startup, so config changes require a fresh session.
+The project pins Chrome DevTools MCP through the provider adapters `.mcp.json`,
+`opencode.json`, and `.codex/config.toml`. Follow
+`.agents/rules/browser-automation.md`. The MCP launches an isolated Chrome
+profile, not the user's main Chrome. Chrome may still focus its window when the
+visible browser process first launches because the MCP has no server-wide
+"visible but never activate" option. OpenCode and Codex load project MCP
+configuration at process startup, so config changes require a fresh session.
+Codex also requires the project to be trusted before loading
+`.codex/config.toml`.
 
 | Capability | Chrome DevTools MCP | claude-in-chrome fallback |
 |---|---|---|
@@ -70,7 +68,7 @@ feature is broken" when it is really the fixture that is missing.
 ### Generated fixture (preferred)
 
 ```bash
-.agent/skills/vscode-server/scripts/make-test-fixture.sh [--server] [target-dir]
+.agents/skills/vscode-server/scripts/make-test-fixture.sh [--server] [target-dir]
 # default target: tmp/bd-test-fixture
 # prints FIXTURE_DIR:<path>, FIXTURE_MODE:<embedded|server>, FIXTURE_BEADS:<count>
 ```
@@ -95,8 +93,8 @@ diverged before (#79, F2/F4 of the bd 1.1.2 audit), so a release check needs
 both:
 
 ```bash
-.agent/skills/vscode-server/scripts/make-test-fixture.sh tmp/bd-release-fixture
-.agent/skills/vscode-server/scripts/make-test-fixture.sh --server tmp/bd-release-fixture-server
+.agents/skills/vscode-server/scripts/make-test-fixture.sh tmp/bd-release-fixture
+.agents/skills/vscode-server/scripts/make-test-fixture.sh --server tmp/bd-release-fixture-server
 ```
 
 Stop a server fixture with `bd dolt stop` from its directory when done; re-running
@@ -129,7 +127,7 @@ Against both fixtures, checking Dashboard, Issues and Details:
 ### Demo fixture (screenshots)
 
 ```bash
-.agent/skills/vscode-server/scripts/make-demo-fixture.sh [--server] [target-dir]
+.agents/skills/vscode-server/scripts/make-demo-fixture.sh [--server] [target-dir]
 # default target: tmp/bd-demo-fixture
 ```
 
@@ -232,9 +230,9 @@ cert: false
 
 | Action | Command |
 |--------|---------|
-| Managed start | `.agent/skills/vscode-server/scripts/start-dev-environment.sh` |
-| Managed status | `.agent/skills/vscode-server/scripts/status.sh` |
-| Managed stop | `.agent/skills/vscode-server/scripts/stop.sh` |
+| Managed start | `.agents/skills/vscode-server/scripts/start-dev-environment.sh` |
+| Managed status | `.agents/skills/vscode-server/scripts/status.sh` |
+| Managed stop | `.agents/skills/vscode-server/scripts/stop.sh` |
 | Manual start on 8080 | `code-server --auth none --bind-addr 127.0.0.1:8080` |
 | Build extension | `bun run compile:quiet` |
 | Watch mode | `bun run watch` |

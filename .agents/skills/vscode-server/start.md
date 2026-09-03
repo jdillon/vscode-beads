@@ -4,11 +4,11 @@ Start the current worktree's code-server environment and complete fixture-backed
 browser readiness. Default to `--workspace fixture`; pass source, no-project, or
 server fixture options only when explicitly requested.
 
-1. Run `.agent/skills/vscode-server/scripts/start-dev-environment.sh` and wait
+1. Run `.agents/skills/vscode-server/scripts/start-dev-environment.sh` and wait
    for it to exit. It writes the same output to the printed `START_LOG` location
    (`STATE_DIR/start.log`), so runtimes that background the command can poll that
    file without a task-output API.
-2. Run `.agent/skills/vscode-server/scripts/status.sh`, then require
+2. Run `.agents/skills/vscode-server/scripts/status.sh`, then require
    `BUILD:success`, validated watcher/server PIDs, `PORT:ready`, a matching
    `WORKSPACE_MODE` and `SYMLINK_TARGET`, and `READY:true`. Stop on any `ERROR`
    marker.

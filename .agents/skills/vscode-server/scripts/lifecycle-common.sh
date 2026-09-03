@@ -85,7 +85,7 @@ acquire_owner() {
     return 0
   fi
   if [ -n "$owner" ] && project_has_live_environment "$owner"; then
-    printf 'ERROR:development environment is owned by %s; run %s/.agent/skills/vscode-server/scripts/stop.sh first\n' \
+    printf 'ERROR:development environment is owned by %s; run %s/.agents/skills/vscode-server/scripts/stop.sh first\n' \
       "$owner" "$owner"
     return 1
   fi

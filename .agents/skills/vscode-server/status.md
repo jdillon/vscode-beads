@@ -6,7 +6,7 @@ browser URL without starting or adopting anything.
 Run the status script:
 
 ```bash
-.agent/skills/vscode-server/scripts/status.sh
+.agents/skills/vscode-server/scripts/status.sh
 ```
 
 Treat `stale`, `other`, `missing`, or a non-ready port as not ready. Never fall

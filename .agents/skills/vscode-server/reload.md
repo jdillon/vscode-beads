@@ -1,6 +1,6 @@
 # Reload Action
 
-1. Run `.agent/skills/vscode-server/scripts/status.sh` and require a validated
+1. Run `.agents/skills/vscode-server/scripts/status.sh` and require a validated
    watcher, code-server process, ready port, matching symlink, and explicit
    `BROWSER_URL`.
 2. Check `watch.log` for a successful rebuild after the latest change.

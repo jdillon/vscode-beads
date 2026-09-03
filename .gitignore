@@ -14,6 +14,7 @@ tmp/
 .beads/
 
 # Local environment notes (not committed)
+AGENTS.local.md
 CLAUDE.local.md
 
 # OpenCode's generated plugin state remains local. Project MCP configuration is
