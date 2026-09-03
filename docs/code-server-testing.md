@@ -168,18 +168,21 @@ warns about the unresolved `beads.pathToBd` and the failed `bd where` probe.
 When testing with code-server, agents should:
 
 1. Run `start-dev-environment.sh`; default startup owns fixture creation.
-2. Require `BUILD:success`, `FIXTURE_MODE:embedded`, `FIXTURE_BEADS:23`,
-   `READY:true`, and matching owner/symlink/worktree state.
+2. Require `BUILD:success`, `READY:true`, the selected `WORKSPACE_MODE`, and
+   matching owner/symlink/worktree state.
 3. Run `status.sh` and require validated watcher/server PIDs and `PORT:ready`.
-4. Open the exact emitted `BROWSER_URL` in the isolated MCP Chrome.
-5. Confirm the loaded URL/workspace is the emitted `WORKSPACE_DIR`.
-6. Resolve trust only under the safe-folder policy above.
-7. Confirm extension activation in the current `Beads.log`.
-8. Open Beads and assert populated Dashboard and Issues state, then capture a
-   screenshot as readiness evidence.
-9. After edits, wait for successful watcher output and hard reload with cache
-   bypass. Check both browser console messages and `Beads.log` on failures.
-10. Run `stop.sh` when done; it never stops unrecorded or foreign processes.
+4. For fixture mode, require the selected `FIXTURE_MODE` and
+   `FIXTURE_BEADS:23`. Source and no-project modes do not emit fixture markers.
+5. Open the exact emitted `BROWSER_URL` in the isolated MCP Chrome.
+6. Confirm the loaded URL/workspace is the emitted `WORKSPACE_DIR`.
+7. Resolve trust only under the safe-folder policy above.
+8. Confirm extension activation in the current `Beads.log`.
+9. Open Beads and capture a screenshot as readiness evidence. Fixture modes
+   require populated Dashboard and Issues state; no-project mode requires the
+   "No Beads project found" state; source mode uses task-specific assertions.
+10. After edits, wait for successful watcher output and hard reload with cache
+    bypass. Check both browser console messages and `Beads.log` on failures.
+11. Run `stop.sh` when done; it never stops unrecorded or foreign processes.
 
 Before trusting any UI result, confirm the change is actually in the running
 `dist` build. A UI that looks unchanged is more often a stale or mispointed
