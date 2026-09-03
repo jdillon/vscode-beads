@@ -4,6 +4,7 @@ dist/
 .vscode-test/
 *.log
 .DS_Store
+.watchman-cookie-*
 tmp/
 
 # Local dev artifacts (code-server, openvscode-server)
