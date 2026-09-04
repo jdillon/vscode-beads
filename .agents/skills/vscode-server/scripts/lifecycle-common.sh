@@ -48,17 +48,54 @@ recorded_process_is_valid() {
   local pid_file=$1
   local kind=$2
   local expected_dir=$3
+  recorded_process_identity "$pid_file" "$kind" "$expected_dir" >/dev/null
+}
+
+# Darwin has no pidfd. Pair the PID with immutable process metadata so a
+# recycled numeric PID never passes a later signal gate.
+process_identity() {
+  local pid=$1
+  local identity
+
+  [[ "$pid" =~ ^[0-9]+$ ]] || return 1
+  identity=$(ps -p "$pid" -o lstart= -o command= 2>/dev/null) || return 1
+  [ -n "$identity" ] || return 1
+  printf '%s\t%s\n' "$pid" "$identity"
+}
+
+process_identity_is_current() {
+  local identity=$1
   local pid
+  local expected
+  local current
+
+  [[ "$identity" == *$'\t'* ]] || return 1
+  pid=${identity%%$'\t'*}
+  expected=${identity#*$'\t'}
+  current=$(ps -p "$pid" -o lstart= -o command= 2>/dev/null) || return 1
+  [[ "$current" == "$expected" ]]
+}
+
+recorded_process_identity() {
+  local pid_file=$1
+  local kind=$2
+  local expected_dir=$3
+  local pid
+  local identity
 
   [ -f "$pid_file" ] || return 1
   IFS= read -r pid < "$pid_file"
-  process_is_valid "$pid" "$kind" "$expected_dir"
+  identity=$(process_identity "$pid") || return 1
+  process_is_valid "$pid" "$kind" "$expected_dir" || return 1
+  process_identity_is_current "$identity" || return 1
+  printf '%s\n' "$identity"
 }
 
 port_is_ready() {
   local port=$1
   [[ "$port" =~ ^[0-9]+$ ]] || return 1
   curl --fail --silent --show-error --output /dev/null --max-time 2 \
+    --noproxy '*' \
     "http://127.0.0.1:${port}/"
 }
 
@@ -98,33 +135,68 @@ acquire_owner() {
   printf '%s\n' "$expected_dir" > "$owner_dir/project"
 }
 
-collect_process_tree() {
-  local pid=$1
+collect_descendant_identities() {
+  local parent_identity=$1
+  local pid
   local child
+  local child_identity
+  local child_parent
+
+  [[ "$parent_identity" == *$'\t'* ]] || return 1
+  pid=${parent_identity%%$'\t'*}
+  process_identity_is_current "$parent_identity" || return 0
   while IFS= read -r child; do
     [ -n "$child" ] || continue
-    collect_process_tree "$child"
+    child_identity=$(process_identity "$child") || continue
+    child_parent=$(ps -p "$child" -o ppid= 2>/dev/null) || continue
+    [[ "$child_parent" =~ ^[[:space:]]*$pid[[:space:]]*$ ]] || continue
+    process_identity_is_current "$parent_identity" || continue
+    collect_descendant_identities "$child_identity"
+    printf '%s\n' "$child_identity"
   done < <(pgrep -P "$pid" 2>/dev/null || true)
-  printf '%s\n' "$pid"
+}
+
+signal_process_identity() {
+  local identity=$1
+  local signal=$2
+  local pid
+
+  process_identity_is_current "$identity" || return 0
+  pid=${identity%%$'\t'*}
+  kill "-$signal" "$pid" 2>/dev/null
 }
 
 stop_process_tree() {
-  local pid=$1
-  local pids
-  local candidate
+  local root_identity=$1
+  local pid
+  local identities
+  local identity
   local attempt
+  local signal_failed=false
 
-  pids=$(collect_process_tree "$pid")
-  # All candidates are descendants of the validated root at collection time.
-  kill -TERM $pids 2>/dev/null || true
+  [[ "$root_identity" == *$'\t'* ]] || return 1
+  pid=${root_identity%%$'\t'*}
+  process_identity_is_current "$root_identity" || return 0
+  identities=$(collect_descendant_identities "$root_identity")
+  identities="${identities:+${identities}$'\n'}${root_identity}"
+
+  while IFS= read -r identity; do
+    [ -n "$identity" ] || continue
+    signal_process_identity "$identity" TERM || signal_failed=true
+  done <<< "$identities"
+  [ "$signal_failed" = false ] || return 1
+
   for attempt in {1..20}; do
-    if ! kill -0 "$pid" 2>/dev/null; then
+    if ! process_identity_is_current "$root_identity"; then
       return 0
     fi
     sleep 0.25
   done
-  for candidate in $pids; do
-    kill -KILL "$candidate" 2>/dev/null || true
-  done
-  ! kill -0 "$pid" 2>/dev/null
+
+  while IFS= read -r identity; do
+    [ -n "$identity" ] || continue
+    signal_process_identity "$identity" KILL || signal_failed=true
+  done <<< "$identities"
+  [ "$signal_failed" = false ] || return 1
+  ! process_identity_is_current "$root_identity"
 }

@@ -18,6 +18,13 @@ git describe --tags --abbrev=0 2>/dev/null || echo "no tags yet"
 
 Save the result (e.g., `v0.2.0`) - you'll use it in the next commands.
 
+Get the tag timestamp in RFC3339 form:
+```bash
+git log -1 --format=%cI <TAG>
+```
+
+Save this as `<TAG_DATE>` for the closed-bead query in Step 4.
+
 ### Step 2: Get commits and bead IDs since the tag
 
 Run these commands, replacing `<TAG>` with the actual tag from Step 1:
@@ -58,7 +65,12 @@ For EACH commit, decide: **INCLUDE** or **SKIP**?
 
 ### Step 4: Get bead details
 
-Run `bd list --status closed --limit 20 --json` to get recently closed beads.
+Run the following command, replacing `<TAG_DATE>` with the timestamp from Step
+1, to get every bead closed since the release tag:
+
+```bash
+bd list --status closed --closed-after <TAG_DATE> --limit 0 --json
+```
 
 For each bead ID found in commits, run `bd show <id> --json` to get its title
 and type.

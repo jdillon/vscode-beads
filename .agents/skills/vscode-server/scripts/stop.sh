@@ -16,14 +16,13 @@ stop_recorded() {
   local kind=$1
   local pid_file=$2
   local label=$3
-  local pid
+  local identity
 
-  if recorded_process_is_valid "$pid_file" "$kind" "$project_dir"; then
-    IFS= read -r pid < "$pid_file"
-    if stop_process_tree "$pid"; then
+  if identity=$(recorded_process_identity "$pid_file" "$kind" "$project_dir"); then
+    if stop_process_tree "$identity"; then
       printf '%s:stopped\n' "$label"
     else
-      printf 'ERROR:failed to stop %s PID %s\n' "$label" "$pid"
+      printf 'ERROR:failed to stop %s PID %s\n' "$label" "${identity%%$'\t'*}"
       stop_failed=true
     fi
   elif [ -f "$pid_file" ]; then

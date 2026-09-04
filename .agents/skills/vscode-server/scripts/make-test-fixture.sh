@@ -34,6 +34,10 @@
 
 set -euo pipefail
 
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=fixture-common.sh
+source "$script_dir/fixture-common.sh"
+project_dir=$(git -C "$script_dir" rev-parse --show-toplevel)
 mode="embedded"
 target_dir=""
 
@@ -45,15 +49,8 @@ while [ $# -gt 0 ]; do
     *) target_dir="$1"; shift ;;
   esac
 done
-target_dir="${target_dir:-tmp/bd-test-fixture}"
+target_dir=$(safe_fixture_target "${target_dir:-tmp/bd-test-fixture}" "$project_dir")
 prefix="fixture"
-
-# Everything below works on the absolute path, so a relative target cannot skip
-# the safety checks by resolving somewhere else later.
-case "$target_dir" in
-  /*) target_dir="$target_dir" ;;
-  *)  target_dir="$PWD/$target_dir" ;;
-esac
 
 for tool in bd jq; do
   if ! command -v "$tool" >/dev/null 2>&1; then
@@ -62,20 +59,6 @@ for tool in bd jq; do
   fi
 done
 
-# This script deletes its target, so constrain what it will accept: a typo or an
-# empty variable must not be able to take out a real directory.
-case "$target_dir" in
-  /tmp/*|/private/tmp/*|"${TMPDIR:-/nonexistent}"*) ;;
-  */tmp/*) ;;  # repo-local gitignored scratch, e.g. <repo>/tmp/bd-test-fixture
-  *) echo "ERROR:target must live under a tmp directory; got '$target_dir'"; exit 1 ;;
-esac
-case "$target_dir" in
-  *..*) echo "ERROR:target must not contain '..'; got '$target_dir'"; exit 1 ;;
-esac
-if [ "${#target_dir}" -lt 12 ]; then
-  echo "ERROR:target path suspiciously short, refusing to delete '$target_dir'"
-  exit 1
-fi
 # Only reuse a path that is absent or already a fixture this script created.
 if [ -e "$target_dir" ] && [ ! -d "$target_dir/.beads" ]; then
   echo "ERROR:'$target_dir' exists and is not a bd fixture; refusing to delete it"
