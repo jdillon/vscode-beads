@@ -39,7 +39,7 @@ safe_fixture_target() {
 
   case "$requested" in
     /*) absolute=$requested ;;
-    *) absolute="$PWD/$requested" ;;
+    *) absolute="$project_dir/$requested" ;;
   esac
 
   physical_target=$(physical_path_allowing_missing_tail "$absolute") || {

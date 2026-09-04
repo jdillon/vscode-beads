@@ -13,24 +13,34 @@ Follow these steps exactly in order.
 
 Run this command:
 ```bash
-git describe --tags --abbrev=0 2>/dev/null || echo "no tags yet"
+git describe --tags --abbrev=0 2>/dev/null || true
 ```
 
-Save the result (e.g., `v0.2.0`) - you'll use it in the next commands.
+If it prints a tag, save the result (e.g., `v0.2.0`) as `<TAG>` and get its
+timestamp in RFC3339 form:
 
-Get the tag timestamp in RFC3339 form:
 ```bash
 git log -1 --format=%cI <TAG>
 ```
 
 Save this as `<TAG_DATE>` for the closed-bead query in Step 4.
 
+If it prints nothing, this is the first release. Do not set `<TAG>` or
+`<TAG_DATE>`; use the first-release commands below instead.
+
 ### Step 2: Get commits and bead IDs since the tag
 
-Run these commands, replacing `<TAG>` with the actual tag from Step 1:
+If `<TAG>` exists, run these commands, replacing `<TAG>` with the actual tag
+from Step 1:
 ```bash
 git log <TAG>..HEAD --oneline --no-merges
 git log <TAG>..HEAD --format="%B" --no-merges | grep -oE "vsbeads-[a-z0-9]+" | sort -u
+```
+
+For a first release with no tags, run:
+```bash
+git log HEAD --oneline --no-merges
+git log HEAD --format="%B" --no-merges | grep -oE "vsbeads-[a-z0-9]+" | sort -u
 ```
 
 **IMPORTANT:** Do NOT use nested `$(...)` command substitution - it causes zsh parse errors.
@@ -65,11 +75,17 @@ For EACH commit, decide: **INCLUDE** or **SKIP**?
 
 ### Step 4: Get bead details
 
-Run the following command, replacing `<TAG_DATE>` with the timestamp from Step
-1, to get every bead closed since the release tag:
+If `<TAG_DATE>` exists, run the following command to get every bead closed
+since the release tag:
 
 ```bash
 bd list --status closed --closed-after <TAG_DATE> --limit 0 --json
+```
+
+For a first release with no tags, get every closed bead:
+
+```bash
+bd list --status closed --limit 0 --json
 ```
 
 For each bead ID found in commits, run `bd show <id> --json` to get its title
@@ -83,7 +99,7 @@ and type.
 ### Step 5: Check for gaps
 
 Compare:
-- Beads closed since the tag date
+- Beads closed since the tag date, or every closed bead for a first release
 - Beads referenced in commits
 
 If a user-facing bead was closed but NOT in any commit, flag it as a potential gap.
