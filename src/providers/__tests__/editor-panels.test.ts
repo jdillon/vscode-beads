@@ -22,6 +22,7 @@ import { Logger } from "../../utils/logger";
 interface Harness<T> {
   provider: T;
   posted: ExtensionToWebviewMessage[];
+  notifyBackendError: jest.Mock;
   /** Registers a resolved sidebar view and returns its webview. */
   attachSidebar: () => FakeWebview;
   setActiveProjectId: (id: string | null) => void;
@@ -44,12 +45,14 @@ function harness<T>(
   client: Partial<BeadsBackend> | null = null
 ): Harness<T> {
   const posted: ExtensionToWebviewMessage[] = [];
+  const notifyBackendError = jest.fn();
   let projectId = activeProjectId;
 
   const projectManager = {
     getClient: () => client,
     getActiveProject: () => (projectId ? { id: projectId, name: projectId } : null),
     getProjects: () => [],
+    notifyBackendError,
   } as unknown as BeadsProjectManager;
 
   const provider = new Provider({} as vscode.Uri, projectManager, makeLogger());
@@ -73,6 +76,7 @@ function harness<T>(
   return {
     provider,
     posted,
+    notifyBackendError,
     attachSidebar,
     setActiveProjectId: (id) => {
       projectId = id;
@@ -294,6 +298,38 @@ describe("project switching", () => {
     expect(createdPanels[0].title).toBe("Beads Details");
     expect(spy).toHaveBeenCalledWith("setContext", "beads.hasSelectedBead", false);
     expect(seen).toContainEqual({ type: "setSelectedBeadId", beadId: null });
+  });
+
+  it("suppresses a request failure after the active project changes", async () => {
+    let rejectShow!: (error: Error) => void;
+    const show = jest.fn().mockReturnValue(
+      new Promise<BeadsIssue>((_resolve, reject) => {
+        rejectShow = reject;
+      })
+    );
+    const listComments = jest.fn().mockResolvedValue([]);
+    const { provider, setActiveProjectId, notifyBackendError } = harness(
+      BeadDetailsViewProvider,
+      "project-a",
+      { show, listComments }
+    );
+    provider.showInEditor();
+    const seen: ExtensionToWebviewMessage[] = [];
+    createdPanels[0].webview.postMessage = (message) =>
+      seen.push(message as ExtensionToWebviewMessage);
+
+    const load = provider.showBead("bd-1", { surface: "editor" });
+    expect(show).toHaveBeenCalledWith("bd-1");
+
+    // ProjectManager updates its active project before it emits the change
+    // event, leaving a window where this request must reject itself.
+    setActiveProjectId("project-b");
+    seen.length = 0;
+    rejectShow(new Error("old project failed"));
+    await load;
+
+    expect(seen).toEqual([]);
+    expect(notifyBackendError).not.toHaveBeenCalled();
   });
 });
 

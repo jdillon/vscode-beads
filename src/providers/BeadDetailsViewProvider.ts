@@ -165,7 +165,9 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
     const thisRequest = target ? this.loadSequence : ++this.loadSequence;
     const isCurrentRequest = () =>
       thisRequest === this.loadSequence &&
-      (!target || this.targetLoadTokens.get(target) === targetLoadToken);
+      (!target || this.targetLoadTokens.get(target) === targetLoadToken) &&
+      (this.projectManager.getActiveProject()?.id ?? null) === activeProjectId &&
+      this.currentBeadId === beadId;
 
     const client = this.projectManager.getClient();
 
@@ -196,11 +198,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
       ]);
 
       // Check if a newer request has started - if so, discard this stale response
-      if (
-        !isCurrentRequest() ||
-        (this.projectManager.getActiveProject()?.id ?? null) !== activeProjectId ||
-        this.currentBeadId !== beadId
-      ) {
+      if (!isCurrentRequest()) {
         this.log.debug(`Discarding stale response (request ${thisRequest}, current ${this.loadSequence})`);
         return;
       }
@@ -232,7 +230,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
       }
     } catch (err) {
       // Only handle error if this is still the current request
-      if (!isCurrentRequest() || this.currentBeadId !== beadId) {
+      if (!isCurrentRequest()) {
         return;
       }
       this.setError(String(err), target);
