@@ -35,7 +35,7 @@ git commit -m "fix: description of fixes
 - Fix 1
 - Fix 2
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+🤖 Generated with an AI coding agent"
 ```
 
 ### 4. Push and create new PR
@@ -86,7 +86,7 @@ gh pr merge <NEW_PR> --squash --body "Description of changes...
 
 Co-Authored-By: Name <email@example.com>
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+🤖 Generated with an AI coding agent"
 ```
 
 Get contributor email from their commit:

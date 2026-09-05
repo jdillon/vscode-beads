@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Run after cloning or when creating a fresh worktree.
+# Called automatically on worktree creation (orca.yaml scripts.setup).
+
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_root"
+
+for local_agent_file in AGENTS.local.md CLAUDE.local.md; do
+  if ! git check-ignore -q "$local_agent_file"; then
+    echo "ERROR: $local_agent_file must be gitignored" >&2
+    exit 1
+  fi
+done
+
+if [ ! -f AGENTS.md ] || [ -L AGENTS.md ]; then
+  echo "ERROR: AGENTS.md must be a regular file" >&2
+  exit 1
+fi
+
+for shared_dir in .agents/rules .agents/skills; do
+  if [ ! -d "$shared_dir" ] || [ -L "$shared_dir" ]; then
+    echo "ERROR: $shared_dir must be a directory" >&2
+    exit 1
+  fi
+done
+
+if [ -L AGENTS.local.md ]; then
+  echo "ERROR: AGENTS.local.md must be a regular file, not a symlink" >&2
+  exit 1
+elif [ -e AGENTS.local.md ] && [ ! -f AGENTS.local.md ]; then
+  echo "ERROR: AGENTS.local.md exists and is not a regular file" >&2
+  exit 1
+elif [ ! -e AGENTS.local.md ]; then
+  printf '%s\n' '# Worktree-local agent instructions' >AGENTS.local.md
+fi
+
+ensure_relative_symlink() {
+  local link_path="$1"
+  local expected_target="$2"
+
+  if [ -L "$link_path" ]; then
+    local actual_target
+    actual_target="$(readlink "$link_path")"
+    if [ "$actual_target" != "$expected_target" ]; then
+      echo "ERROR: $link_path points to $actual_target, expected $expected_target" >&2
+      exit 1
+    fi
+  elif [ -e "$link_path" ]; then
+    echo "ERROR: $link_path exists and is not a symlink" >&2
+    exit 1
+  else
+    ln -s "$expected_target" "$link_path"
+  fi
+}
+
+ensure_relative_symlink CLAUDE.md AGENTS.md
+ensure_relative_symlink CLAUDE.local.md AGENTS.local.md
+ensure_relative_symlink .claude/rules ../.agents/rules
+ensure_relative_symlink .claude/skills ../.agents/skills

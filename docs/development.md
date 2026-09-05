@@ -45,16 +45,17 @@ code --install-extension vscode-beads-*.vsix
 
 ## Releasing
 
-Use the `/project-release` slash command in Claude Code:
+Use the `project-release` skill (`/project-release` in Claude Code or
+`$project-release` in Codex):
 
-1. Run `/project-release` from `main` branch
+1. Invoke the skill from the `main` branch
 2. Confirm the computed version (minor bump by default)
-3. Command audits changelog for missing user-facing changes
+3. The skill audits the changelog for missing user-facing changes
 4. If complete, it updates CHANGELOG.md, bumps package.json, commits, tags, and pushes
 5. Tag push triggers GitHub Actions to publish to VS Code Marketplace
 
-For hotfixes, create a `release-v*` branch and run `/project-release` (patch bump).
+For hotfixes, create a `release-v*` branch and invoke the skill (patch bump).
 
 ## Architecture
 
-See [CLAUDE.md](../CLAUDE.md) for architecture details, data flow, and code conventions.
+See [AGENTS.md](../AGENTS.md) for architecture details, data flow, and code conventions.

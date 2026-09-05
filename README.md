@@ -129,7 +129,7 @@ controls rather than palette commands.
 
 ## Credits
 
-Built with ❤️ using [Claude Code](https://claude.ai/code)
+Built with ❤️ using AI coding agents
 
 Icon inspired by <a href="https://www.flaticon.com/free-icons/beads" title="Beads icons">Beads icons created by imaginationlol - Flaticon</a>
 

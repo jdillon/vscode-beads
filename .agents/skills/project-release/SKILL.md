@@ -1,8 +1,6 @@
 ---
+name: project-release
 description: Prepare and tag a new release
-argument-hint: [version]
-allowed-tools: Bash(git:*), Bash(jq:*), Read, Edit, AskUserQuestion
-model: sonnet
 ---
 
 Prepare a release for the vscode-beads extension.
@@ -34,9 +32,10 @@ Compute default version:
 - `main` branch → bump minor, reset patch (e.g., 0.1.3 → 0.2.0)
 - `release-v*` branch → bump patch only (e.g., 0.2.0 → 0.2.1)
 
-If user provided version argument ($ARGUMENTS), use that instead.
+If the user provided a version, use that instead.
 
-Use AskUserQuestion tool to confirm version. Offer the computed version as default, with option to override.
+Ask the user to confirm the version. Offer the computed version as the default
+and allow an override. Do not continue without confirmation.
 
 ### Step 4: Audit changelog for user-facing changes
 
@@ -49,7 +48,7 @@ Read CHANGELOG.md `[Unreleased]` section. Compare commits since last tag.
 **Always skip (never flag):**
 - `docs:`, `ci:`, `test:`, `bd:`, `bd sync:` commits
 - `chore:` commits (deps, formatting, tooling, project config)
-- `feat:` or `fix:` in `.agent/`, `.claude/`, `.github/`, `scripts/`, `docs/` (project tooling, not extension)
+- `feat:` or `fix:` in `.agents/`, `.claude/`, `.codex/`, `.github/`, `scripts/`, `docs/` (project tooling, not extension)
 - Commits already referenced in changelog (matching bead ID like `vsbeads-xxx`)
 
 If user-facing changes are missing from changelog, list them and **STOP**. Ask user to update changelog. Do NOT proceed.
