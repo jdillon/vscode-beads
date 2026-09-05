@@ -569,7 +569,7 @@ export function DetailsView({
             <input
               type="text"
               value={displayBead.externalRef || ""}
-              onChange={(e) => handleFieldChange("externalRef", e.target.value || null)}
+              onChange={(e) => handleFieldChange("externalRef", e.target.value)}
               className="text-input"
               placeholder="URL or reference ID"
             />
@@ -586,8 +586,8 @@ export function DetailsView({
           {editMode ? (
             <input
               type="number"
-              value={displayBead.estimatedMinutes || ""}
-              onChange={(e) => handleFieldChange("estimatedMinutes", e.target.value ? parseInt(e.target.value, 10) : null)}
+              value={displayBead.estimatedMinutes ?? ""}
+              onChange={(e) => handleFieldChange("estimatedMinutes", e.target.value ? parseInt(e.target.value, 10) : 0)}
               className="text-input estimate-input"
               placeholder="Minutes"
               min="0"

@@ -10,7 +10,7 @@
  */
 
 import * as vscode from "vscode";
-import { BaseViewProvider } from "./BaseViewProvider";
+import { BaseViewProvider, WebviewHost } from "./BaseViewProvider";
 import { BeadsProjectManager } from "../backend/BeadsProjectManager";
 import { WebviewToExtensionMessage, Bead, issueToWebviewBead } from "../backend/types";
 import { Logger } from "../utils/logger";
@@ -21,8 +21,11 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
   protected readonly panelViewType = "beads.issuesEditor";
   protected readonly panelTitle = "Beads Issues";
   private static readonly MIN_LOADING_MS = 500;
+  private static readonly SNAPSHOT_TTL_MS = 1000;
   private selectedBeadId: string | null = null;
   private loadSequence = 0;
+  private readonly targetLoadTokens = new WeakMap<WebviewHost, symbol>();
+  private snapshot: { projectId: string | null; beads: Bead[]; loadedAt: number } | null = null;
 
   constructor(
     extensionUri: vscode.Uri,
@@ -40,51 +43,80 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
     this.postMessage({ type: "setSelectedBeadId", beadId });
   }
 
-  protected async loadData(reason: "initial" | "projectChange" | "manualRefresh" | "background" = "background"): Promise<void> {
-    const thisRequest = ++this.loadSequence;
+  protected seedView(target?: WebviewHost): void {
+    this.postMessage({ type: "setSelectedBeadId", beadId: this.selectedBeadId }, target);
+  }
+
+  protected async loadData(
+    reason: "initial" | "projectChange" | "manualRefresh" | "background" = "background",
+    target?: WebviewHost
+  ): Promise<void> {
+    const projectId = this.projectManager.getActiveProject()?.id ?? null;
+    if (reason === "initial" && target && this.snapshot?.projectId === projectId) {
+      this.postMessage({ type: "setBeads", beads: this.snapshot.beads }, target);
+      this.setError(null, target);
+      this.setLoading(false, target);
+      if (Date.now() - this.snapshot.loadedAt > BeadsPanelViewProvider.SNAPSHOT_TTL_MS) {
+        await this.loadData("background");
+      }
+      return;
+    }
+
+    const targetLoadToken = target ? Symbol() : null;
+    if (target && targetLoadToken) {
+      this.targetLoadTokens.set(target, targetLoadToken);
+    }
+    const thisRequest = target ? this.loadSequence : ++this.loadSequence;
+    const isCurrentRequest = () =>
+      thisRequest === this.loadSequence &&
+      (!target || this.targetLoadTokens.get(target) === targetLoadToken);
     const client = this.projectManager.getClient();
     if (!client) {
+      this.snapshot = { projectId, beads: [], loadedAt: Date.now() };
       // No project/backend: clear loading so the webview shows the empty state
       // instead of spinning forever (#76)
-      this.postMessage({ type: "setBeads", beads: [] });
-      this.setLoading(false);
+      this.postMessage({ type: "setBeads", beads: [] }, target);
+      this.setLoading(false, target);
       return;
     }
 
     const showLoading = reason === "initial" || reason === "projectChange" || reason === "manualRefresh";
     const loadingStartedAt = showLoading ? Date.now() : 0;
     if (showLoading) {
-      this.postMessage({ type: "setBeads", beads: [] });
-      this.setLoading(true);
+      this.postMessage({ type: "setBeads", beads: [] }, target);
+      this.setLoading(true, target);
     }
-    this.setError(null);
+    this.setError(null, target);
 
     try {
       const issues = await client.list();
       if (showLoading) {
         await this.waitForMinimumLoading(loadingStartedAt);
       }
-      if (thisRequest !== this.loadSequence) {
+      if (!isCurrentRequest() ||
+          (this.projectManager.getActiveProject()?.id ?? null) !== projectId) {
         return;
       }
       const beads = issues.map(issueToWebviewBead).filter((b): b is Bead => b !== null);
-      this.postMessage({ type: "setBeads", beads });
-      this.setLoading(false);
+      this.snapshot = { projectId, beads, loadedAt: Date.now() };
+      this.postMessage({ type: "setBeads", beads }, target);
+      this.setLoading(false, target);
     } catch (err) {
       if (showLoading) {
         await this.waitForMinimumLoading(loadingStartedAt);
       }
-      if (thisRequest !== this.loadSequence) {
+      if (!isCurrentRequest() ||
+          (this.projectManager.getActiveProject()?.id ?? null) !== projectId) {
         return;
       }
-      this.setError(String(err));
+      this.setError(String(err), target);
       if (showLoading) {
-        this.postMessage({ type: "setBeads", beads: [] });
+        this.postMessage({ type: "setBeads", beads: [] }, target);
       }
       this.handleBackendError("Failed to load beads", err);
     } finally {
-      if (thisRequest === this.loadSequence) {
-        this.setLoading(false);
+      if (isCurrentRequest()) {
+        this.setLoading(false, target);
       }
     }
   }
