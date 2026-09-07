@@ -160,7 +160,10 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
     // Options and HTML are not preserved across a reload, so always re-apply.
     panel.webview.options = this.getWebviewOptions();
     panel.webview.html = this.getHtmlForWebview(panel.webview);
-    panel.iconPath = vscode.Uri.joinPath(this.extensionUri, "resources", "beads-icon.svg");
+    panel.iconPath = {
+      light: vscode.Uri.joinPath(this.extensionUri, "resources", "beads-icon-editor-light.svg"),
+      dark: vscode.Uri.joinPath(this.extensionUri, "resources", "beads-icon-editor-dark.svg"),
+    };
     this.editorPanel = panel;
 
     const host: WebviewHost = {
@@ -316,16 +319,26 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
       },
     }, target);
 
-    // Load view-specific data only while some surface is visible.
-    if (this.isVisible) {
-      await this.loadData("initial");
+    this.seedView(target);
+
+    // Load view-specific data only while the initialized surface is visible.
+    if (target?.visible ?? this.isVisible) {
+      await this.loadData("initial", target);
     }
+  }
+
+  /** Seeds provider-specific state that is not part of a backend load. */
+  protected seedView(_target?: WebviewHost): void {
+    // Default: nothing to seed
   }
 
   /**
    * Loads view-specific data. Override in subclasses.
    */
-  protected abstract loadData(reason?: "initial" | "projectChange" | "manualRefresh" | "background"): Promise<void>;
+  protected abstract loadData(
+    reason?: "initial" | "projectChange" | "manualRefresh" | "background",
+    target?: WebviewHost
+  ): Promise<void>;
 
   /**
    * Handles messages from the webview. Override in subclasses for custom handling.
@@ -488,15 +501,15 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
   /**
    * Sets the loading state in the webview
    */
-  protected setLoading(loading: boolean): void {
-    this.postMessage({ type: "setLoading", loading });
+  protected setLoading(loading: boolean, target?: WebviewHost): void {
+    this.postMessage({ type: "setLoading", loading }, target);
   }
 
   /**
    * Sets an error message in the webview
    */
-  protected setError(error: string | null): void {
-    this.postMessage({ type: "setError", error });
+  protected setError(error: string | null, target?: WebviewHost): void {
+    this.postMessage({ type: "setError", error }, target);
   }
 
   /**
@@ -535,11 +548,14 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
    * Triggers a refresh intended for active project switches.
    */
   public refreshForProjectChange(): void {
+    // Retained hidden webviews also need the new project identity so their
+    // persisted state cannot remain bound to the previous project.
+    this.postProjectState();
+
     if (!this.isVisible) {
       return;
     }
 
-    this.postProjectState();
     this.loadData("projectChange");
   }
 

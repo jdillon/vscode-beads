@@ -33,6 +33,7 @@ interface AppState {
   loading: boolean;
   error: string | null;
   settings: WebviewSettings;
+  projectInitialized: boolean;
 }
 
 const initialState: AppState = {
@@ -46,6 +47,7 @@ const initialState: AppState = {
   loading: true,
   error: null,
   settings: { renderMarkdown: true, userId: "", tooltipHoverDelay: 1000 },
+  projectInitialized: false,
 };
 
 export function App(): React.ReactElement {
@@ -60,7 +62,7 @@ export function App(): React.ReactElement {
         setState((prev) => ({ ...prev, viewType: message.viewType }));
         break;
       case "setProject":
-        setState((prev) => ({ ...prev, project: message.project }));
+        setState((prev) => ({ ...prev, project: message.project, projectInitialized: true }));
         break;
       case "setProjects":
         setState((prev) => ({ ...prev, projects: message.projects }));
@@ -100,15 +102,22 @@ export function App(): React.ReactElement {
   useEffect(() => {
     // Skip the pre-initialization render: writing placeholders here would
     // clear a selection a restored tab still needs.
-    if (!state.viewType) {
+    if (!state.viewType || !state.projectInitialized) {
       return;
     }
 
     patchState({
+      version: 1,
       viewType: state.viewType,
-      beadId: state.selectedBead?.id ?? state.selectedBeadId ?? null,
+      projectId: state.project?.id ?? null,
+      beadId: state.selectedBeadId,
     });
-  }, [state.viewType, state.selectedBead?.id, state.selectedBeadId]);
+  }, [
+    state.viewType,
+    state.projectInitialized,
+    state.project?.id,
+    state.selectedBeadId,
+  ]);
 
   useEffect(() => {
     // Listen for messages from the extension

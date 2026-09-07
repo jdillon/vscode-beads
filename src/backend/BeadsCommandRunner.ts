@@ -54,6 +54,51 @@ export function createShowCommandArgs(id: string): string[] {
   return ["show", id, "--json", "--include-dependents"];
 }
 
+export function createUpdateCommandArgs(
+  args: UpdateIssueArgs,
+  currentLabels: string[] = []
+): string[] {
+  const cmdArgs = ["update", args.id, "--json"];
+
+  if (args.title !== undefined) cmdArgs.push("--title", args.title);
+  if (args.description !== undefined) cmdArgs.push("--description", args.description);
+  if (args.design !== undefined) cmdArgs.push("--design", args.design);
+  if (args.acceptance_criteria !== undefined) cmdArgs.push("--acceptance", args.acceptance_criteria);
+  if (args.notes !== undefined) cmdArgs.push("--notes", args.notes);
+  if (args.status !== undefined) cmdArgs.push("--status", args.status);
+  if (args.priority !== undefined) cmdArgs.push("--priority", String(args.priority));
+  if (args.assignee !== undefined) cmdArgs.push("--assignee", args.assignee);
+  if (args.external_ref !== undefined) cmdArgs.push("--external-ref", args.external_ref);
+  if (
+    args.estimated_minutes !== undefined &&
+    args.estimate !== undefined &&
+    args.estimated_minutes !== args.estimate
+  ) {
+    throw new Error("Conflicting estimate values: estimated_minutes and estimate differ");
+  }
+  const estimate = args.estimated_minutes ?? args.estimate;
+  if (estimate !== undefined) cmdArgs.push("--estimate", String(estimate));
+  if (
+    args.type !== undefined &&
+    args.issue_type !== undefined &&
+    args.type !== args.issue_type
+  ) {
+    throw new Error("Conflicting issue type values");
+  }
+  const issueType = args.issue_type ?? args.type;
+  if (issueType !== undefined) cmdArgs.push("--type", issueType);
+
+  for (const label of args.add_labels ?? []) cmdArgs.push("--add-label", label);
+  for (const label of args.remove_labels ?? []) cmdArgs.push("--remove-label", label);
+  if (args.set_labels?.length === 0) {
+    for (const label of currentLabels) cmdArgs.push("--remove-label", label);
+  } else {
+    for (const label of args.set_labels ?? []) cmdArgs.push("--set-labels", label);
+  }
+
+  return cmdArgs;
+}
+
 export class BeadsCommandRunner implements BeadsBackend {
   private readonly bdPath: string;
   private readonly cwd: string;
@@ -152,41 +197,21 @@ export class BeadsCommandRunner implements BeadsBackend {
   }
 
   async update(args: UpdateIssueArgs): Promise<BeadsIssue> {
-    const cmdArgs = ["update", args.id, "--json"];
+    let currentIssue: BeadsIssue | null = null;
+    if (args.set_labels?.length === 0) {
+      const result = await this.runJson(createShowCommandArgs(args.id));
+      currentIssue = Array.isArray(result)
+        ? (result[0] as BeadsIssue | undefined) ?? null
+        : (result as BeadsIssue) ?? null;
+      if (!currentIssue) {
+        throw new Error(`Issue not found: ${args.id}`);
+      }
+    }
 
-    if (args.title !== undefined) cmdArgs.push("--title", args.title);
-    if (args.description !== undefined) cmdArgs.push("--description", args.description);
-    if (args.design !== undefined) cmdArgs.push("--design", args.design);
-    if (args.acceptance_criteria !== undefined) {
-      cmdArgs.push("--acceptance", args.acceptance_criteria);
+    const cmdArgs = createUpdateCommandArgs(args, currentIssue?.labels);
+    if (cmdArgs.length === 3 && currentIssue) {
+      return currentIssue;
     }
-    if (args.notes !== undefined) cmdArgs.push("--notes", args.notes);
-    if (args.status !== undefined) cmdArgs.push("--status", args.status);
-    if (args.priority !== undefined) cmdArgs.push("--priority", String(args.priority));
-    if (args.assignee !== undefined) cmdArgs.push("--assignee", args.assignee);
-    if (args.external_ref !== undefined) cmdArgs.push("--external-ref", args.external_ref);
-    if (
-      args.estimated_minutes !== undefined &&
-      args.estimate !== undefined &&
-      args.estimated_minutes !== args.estimate
-    ) {
-      throw new Error("Conflicting estimate values: estimated_minutes and estimate differ");
-    }
-    const estimate = args.estimated_minutes ?? args.estimate;
-    if (estimate !== undefined) cmdArgs.push("--estimate", String(estimate));
-    if (
-      args.type !== undefined &&
-      args.issue_type !== undefined &&
-      args.type !== args.issue_type
-    ) {
-      throw new Error("Conflicting issue type values");
-    }
-    const issueType = args.issue_type ?? args.type;
-    if (issueType !== undefined) cmdArgs.push("--type", issueType);
-
-    for (const label of args.add_labels ?? []) cmdArgs.push("--add-label", label);
-    for (const label of args.remove_labels ?? []) cmdArgs.push("--remove-label", label);
-    for (const label of args.set_labels ?? []) cmdArgs.push("--set-labels", label);
 
     const result = await this.runJson(cmdArgs);
     return this.pickSingleIssue(result, "update");
