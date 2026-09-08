@@ -15,7 +15,7 @@ import { BeadDetailsViewProvider } from "../BeadDetailsViewProvider";
 import { BeadsPanelViewProvider } from "../BeadsPanelViewProvider";
 import { DashboardViewProvider } from "../DashboardViewProvider";
 import { BeadsProjectManager } from "../../backend/BeadsProjectManager";
-import { ExtensionToWebviewMessage } from "../../backend/types";
+import { Bead, ExtensionToWebviewMessage } from "../../backend/types";
 import { BeadsBackend, BeadsIssue } from "../../backend/BeadsBackend";
 import { Logger } from "../../utils/logger";
 
@@ -40,9 +40,10 @@ function makeLogger(): Logger {
  * so tests exercise surface behavior without touching bd.
  */
 function harness<T>(
-  Provider: new (uri: vscode.Uri, pm: BeadsProjectManager, log: Logger) => T,
+  Provider: new (uri: vscode.Uri, pm: BeadsProjectManager, log: Logger, preview?: (id: string) => Bead | undefined) => T,
   activeProjectId: string | null = "project-a",
-  client: Partial<BeadsBackend> | null = null
+  client: Partial<BeadsBackend> | null = null,
+  preview?: (id: string) => Bead | undefined
 ): Harness<T> {
   const posted: ExtensionToWebviewMessage[] = [];
   const notifyBackendError = jest.fn();
@@ -55,7 +56,7 @@ function harness<T>(
     notifyBackendError,
   } as unknown as BeadsProjectManager;
 
-  const provider = new Provider({} as vscode.Uri, projectManager, makeLogger());
+  const provider = new Provider({} as vscode.Uri, projectManager, makeLogger(), preview);
 
   const attachSidebar = (): FakeWebview => {
     const webview = createFakeWebview(posted as unknown[]);
@@ -459,5 +460,104 @@ describe("host seeding", () => {
       type: "setBeads",
       beads: [expect.objectContaining({ id: "bd-old" })],
     });
+  });
+});
+
+
+describe("progressive Details loading", () => {
+  const issue = (id: string): BeadsIssue => ({
+    id, title: `Title ${id}`, status: "open", priority: 2, issue_type: "task",
+    created_at: "2026-09-08T00:00:00Z", updated_at: "2026-09-08T00:00:00Z",
+  });
+  const preview = (id: string): Bead => ({ id, title: `Preview ${id}`, status: "open" });
+  function deferred<T>() {
+    let resolve!: (value: T) => void;
+    let reject!: (error: Error) => void;
+    const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; });
+    return { promise, resolve, reject };
+  }
+
+  it("paints list data synchronously and shows details before slow comments", async () => {
+    const show = deferred<BeadsIssue>();
+    const comments = deferred<[]>();
+    const { provider, posted, attachSidebar } = harness(BeadDetailsViewProvider, "project-a", {
+      show: () => show.promise, listComments: () => comments.promise,
+    }, preview);
+    attachSidebar();
+    const load = provider.showBead("bd-1");
+    expect(posted).toContainEqual({ type: "setBead", bead: expect.objectContaining({ title: "Preview bd-1" }) });
+    show.resolve(issue("bd-1"));
+    await Promise.resolve();
+    expect(posted).toContainEqual({ type: "setBead", bead: expect.objectContaining({ title: "Title bd-1", comments: undefined }) });
+    comments.resolve([]);
+    await load;
+    expect(posted).toContainEqual({ type: "setBead", bead: expect.objectContaining({ id: "bd-1", comments: [] }) });
+    expect(posted[posted.length - 1]).toEqual({ type: "setLoading", loading: false });
+  });
+
+  it("seeds a newly ready editor with the preview while reads are pending", async () => {
+    const show = deferred<BeadsIssue>();
+    const { provider } = harness(BeadDetailsViewProvider, "project-a", {
+      show: () => show.promise, listComments: async () => [],
+    }, preview);
+    const load = provider.showBead("bd-1", { surface: "editor" });
+    const seen: ExtensionToWebviewMessage[] = [];
+    createdPanels[0].webview.postMessage = (message) => seen.push(message as ExtensionToWebviewMessage);
+    const ready = createdPanels[0].webview.emit({ type: "ready" });
+    expect(seen).toContainEqual({ type: "setBead", bead: expect.objectContaining({ title: "Preview bd-1" }) });
+    show.resolve(issue("bd-1"));
+    await Promise.all([load, ready]);
+  });
+
+  it("clears the previous issue immediately when the new ID has no preview", async () => {
+    const pending = deferred<BeadsIssue>();
+    const { provider, posted, attachSidebar } = harness(BeadDetailsViewProvider, "project-a", {
+      show: (id) => id === "bd-1" ? Promise.resolve(issue(id)) : pending.promise,
+      listComments: async () => [],
+    });
+    attachSidebar();
+    await provider.showBead("bd-1");
+    posted.length = 0;
+    const load = provider.showBead("bd-2");
+    expect(posted).toContainEqual({ type: "setBead", bead: null });
+    pending.resolve(issue("bd-2"));
+    await load;
+  });
+
+  it.each(["selection", "project"])("ignores late comments after a %s change", async (change) => {
+    const comments = deferred<[]>();
+    const { provider, posted, attachSidebar, setActiveProjectId } = harness(BeadDetailsViewProvider, "project-a", {
+      show: async (id) => issue(id),
+      listComments: (id) => id === "bd-1" ? comments.promise : Promise.resolve([]),
+    }, preview);
+    attachSidebar();
+    const oldLoad = provider.showBead("bd-1");
+    await Promise.resolve();
+    if (change === "selection") await provider.showBead("bd-2");
+    else setActiveProjectId("project-b");
+    posted.length = 0;
+    comments.resolve([]);
+    await oldLoad;
+    expect(posted).toEqual([]);
+  });
+
+  it("keeps loaded details when comments fail", async () => {
+    const { provider, posted, attachSidebar } = harness(BeadDetailsViewProvider, "project-a", {
+      show: async (id) => issue(id), listComments: async () => { throw new Error("comments unavailable"); },
+    }, preview);
+    attachSidebar();
+    await provider.showBead("bd-1");
+    expect(posted).toContainEqual({ type: "setBead", bead: expect.objectContaining({ title: "Title bd-1", comments: [] }) });
+    expect(posted).not.toContainEqual({ type: "setError", error: expect.any(String) });
+  });
+
+  it("never returns a list preview from the previous project", async () => {
+    const { provider, setActiveProjectId } = harness(BeadsPanelViewProvider, "project-a", {
+      list: async () => [issue("bd-1")],
+    });
+    await (provider as unknown as { loadData: () => Promise<void> }).loadData();
+    expect(provider.getCachedBead("bd-1")?.id).toBe("bd-1");
+    setActiveProjectId("project-b");
+    expect(provider.getCachedBead("bd-1")).toBeUndefined();
   });
 });

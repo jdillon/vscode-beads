@@ -37,6 +37,14 @@ export class DashboardViewProvider extends BaseViewProvider {
     super(extensionUri, projectManager, logger.child("Dashboard"));
   }
 
+  /** Returns only data loaded for the currently active project. */
+  public getCachedBead(beadId: string): Bead | undefined {
+    const projectId = this.projectManager.getActiveProject()?.id;
+    return projectId && this.snapshot?.projectId === projectId
+      ? this.snapshot.beads.find((bead) => bead.id === beadId)
+      : undefined;
+  }
+
   protected async loadData(
     reason: "initial" | "projectChange" | "manualRefresh" | "background" = "background",
     target?: WebviewHost

@@ -66,7 +66,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   detailsProvider = new BeadDetailsViewProvider(
     context.extensionUri,
     projectManager,
-    log
+    log,
+    (id) => beadsPanelProvider.getCachedBead(id) ?? dashboardProvider.getCachedBead(id)
   );
 
   // Register webview providers
