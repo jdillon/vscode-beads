@@ -43,6 +43,14 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
     this.postMessage({ type: "setSelectedBeadId", beadId });
   }
 
+  /** Returns only data loaded for the currently active project. */
+  public getCachedBead(beadId: string): Bead | undefined {
+    const projectId = this.projectManager.getActiveProject()?.id;
+    return projectId && this.snapshot?.projectId === projectId
+      ? this.snapshot.beads.find((bead) => bead.id === beadId)
+      : undefined;
+  }
+
   protected seedView(target?: WebviewHost): void {
     this.postMessage({ type: "setSelectedBeadId", beadId: this.selectedBeadId }, target);
   }

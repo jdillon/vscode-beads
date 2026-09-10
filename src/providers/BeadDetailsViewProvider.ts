@@ -34,7 +34,8 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
   constructor(
     extensionUri: vscode.Uri,
     projectManager: BeadsProjectManager,
-    logger: Logger
+    logger: Logger,
+    private readonly getCachedBead: (id: string) => Bead | undefined = () => undefined
   ) {
     super(extensionUri, projectManager, logger.child("Details"));
   }
@@ -131,6 +132,22 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
 
   protected seedView(target?: WebviewHost): void {
     this.postMessage({ type: "setSelectedBeadId", beadId: this.currentBeadId }, target);
+    this.postMessage({ type: "setBead", bead: this.getSelectionPreview() }, target);
+  }
+
+  private getSelectionPreview(): Bead | null {
+    const projectId = this.projectManager.getActiveProject()?.id;
+    if (!projectId || projectId !== this.currentProjectId || !this.currentBeadId) {
+      return null;
+    }
+    if (this.snapshot?.projectId === projectId && this.snapshot.beadId === this.currentBeadId) {
+      return this.snapshot.bead;
+    }
+    const preview = this.getCachedBead(this.currentBeadId);
+    // List data contains the editable fields, but not complete relationships/comments.
+    return preview?.id === this.currentBeadId
+      ? { ...preview, dependsOn: undefined, blocks: undefined, comments: undefined }
+      : null;
   }
 
   protected async loadData(
@@ -184,18 +201,19 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
       return;
     }
 
+    // Paint the new selection before any backend I/O, or clear the previous
+    // issue when navigating to an ID that is not in the loaded list.
+    this.postMessage({ type: "setBead", bead: this.getSelectionPreview() }, target);
     this.setLoading(true, target);
     this.setError(null, target);
 
     try {
-      // Fetch issue and comments in parallel
-      const [issue, comments] = await Promise.all([
-        client.show(beadId!),
-        client.listComments(beadId!).catch((err) => {
-          this.log.trace(`Failed to fetch comments: ${err}`);
-          return [];
-        }),
-      ]);
+      // Start both reads, but do not make the issue wait for slow comments.
+      const commentsPromise = client.listComments(beadId!).catch((err) => {
+        this.log.trace(`Failed to fetch comments: ${err}`);
+        return [];
+      });
+      const issue = await client.show(beadId!);
 
       // Check if a newer request has started - if so, discard this stale response
       if (!isCurrentRequest()) {
@@ -203,16 +221,22 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
         return;
       }
 
-      const commentsArray = comments || [];
-      this.log.debug(`Loaded ${commentsArray.length} comments for ${this.currentBeadId}`);
       if (issue) {
-        // Merge comments into issue data
-        const issueWithComments = {
-          ...issue,
-          comments: commentsArray as Array<{ id: string; author: string; text: string; created_at: string }>,
-        };
-        const bead = issueToWebviewBead(issueWithComments);
+        const bead = issueToWebviewBead(issue);
         if (bead) {
+          // Keep already displayed comments during refreshes of the same issue.
+          bead.comments = this.getSelectionPreview()?.comments;
+          this.postMessage({ type: "setBead", bead: { ...bead } }, target);
+          const comments = await commentsPromise;
+          if (!isCurrentRequest()) {
+            return;
+          }
+          bead.comments = (comments ?? []).map((comment) => ({
+            id: comment.id,
+            author: comment.author,
+            text: comment.text,
+            createdAt: comment.created_at,
+          }));
           this.snapshot = {
             projectId: activeProjectId!,
             beadId: beadId!,

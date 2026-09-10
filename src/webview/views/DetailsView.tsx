@@ -761,7 +761,7 @@ export function DetailsView({
 
       {/* Comments */}
       <div className="details-section">
-        <h4>Comments ({(displayBead.comments || []).length})</h4>
+        <h4>Comments{displayBead.comments ? ` (${displayBead.comments.length})` : ""}</h4>
         <div className="comments-list">
           {(displayBead.comments || []).map((comment) => (
             <div key={comment.id} className="comment">
@@ -777,7 +777,7 @@ export function DetailsView({
             </div>
           ))}
           {(displayBead.comments || []).length === 0 && (
-            <span className="muted">No comments</span>
+            <span className="muted">{loading && !displayBead.comments ? "Loading comments…" : "No comments"}</span>
           )}
         </div>
         {/* Comment input - always shown if callback provided */}
