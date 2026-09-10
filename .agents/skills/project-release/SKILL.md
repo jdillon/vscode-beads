@@ -5,6 +5,20 @@ description: Prepare and tag a new release
 
 Prepare a release for the vscode-beads extension.
 
+## Asking the user
+
+Some steps below stop and require an answer before anything else runs. Each one
+states its question and a fixed set of options.
+
+Put those to the user through whatever your harness provides for asking a
+multiple-choice question and blocking until the user picks one, presented as
+selectable choices rather than free-form text. Claude Code calls this
+`AskUserQuestion`; other harnesses have their own equivalent, so use theirs. If
+yours has nothing like it, print the question and its options as plain text.
+
+The mechanism is negotiable. Stopping is not. Do not run the next step, and do
+not assume an answer, until the user has actually answered.
+
 ## Instructions
 
 ### Step 1: Gather release context
@@ -34,8 +48,14 @@ Compute default version:
 
 If the user provided a version, use that instead.
 
-Ask the user to confirm the version. Offer the computed version as the default
-and allow an override. Do not continue without confirmation.
+**STOP HERE.** Ask, per "Asking the user" above:
+
+- Question: "Which version for this release?"
+- Options:
+  - The computed version, marked as the recommended default
+  - At least one plausible alternative (the other bump level)
+
+Whatever the user picks becomes the release version.
 
 ### Step 4: Audit changelog for user-facing changes
 
@@ -55,9 +75,24 @@ If user-facing changes are missing from changelog, list them and **STOP**. Ask u
 
 If no gaps found, confirm changelog looks complete and proceed.
 
-### Step 5: Execute release
+### Step 5: Verify the build locally
 
-Only proceed after user confirmed version AND changelog is complete.
+Pushing the tag is what publishes. `release.yml` runs these same gates, but a
+failure there lands after the tag exists, and backing that out means deleting
+and re-pushing a tag. Catch it here instead:
+
+```bash
+bun run lint
+bun run test
+bun run compile
+```
+
+If any of them fail, **STOP**. Report the failure and do not tag.
+
+### Step 6: Execute release
+
+Only proceed after the user confirmed the version, the changelog is complete,
+and the local gates passed.
 
 1. Validate `[Unreleased]` has content (fail if empty)
 

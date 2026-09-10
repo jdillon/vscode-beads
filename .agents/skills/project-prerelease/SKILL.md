@@ -5,6 +5,20 @@ description: Audit changelog and draft entries for upcoming release
 
 Audit the changelog for missing entries since the last release and draft updates.
 
+## Asking the user
+
+Some steps below stop and require an answer before anything else runs. Each one
+states its question and a fixed set of options.
+
+Put those to the user through whatever your harness provides for asking a
+multiple-choice question and blocking until the user picks one, presented as
+selectable choices rather than free-form text. Claude Code calls this
+`AskUserQuestion`; other harnesses have their own equivalent, so use theirs. If
+yours has nothing like it, print the question and its options as plain text.
+
+The mechanism is negotiable. Stopping is not. Do not run the next step, and do
+not assume an answer, until the user has actually answered.
+
 ## Instructions
 
 Follow these steps exactly in order.
@@ -150,8 +164,12 @@ Show this information clearly:
 
 ### Step 9: Ask for changelog confirmation
 
-Ask the user whether to update `CHANGELOG.md` with the proposed entries. Do not
-proceed without confirmation.
+**STOP HERE.** Ask, per "Asking the user" above:
+
+- Question: "Update CHANGELOG.md with these entries?"
+- Options:
+  - "Yes, update changelog" / "Merge entries into [Unreleased] section"
+  - "No, I'll edit manually" / "Stop without changes"
 
 ### Step 10: Update CHANGELOG.md (only if user said yes)
 
@@ -165,10 +183,14 @@ proceed without confirmation.
 
 ### Step 11: Ask for README confirmation (only if updates needed)
 
-If README updates were proposed in Step 7, ask the user whether to apply them.
-Do not proceed without confirmation.
-
 If README is up to date, skip this step.
+
+Otherwise **STOP HERE**. Ask, per "Asking the user" above:
+
+- Question: "Apply the proposed README.md updates?"
+- Options:
+  - "Yes, update README" / "Apply the changes drafted in Step 7"
+  - "No, I'll edit manually" / "Stop without changes"
 
 ### Step 12: Update README.md (only if user said yes)
 
