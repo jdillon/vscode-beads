@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Open Dashboard, Issues and Details as editor tabs, synced with the sidebar (`vsbeads-ava`, `vsbeads-4n2`)
+
 ### Fixed
 
 - Show selected issue details immediately while loading comments (`vsbeads-jw3`)
