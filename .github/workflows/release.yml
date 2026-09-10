@@ -30,12 +30,20 @@ jobs:
             exit 1
           fi
 
-      - name: Validate changelog has release entry
+      - name: Extract changelog section for release notes
         run: |
           if ! grep -q "## \[${{ steps.version.outputs.version }}\]" CHANGELOG.md; then
             echo "::error::CHANGELOG.md missing entry for version ${{ steps.version.outputs.version }}"
             exit 1
           fi
+          awk -v h="## [${{ steps.version.outputs.version }}]" \
+            'index($0, h) == 1 { f = 1; next } /^## \[/ { f = 0 } f' \
+            CHANGELOG.md > "${RUNNER_TEMP}/release-notes.md"
+          if ! grep -q '[^[:space:]]' "${RUNNER_TEMP}/release-notes.md"; then
+            echo "::error::CHANGELOG.md section for ${{ steps.version.outputs.version }} is empty"
+            exit 1
+          fi
+          cat "${RUNNER_TEMP}/release-notes.md"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -47,6 +55,9 @@ jobs:
 
       - name: Lint
         run: bun run lint
+
+      - name: Test
+        run: bun run test
 
       - name: Compile
         run: bun run compile
@@ -66,6 +77,5 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           files: "*.vsix"
           generate_release_notes: false
-          body: |
-            See [CHANGELOG.md](https://github.com/jdillon/vscode-beads/blob/main/CHANGELOG.md) for release notes.
+          body_path: ${{ runner.temp }}/release-notes.md
           draft: false
