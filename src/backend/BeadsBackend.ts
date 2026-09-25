@@ -1,4 +1,4 @@
-import type { BackendBeadDependency } from "./types";
+import type { BackendBeadDependency, ComputedWorkState } from "./types";
 
 /**
  * Oldest bd release the extension supports.
@@ -96,6 +96,7 @@ export interface BeadsBackend {
   startDoltServer(): Promise<string>;
   stopDoltServer(): Promise<string>;
   list(): Promise<BeadsIssue[]>;
+  getWorkState(): Promise<ComputedWorkState>;
   show(id: string): Promise<BeadsIssue | null>;
   create(args: CreateIssueArgs): Promise<BeadsIssue>;
   update(args: UpdateIssueArgs): Promise<BeadsIssue>;

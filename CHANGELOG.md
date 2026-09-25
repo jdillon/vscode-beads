@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Show computed readiness and active blocker IDs in the issue list and details (#95)
+
 ## [0.15.0] - 2026-09-09
 
 ### Added

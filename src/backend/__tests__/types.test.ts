@@ -56,4 +56,17 @@ describe("issueToWebviewBead", () => {
   it("still drops beads with no status at all", () => {
     expect(issueToWebviewBead({ ...base, status: "" })).toBeNull();
   });
+
+  it("keeps computed readiness and blockers independent of stored status", () => {
+    const state = {
+      readyIds: new Set(["bd-ready"]),
+      blockedBy: new Map([["bd-open", ["bd-parent"]]]),
+    };
+    expect(issueToWebviewBead({ ...base, id: "bd-open", status: "open" }, state))
+      .toMatchObject({ status: "open", isReady: false, blockedBy: ["bd-parent"] });
+    expect(issueToWebviewBead({ ...base, id: "bd-ready", status: "open" }, state))
+      .toMatchObject({ status: "open", isReady: true, blockedBy: [] });
+    expect(issueToWebviewBead({ ...base, id: "bd-unknown", status: "blocked" }))
+      .toMatchObject({ status: "blocked", isReady: undefined, blockedBy: undefined });
+  });
 });

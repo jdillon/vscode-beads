@@ -13,6 +13,7 @@ import {
   UpdateIssueArgs,
 } from "./BeadsBackend";
 import { BeadsCommandRunner } from "./BeadsCommandRunner";
+import type { ComputedWorkState } from "./types";
 
 const execFileAsync = util.promisify(execFile);
 
@@ -167,6 +168,10 @@ export class BeadsDoltBackend implements BeadsBackend {
         closed_at: this.optionalTimestamp(row.closed_at),
       } satisfies BeadsIssue));
     });
+  }
+
+  async getWorkState(): Promise<ComputedWorkState> {
+    return this.cli.getWorkState();
   }
 
   async show(id: string): Promise<BeadsIssue | null> {

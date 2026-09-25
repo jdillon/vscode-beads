@@ -97,7 +97,13 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
     this.setError(null, target);
 
     try {
-      const issues = await client.list();
+      const [issues, workState] = await Promise.all([
+        client.list(),
+        client.getWorkState().catch((err) => {
+          this.log.warn(`Failed to load computed work state: ${err}`);
+          return undefined;
+        }),
+      ]);
       if (showLoading) {
         await this.waitForMinimumLoading(loadingStartedAt);
       }
@@ -105,7 +111,8 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
           (this.projectManager.getActiveProject()?.id ?? null) !== projectId) {
         return;
       }
-      const beads = issues.map(issueToWebviewBead).filter((b): b is Bead => b !== null);
+      const beads = issues.map((issue) => issueToWebviewBead(issue, workState))
+        .filter((b): b is Bead => b !== null);
       this.snapshot = { projectId, beads, loadedAt: Date.now() };
       this.postMessage({ type: "setBeads", beads }, target);
       this.setLoading(false, target);

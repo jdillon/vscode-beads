@@ -543,6 +543,24 @@ export function DetailsView({
         )}
       </div>
 
+      <div className="details-work-state" aria-label="Computed work state">
+        <span>Ready: {displayBead.isReady === undefined ? "Unknown" : displayBead.isReady ? "Yes" : "No"}</span>
+        <span>
+          Blocked by: {displayBead.blockedBy === undefined ? "Unknown" : displayBead.blockedBy.length === 0 ? "None" : (
+            displayBead.blockedBy.map((blockerId, index) => (
+              <React.Fragment key={blockerId}>
+                {index > 0 && ", "}
+                {onSelectBead ? (
+                  <button type="button" className="work-state-blocker" onClick={() => onSelectBead(blockerId)}>
+                    {blockerId}
+                  </button>
+                ) : blockerId}
+              </React.Fragment>
+            ))
+          )}
+        </span>
+      </div>
+
       {/* Description */}
       <div className="details-section">
         <h4>Description</h4>
