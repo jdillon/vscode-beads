@@ -80,6 +80,8 @@ export interface Bead {
   type?: string; // Beads issue_type: bug, feature, task, epic, chore
   priority?: BeadPriority;
   status: BeadStatus;
+  isReady?: boolean; // Present in bd ready; undefined when the query is unavailable
+  blockedBy?: string[]; // Active blocker IDs from bd blocked; undefined when unavailable
   assignee?: string;
   labels?: string[];
   estimatedMinutes?: number; // Time estimate
@@ -120,6 +122,12 @@ export interface BeadDependency {
   title?: string;
   status?: BeadStatus;
   priority?: BeadPriority;
+}
+
+// Computed by bd ready and bd blocked; separate from the issue's stored status.
+export interface ComputedWorkState {
+  readyIds?: ReadonlySet<string>;
+  blockedBy?: ReadonlyMap<string, string[]>;
 }
 
 // Backend dependency format (before normalization)
@@ -403,7 +411,7 @@ export function issueToWebviewBead(issue: {
   dependencies?: BackendBeadDependency[];
   dependents?: BackendBeadDependency[];
   comments?: Array<{ id: string; author: string; text: string; created_at: string }>;
-}): Bead | null {
+}, workState?: ComputedWorkState): Bead | null {
   const status = normalizeStatus(issue.status);
   if (status === null) {
     return null;
@@ -418,6 +426,8 @@ export function issueToWebviewBead(issue: {
     type: issue.issue_type,
     priority: normalizePriority(issue.priority),
     status,
+    isReady: workState?.readyIds?.has(issue.id),
+    blockedBy: workState?.blockedBy ? [...(workState.blockedBy.get(issue.id) ?? [])] : undefined,
     assignee: issue.assignee,
     labels: issue.labels,
     estimatedMinutes: issue.estimated_minutes,

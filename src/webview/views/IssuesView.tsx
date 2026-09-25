@@ -93,7 +93,7 @@ const FILTER_PRESETS: FilterPreset[] = [
   { id: "all", label: "All", statuses: [] },
   { id: "not-closed", label: "Not Closed", statuses: ["open", "in_progress", "blocked", "deferred", "pinned", "hooked"] },
   { id: "active", label: "Active", statuses: ["in_progress", "blocked", "hooked"] },
-  { id: "blocked", label: "Blocked", statuses: ["blocked"] },
+  { id: "blocked", label: "Blocked status", statuses: ["blocked"] },
   { id: "closed", label: "Closed", statuses: ["closed"] },
 ];
 
@@ -288,6 +288,24 @@ export function IssuesView({
         filterFn: (row, columnId, filterValue: BeadStatus[]) => {
           if (!filterValue || filterValue.length === 0) return true;
           return filterValue.includes(row.getValue(columnId));
+        },
+      }),
+      columnHelper.accessor("isReady", {
+        header: "Ready",
+        size: 60,
+        minSize: 50,
+        cell: (info) => info.getValue() === undefined ? "Unknown" : info.getValue() ? "Yes" : "No",
+      }),
+      columnHelper.accessor("blockedBy", {
+        header: "Blocked by",
+        size: 120,
+        minSize: 80,
+        enableSorting: false,
+        cell: (info) => {
+          const blockers = info.getValue();
+          if (blockers === undefined) return "Unknown";
+          if (blockers.length === 0) return "—";
+          return <span title={blockers.join(", ")}>{blockers.join(", ")}</span>;
         },
       }),
       columnHelper.accessor("priority", {
