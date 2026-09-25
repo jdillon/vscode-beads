@@ -26,6 +26,7 @@ export interface BeadsIssue {
   created_at: string;
   updated_at: string;
   closed_at?: string;
+  close_reason?: string;
   dependencies?: BackendBeadDependency[];
   dependents?: BackendBeadDependency[];
   comments?: Array<{ id: string; author: string; text: string; created_at: string }>;

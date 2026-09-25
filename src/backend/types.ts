@@ -87,6 +87,7 @@ export interface Bead {
   createdAt?: string; // ISO/RFC3339 timestamps
   updatedAt?: string;
   closedAt?: string;
+  closeReason?: string;
 
   // Dependency relationships (with type for coloring)
   dependsOn?: BeadDependency[]; // Issues this bead depends on
@@ -361,6 +362,11 @@ export function normalizeBead(raw: Record<string, unknown>): Bead | null {
       : raw.closedAt
         ? String(raw.closedAt)
         : undefined,
+    closeReason: raw.close_reason
+      ? String(raw.close_reason)
+      : raw.closeReason
+        ? String(raw.closeReason)
+        : undefined,
     dependsOn: Array.isArray(raw.depends_on)
       ? raw.depends_on.map((id) => ({ id: String(id) }))
       : Array.isArray(raw.dependsOn)
@@ -393,6 +399,7 @@ export function issueToWebviewBead(issue: {
   created_at: string;
   updated_at: string;
   closed_at?: string;
+  close_reason?: string;
   dependencies?: BackendBeadDependency[];
   dependents?: BackendBeadDependency[];
   comments?: Array<{ id: string; author: string; text: string; created_at: string }>;
@@ -418,6 +425,7 @@ export function issueToWebviewBead(issue: {
     createdAt: issue.created_at,
     updatedAt: issue.updated_at,
     closedAt: issue.closed_at,
+    closeReason: issue.close_reason,
     dependsOn: issue.dependencies?.map((d) => ({
       id: d.id,
       type: d.issue_type,
