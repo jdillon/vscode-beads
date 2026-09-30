@@ -58,6 +58,8 @@ import { getLabelColorStyle } from "../utils/label-colors";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useColumnState } from "../hooks/useColumnState";
 import { KanbanBoard } from "./KanbanBoard";
+import { BoardColumnEditor } from "./BoardColumnEditor";
+import { BoardColumnsConfig, matchesBead } from "../../shared/board-columns";
 
 interface IssuesViewProps {
   beads: Bead[];
@@ -68,6 +70,8 @@ interface IssuesViewProps {
   onSelectBead: (beadId: string) => void;
   onUpdateBead: (beadId: string, updates: Partial<Bead>) => void;
   onRetry: () => void;
+  boardColumns: BoardColumnsConfig | null;
+  onSaveBoardColumns: (config: BoardColumnsConfig | null) => void;
 }
 
 // Issue types sorted by TYPE_SORT_ORDER (epic first)
@@ -93,7 +97,7 @@ const FILTER_PRESETS: FilterPreset[] = [
   { id: "all", label: "All", statuses: [] },
   { id: "not-closed", label: "Not Closed", statuses: ["open", "in_progress", "blocked", "deferred", "pinned", "hooked"] },
   { id: "active", label: "Active", statuses: ["in_progress", "blocked", "hooked"] },
-  { id: "blocked", label: "Blocked", statuses: ["blocked"] },
+  { id: "blocked", label: "Blocked status", statuses: ["blocked"] },
   { id: "closed", label: "Closed", statuses: ["closed"] },
 ];
 
@@ -113,6 +117,8 @@ export function IssuesView({
   onSelectBead,
   onUpdateBead,
   onRetry,
+  boardColumns,
+  onSaveBoardColumns,
 }: IssuesViewProps): React.ReactElement {
   // Persisted column state (sorting, visibility, order)
   const defaultVisibility = {
@@ -147,6 +153,7 @@ export function IssuesView({
 
   // UI state
   const [viewMode, setViewMode] = useState<"table" | "board">("table");
+  const [boardEditorOpen, setBoardEditorOpen] = useState(false);
   const [activePreset, setActivePreset] = useState<string>(DEFAULT_PRESET_ID);
   const [filterBarOpen, setFilterBarOpen] = useState(true);
   const [filterMenuOpen, setFilterMenuOpen] = useState<string | null>(null);
@@ -253,11 +260,7 @@ export function IssuesView({
             <TypeBadge type={info.getValue() as BeadType} size="small" />
           ) : null,
         sortingFn: typeSortingFn,
-        filterFn: (row, columnId, filterValue: string[]) => {
-          if (!filterValue || filterValue.length === 0) return true;
-          const val = row.getValue(columnId) as string | undefined;
-          return val !== undefined && filterValue.includes(val);
-        },
+        filterFn: (row, _columnId, filterValue: string[]) => matchesBead(row.original, { type: filterValue }),
       }),
       columnHelper.accessor("title", {
         header: "Title",
@@ -285,9 +288,24 @@ export function IssuesView({
         size: 80,
         minSize: 30,
         cell: (info) => <StatusBadge status={info.getValue()} size="small" />,
-        filterFn: (row, columnId, filterValue: BeadStatus[]) => {
-          if (!filterValue || filterValue.length === 0) return true;
-          return filterValue.includes(row.getValue(columnId));
+        filterFn: (row, _columnId, filterValue: BeadStatus[]) => matchesBead(row.original, { status: filterValue }),
+      }),
+      columnHelper.accessor("isReady", {
+        header: "Ready",
+        size: 60,
+        minSize: 50,
+        cell: (info) => info.getValue() === undefined ? "Unknown" : info.getValue() ? "Yes" : "No",
+      }),
+      columnHelper.accessor("blockedBy", {
+        header: "Blocked by",
+        size: 120,
+        minSize: 80,
+        enableSorting: false,
+        cell: (info) => {
+          const blockers = info.getValue();
+          if (blockers === undefined) return "Unknown";
+          if (blockers.length === 0) return "—";
+          return <span title={blockers.join(", ")}>{blockers.join(", ")}</span>;
         },
       }),
       columnHelper.accessor("priority", {
@@ -298,11 +316,7 @@ export function IssuesView({
           info.getValue() !== undefined ? (
             <PriorityBadge priority={info.getValue()!} size="small" />
           ) : null,
-        filterFn: (row, columnId, filterValue: BeadPriority[]) => {
-          if (!filterValue || filterValue.length === 0) return true;
-          const val = row.getValue(columnId) as BeadPriority | undefined;
-          return val !== undefined && filterValue.includes(val);
-        },
+        filterFn: (row, _columnId, filterValue: BeadPriority[]) => matchesBead(row.original, { priority: filterValue }),
       }),
       columnHelper.accessor("labels", {
         header: "Labels",
@@ -316,31 +330,14 @@ export function IssuesView({
             ))}
           </>
         ),
-        filterFn: (row, columnId, filterValue: string[]) => {
-          if (!filterValue || filterValue.length === 0) return true;
-          const labels = row.getValue(columnId) as string[] | undefined;
-          if (!labels || labels.length === 0) {
-            // Special handling for "Unlabeled" filter
-            return filterValue.includes("__unlabeled__");
-          }
-          // Match if any of the issue's labels are in the filter
-          return labels.some((label) => filterValue.includes(label));
-        },
+        filterFn: (row, _columnId, filterValue: string[]) => matchesBead(row.original, { labels: filterValue }),
       }),
       columnHelper.accessor("assignee", {
         header: "Assignee",
         size: 80,
         minSize: 30,
         cell: (info) => info.getValue() || "-",
-        filterFn: (row, columnId, filterValue: string[]) => {
-          if (!filterValue || filterValue.length === 0) return true;
-          const val = row.getValue(columnId) as string | undefined;
-          // Special handling for "Unassigned" filter
-          if (filterValue.includes("__unassigned__")) {
-            if (!val) return true;
-          }
-          return val !== undefined && filterValue.includes(val);
-        },
+        filterFn: (row, _columnId, filterValue: string[]) => matchesBead(row.original, { assignee: filterValue }),
       }),
       columnHelper.accessor("estimatedMinutes", {
         id: "estimate",
@@ -382,16 +379,7 @@ export function IssuesView({
     onGlobalFilterChange: setGlobalFilter,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnOrderChange: setColumnOrder,
-    globalFilterFn: (row, _columnId, filterValue: string) => {
-      const search = filterValue.toLowerCase();
-      const bead = row.original;
-      return (
-        bead.id.toLowerCase().includes(search) ||
-        bead.title.toLowerCase().includes(search) ||
-        (bead.description?.toLowerCase().includes(search) ?? false) ||
-        (bead.labels?.some((l) => l.toLowerCase().includes(search)) ?? false)
-      );
-    },
+    globalFilterFn: (row, _columnId, filterValue: string) => matchesBead(row.original, { query: filterValue }),
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -552,17 +540,6 @@ export function IssuesView({
   const typeFacets = table.getColumn("type")?.getFacetedUniqueValues() ?? new Map();
   const assigneeFacets = table.getColumn("assignee")?.getFacetedUniqueValues() ?? new Map();
 
-  // Unfiltered counts per status (for kanban empty state messaging).
-  // Tallies every status present, including custom ones, so board columns for
-  // non-built-in statuses still get an accurate "n/N" count.
-  const unfilteredStatusCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const bead of beads) {
-      counts[bead.status] = (counts[bead.status] ?? 0) + 1;
-    }
-    return counts;
-  }, [beads]);
-
   // Get unique assignees from facets for filter menu
   const uniqueAssignees = useMemo(() => {
     const assignees = Array.from(assigneeFacets.keys()).filter((a): a is string => typeof a === "string" && a !== "");
@@ -677,7 +654,9 @@ export function IssuesView({
             <Kanban size={14} />
           </button>
         </div>
+        {viewMode === "board" && <button className="board-configure-btn" onClick={() => setBoardEditorOpen(true)}>Columns</button>}
       </div>
+      {viewMode === "board" && boardEditorOpen && <BoardColumnEditor beads={beads} config={boardColumns} onSave={onSaveBoardColumns} onClose={() => setBoardEditorOpen(false)} />}
 
       {/* Row 2: Filter bar */}
       {(filterBarOpen || hasActiveFilters) && (
@@ -1065,11 +1044,12 @@ export function IssuesView({
           )}
           <KanbanBoard
             beads={table.getFilteredRowModel().rows.map((r) => r.original)}
+            allBeads={beads}
+            config={boardColumns}
             selectedBeadId={selectedBeadId}
             onSelectBead={onSelectBead}
             onUpdateBead={onUpdateBead}
             hasActiveFilters={hasActiveFilters}
-            unfilteredCounts={unfilteredStatusCounts}
           />
         </>
       )}
