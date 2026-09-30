@@ -68,6 +68,7 @@ export interface Bead {
   createdAt?: string;
   updatedAt?: string;
   closedAt?: string;
+  closeReason?: string;
   dependsOn?: BeadDependency[];
   blocks?: BeadDependency[];
   comments?: BeadComment[];

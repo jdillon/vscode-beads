@@ -137,7 +137,8 @@ export class BeadsDoltBackend implements BeadsBackend {
           NULLIF(external_ref, '') AS external_ref,
           created_at,
           updated_at,
-          closed_at
+          closed_at,
+          close_reason
         FROM issues
         WHERE (ephemeral = 0 OR ephemeral IS NULL)
           AND issue_type NOT IN (${HIDDEN_LIST_TYPES.map(() => "?").join(",")})
@@ -165,6 +166,7 @@ export class BeadsDoltBackend implements BeadsBackend {
         created_at: this.timestamp(row.created_at),
         updated_at: this.timestamp(row.updated_at),
         closed_at: this.optionalTimestamp(row.closed_at),
+        close_reason: this.optionalStr(row.close_reason),
       } satisfies BeadsIssue));
     });
   }
@@ -187,7 +189,8 @@ export class BeadsDoltBackend implements BeadsBackend {
           NULLIF(external_ref, '') AS external_ref,
           created_at,
           updated_at,
-          closed_at
+          closed_at,
+          close_reason
         FROM issues
         WHERE id = ?
         LIMIT 1
@@ -220,6 +223,7 @@ export class BeadsDoltBackend implements BeadsBackend {
         created_at: this.timestamp(row.created_at),
         updated_at: this.timestamp(row.updated_at),
         closed_at: this.optionalTimestamp(row.closed_at),
+        close_reason: this.optionalStr(row.close_reason),
         dependencies,
         dependents,
         comments,

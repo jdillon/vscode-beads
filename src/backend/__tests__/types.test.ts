@@ -1,4 +1,4 @@
-import { BUILT_IN_STATUSES, issueToWebviewBead, normalizeStatus } from "../types";
+import { BUILT_IN_STATUSES, issueToWebviewBead, normalizeBead, normalizeStatus } from "../types";
 
 describe("normalizeStatus", () => {
   it("maps every bd built-in status to itself", () => {
@@ -55,5 +55,34 @@ describe("issueToWebviewBead", () => {
 
   it("still drops beads with no status at all", () => {
     expect(issueToWebviewBead({ ...base, status: "" })).toBeNull();
+  });
+
+  it("carries the CLI close reason through without changing the stored status", () => {
+    const issue = {
+      ...base,
+      status: "closed",
+      closed_at: "2026-09-24T15:20:13Z",
+      close_reason: "Root cause: fixed.\nVerified by user.",
+    };
+    expect(issueToWebviewBead(issue)).toMatchObject({
+      status: "closed",
+      closedAt: issue.closed_at,
+      closeReason: issue.close_reason,
+    });
+    expect(issueToWebviewBead({ ...issue, status: "open" })).toMatchObject({
+      status: "open",
+      closeReason: issue.close_reason,
+    });
+  });
+});
+
+describe("normalizeBead", () => {
+  it("reads close_reason from raw bd JSON", () => {
+    expect(normalizeBead({
+      id: "bd-1",
+      title: "Resolved issue",
+      status: "closed",
+      close_reason: "Resolved after review",
+    })).toMatchObject({ status: "closed", closeReason: "Resolved after review" });
   });
 });

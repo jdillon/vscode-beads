@@ -30,6 +30,8 @@ Exception: If already on a feature branch and told to continue on it (e.g., mult
 
 **Testing workflow with Chrome DevTools MCP**: Use the project `vscode-server` skill to own the fixture-backed code-server start, reload, browser assertion, and stop cycle. See `docs/code-server-testing.md` for the shared protocol.
 
+**User-visible features**: Verify new behavior in the fixture-backed code-server through Chrome DevTools MCP. Capture and inspect a screenshot when the fixture can demonstrate the feature. Follow the feature evidence workflow in `docs/code-server-testing.md`.
+
 **code-server for testing**: See `docs/code-server-testing.md` - living document for agent reference. Keep it updated with working config and lessons learned.
 
 **Option 1: Extension Development Host (recommended for debugging)**
