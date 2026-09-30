@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Show computed readiness and active blocker IDs in the issue list and details (#95)
+- Configure ordered, filter-based Kanban columns per project, including computed readiness and blockers (#95)
 
 ## [0.15.0] - 2026-09-09
 

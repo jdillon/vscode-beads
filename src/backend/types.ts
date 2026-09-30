@@ -194,6 +194,8 @@ export interface DependencyGraph {
   edges: { from: string; to: string; type: DependencyType }[];
 }
 
+import type { BoardColumnsConfig } from "../shared/board-columns";
+
 // Messages sent from extension to webview
 export type ExtensionToWebviewMessage =
   | { type: "setViewType"; viewType: string }
@@ -207,6 +209,7 @@ export type ExtensionToWebviewMessage =
   | { type: "setLoading"; loading: boolean }
   | { type: "setError"; error: string | null }
   | { type: "setSettings"; settings: WebviewSettings }
+  | { type: "setBoardColumns"; projectId: string | null; config: BoardColumnsConfig | null }
   | { type: "refresh" };
 
 // Messages sent from webview to extension
@@ -222,6 +225,7 @@ export type WebviewToExtensionMessage =
   | { type: "openProjectFolder" }
   | { type: "selectBead"; beadId: string }
   | { type: "updateBead"; beadId: string; updates: Partial<Bead> }
+  | { type: "saveBoardColumns"; projectId: string; config: BoardColumnsConfig | null }
   | { type: "deleteBead"; beadId: string }
   | { type: "addDependency"; beadId: string; targetId: string; dependencyType: DependencyType; reverse: boolean }
   | { type: "removeDependency"; beadId: string; dependsOnId: string }

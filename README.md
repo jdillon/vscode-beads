@@ -11,8 +11,9 @@ VS Code extension for managing [Beads](https://github.com/gastownhall/beads) iss
 **Kanban Board View**
 
 - Toggle between Table and Board views for issues
-- Drag cards between columns to change status
+- Drag cards into status columns to change stored status
 - See status distribution at a glance, including deferred, pinned, hooked and custom statuses
+- Use **Columns** to define ordered, project-specific columns by status, priority, type, assignee, label, readiness, blockers, or text; unmatched issues appear in **Other**
 - All columns collapsible for focused workflow (closed by default)
 - Cards show title, ID, type, priority, assignee, and labels
 - Filter-aware: shows "3/5" count when filters hide items
@@ -82,7 +83,7 @@ Install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
 - Show/hide and reorder columns via ⋮ menu
 - Click row to view details, click bead ID to copy
 - `Ready` and `Blocked by` are read-only computed columns from `bd ready` and `bd blocked`. They are independent of the stored status; `Unknown` means the queries were unavailable.
-- The Blocked status preset and Kanban columns use stored status.
+- The Blocked status preset uses stored status. The board starts with stored-status columns; custom columns can use computed readiness and blockers. Issues enter the first matching column, and only columns with a configured drop action accept cards. The filter bar narrows the board as a whole.
 
 ### Details Panel
 

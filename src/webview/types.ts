@@ -103,6 +103,8 @@ export interface WebviewSettings {
   tooltipHoverDelay: number; // 0 = disabled
 }
 
+import type { BoardColumnsConfig } from "../shared/board-columns";
+
 // Messages from extension to webview
 export type ExtensionMessage =
   | { type: "setViewType"; viewType: string }
@@ -115,6 +117,7 @@ export type ExtensionMessage =
   | { type: "setLoading"; loading: boolean }
   | { type: "setError"; error: string | null }
   | { type: "setSettings"; settings: WebviewSettings }
+  | { type: "setBoardColumns"; projectId: string | null; config: BoardColumnsConfig | null }
   | { type: "refresh" }
   | { type: "showToast"; text: string };
 
@@ -131,6 +134,7 @@ export type WebviewMessage =
   | { type: "openProjectFolder" }
   | { type: "selectBead"; beadId: string }
   | { type: "updateBead"; beadId: string; updates: Partial<Bead> }
+  | { type: "saveBoardColumns"; projectId: string; config: BoardColumnsConfig | null }
   | { type: "deleteBead"; beadId: string }
   | { type: "addDependency"; beadId: string; targetId: string; dependencyType: DependencyType; reverse: boolean }
   | { type: "removeDependency"; beadId: string; dependsOnId: string }
