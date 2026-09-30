@@ -579,6 +579,13 @@ export function DetailsView({
         )}
       </div>
 
+      {displayBead.status === "closed" && displayBead.closeReason && (
+        <div className="details-section">
+          <h4>Close Reason</h4>
+          <TextContent content={displayBead.closeReason} renderMarkdown={renderMarkdown} />
+        </div>
+      )}
+
       {/* External Reference */}
       {(displayBead.externalRef || editMode) && (
         <div className="details-section compact">

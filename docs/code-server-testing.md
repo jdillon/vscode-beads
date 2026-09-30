@@ -141,6 +141,29 @@ For screenshots, create it at a neutral path (`/tmp/orbit-app`): the Dashboard
 prints PROJECT DIR verbatim, so a fixture under the repo leaks the local checkout
 path into the image.
 
+### Feature evidence screenshots
+
+For a user-visible change, verify the behavior in the generated test fixture
+first. Use the demo fixture for an issue or release screenshot so titles read
+like a product backlog. Create it under a neutral temporary path, then open
+that exact folder in code-server and trust only that generated fixture. Confirm
+the current extension-host log shows activation from the worktree under test.
+
+In Chrome DevTools MCP, select the affected bead and assert the new content in
+the accessibility snapshot. Open Details in an editor tab when the sidebar is
+too narrow. Hide unrelated panels and use viewport emulation for a compact
+capture (1200 × 720 worked for the close-reason view). Save an unmodified PNG,
+then optionally add a clearly separate callout and arrow in the browser page
+before taking a second PNG. Keep both files in a dated temporary directory,
+inspect each, and remove the temporary page annotation afterward. When opening
+a PR, upload the PNGs with `gh pr create --attach` so they appear in the PR
+description. An annotation is evidence guidance, not part of the extension UI.
+
+The Chrome DevTools MCP `filePath` option may reject paths outside its own
+configured roots, including this worktree. In that case, use the returned PNG
+image data with a local file writer; transfer it in chunks if the tool limits
+argument size. Do not use a screenshot from another checkout or a stale build.
+
 ### Long-lived fixtures in `beads-test.code-workspace`
 
 - `~/ws/jdillon/beads-fixture` — shared Dolt server mode, bd 1.1.0+ schema

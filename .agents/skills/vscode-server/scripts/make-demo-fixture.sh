@@ -160,7 +160,8 @@ new feature 3 "Keyboard shortcuts for the command palette" agent-2 >/dev/null
 
 new chore 3 "Bump dependencies to latest minor versions" >/dev/null
 ci=$(new chore 2 "Move CI from Travis to GitHub Actions" jdillon)
-bd close "$ci" --reason "Shipped in 0.9" >/dev/null
+# bd requires the closing actor to match the assignee for assigned issues.
+BEADS_ACTOR=jdillon bd close "$ci" --reason "Shipped in 0.9" >/dev/null
 new chore 4 "Remove the deprecated /v1 API shims" >/dev/null
 
 charting=$(new decision 2 "Charting library for the metrics view")
