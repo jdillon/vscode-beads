@@ -1,6 +1,7 @@
 import { execFile } from "child_process";
 import * as util from "util";
 import { Logger } from "../utils/logger";
+import type { ComputedWorkState } from "./types";
 import {
   AddCommentArgs,
   BackendCompatibility,
@@ -140,6 +141,44 @@ export class BeadsCommandRunner implements BeadsBackend {
   async list(): Promise<BeadsIssue[]> {
     const result = await this.runReadJson(createListCommandArgs(), { cacheTtlMs: 750 });
     return Array.isArray(result) ? (result as BeadsIssue[]) : [];
+  }
+
+  async getWorkState(): Promise<ComputedWorkState> {
+    // Ready has a default result limit; request every issue so absence means false.
+    const [readyIds, blockedBy] = await Promise.all([
+      this.runReadJson(["ready", "--limit", "0", "--json"], { cacheTtlMs: 750 })
+        .then((result) => {
+          if (!Array.isArray(result)) throw new Error("Unexpected bd ready response");
+          const ids = new Set<string>();
+          for (const issue of result) {
+            if (typeof issue?.id !== "string") throw new Error("Invalid bd ready issue ID");
+            ids.add(issue.id);
+          }
+          return ids;
+        })
+        .catch((err) => {
+          this.log.warn(`Failed to read bd ready: ${err}`);
+          return undefined;
+        }),
+      this.runReadJson(["blocked", "--json"], { cacheTtlMs: 750 })
+        .then((result) => {
+          if (!Array.isArray(result)) throw new Error("Unexpected bd blocked response");
+          const blockers = new Map<string, string[]>();
+          for (const issue of result) {
+            if (typeof issue?.id !== "string" || !Array.isArray(issue.blocked_by) ||
+                !issue.blocked_by.every((id: unknown) => typeof id === "string")) {
+              throw new Error("Invalid bd blocked issue or blocked_by IDs");
+            }
+            blockers.set(issue.id, issue.blocked_by);
+          }
+          return blockers;
+        })
+        .catch((err) => {
+          this.log.warn(`Failed to read bd blocked: ${err}`);
+          return undefined;
+        }),
+    ]);
+    return { readyIds, blockedBy };
   }
 
   async info(): Promise<Record<string, unknown>> {

@@ -213,6 +213,10 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
         this.log.trace(`Failed to fetch comments: ${err}`);
         return [];
       });
+      const workStatePromise = client.getWorkState().catch((err) => {
+        this.log.warn(`Failed to load computed work state: ${err}`);
+        return undefined;
+      });
       const issue = await client.show(beadId!);
 
       // Check if a newer request has started - if so, discard this stale response
@@ -225,12 +229,17 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
         const bead = issueToWebviewBead(issue);
         if (bead) {
           // Keep already displayed comments during refreshes of the same issue.
-          bead.comments = this.getSelectionPreview()?.comments;
+          const preview = this.getSelectionPreview();
+          bead.comments = preview?.comments;
+          bead.isReady = preview?.isReady;
+          bead.blockedBy = preview?.blockedBy;
           this.postMessage({ type: "setBead", bead: { ...bead } }, target);
-          const comments = await commentsPromise;
+          const [comments, workState] = await Promise.all([commentsPromise, workStatePromise]);
           if (!isCurrentRequest()) {
             return;
           }
+          bead.isReady = workState?.readyIds?.has(issue.id);
+          bead.blockedBy = workState?.blockedBy ? [...(workState.blockedBy.get(issue.id) ?? [])] : undefined;
           bead.comments = (comments ?? []).map((comment) => ({
             id: comment.id,
             author: comment.author,

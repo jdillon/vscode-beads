@@ -1882,6 +1882,28 @@ textarea {
   align-items: center;
 }
 
+.details-work-state {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm) var(--spacing-md);
+  margin-top: var(--spacing-sm);
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.work-state-blocker {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--vscode-textLink-foreground);
+  cursor: pointer;
+  font: inherit;
+}
+
+.work-state-blocker:hover {
+  text-decoration: underline;
+}
+
 .badges-spacer {
   flex: 1;
 }
@@ -2616,6 +2638,49 @@ textarea {
 }
 
 /* ==================== Kanban Board ==================== */
+
+.board-configure-btn {
+  padding: 4px 10px;
+  color: var(--vscode-foreground);
+  background: var(--vscode-button-secondaryBackground);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.board-editor {
+  max-height: 55vh;
+  overflow: auto;
+  padding: 12px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-editor-background);
+}
+
+.board-editor-heading,
+.board-editor-row,
+.board-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.board-editor-heading { justify-content: space-between; }
+.board-editor p { margin: 0 0 12px; color: var(--vscode-descriptionForeground); }
+.board-editor-tabs { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px; }
+.board-editor-tabs button { flex: none; padding: 4px 8px; color: var(--vscode-foreground); background: var(--vscode-button-secondaryBackground); border: 1px solid var(--vscode-panel-border); border-radius: 3px; }
+.board-editor-tabs button.active { color: var(--vscode-button-foreground); background: var(--vscode-button-background); }
+.board-editor-column { border: 1px solid var(--vscode-panel-border); border-radius: 5px; padding: 8px; margin-bottom: 8px; }
+.board-editor-fields { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
+.board-editor input { min-width: 100px; padding: 5px 7px; color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); border-radius: 3px; }
+.board-editor-row input { flex: 1; }
+.board-editor button { cursor: pointer; }
+.board-editor button:disabled { cursor: default; opacity: .5; }
+.board-editor-row > button,
+.board-editor-actions > button { padding: 4px 8px; color: var(--vscode-foreground); background: var(--vscode-button-secondaryBackground); border: 1px solid var(--vscode-panel-border); border-radius: 3px; }
+.board-editor-actions > button:last-child { color: var(--vscode-button-foreground); background: var(--vscode-button-background); }
+.board-rule-dropdown .dropdown-trigger { max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-color-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; }
 
 .kanban-board {
   display: flex;

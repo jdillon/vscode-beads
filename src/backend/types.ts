@@ -80,6 +80,8 @@ export interface Bead {
   type?: string; // Beads issue_type: bug, feature, task, epic, chore
   priority?: BeadPriority;
   status: BeadStatus;
+  isReady?: boolean; // Present in bd ready; undefined when the query is unavailable
+  blockedBy?: string[]; // Active blocker IDs from bd blocked; undefined when unavailable
   assignee?: string;
   labels?: string[];
   estimatedMinutes?: number; // Time estimate
@@ -120,6 +122,12 @@ export interface BeadDependency {
   title?: string;
   status?: BeadStatus;
   priority?: BeadPriority;
+}
+
+// Computed by bd ready and bd blocked; separate from the issue's stored status.
+export interface ComputedWorkState {
+  readyIds?: ReadonlySet<string>;
+  blockedBy?: ReadonlyMap<string, string[]>;
 }
 
 // Backend dependency format (before normalization)
@@ -187,6 +195,8 @@ export interface DependencyGraph {
   edges: { from: string; to: string; type: DependencyType }[];
 }
 
+import type { BoardColumnsConfig } from "../shared/board-columns";
+
 // Messages sent from extension to webview
 export type ExtensionToWebviewMessage =
   | { type: "setViewType"; viewType: string }
@@ -200,6 +210,7 @@ export type ExtensionToWebviewMessage =
   | { type: "setLoading"; loading: boolean }
   | { type: "setError"; error: string | null }
   | { type: "setSettings"; settings: WebviewSettings }
+  | { type: "setBoardColumns"; projectId: string | null; config: BoardColumnsConfig | null }
   | { type: "refresh" };
 
 // Messages sent from webview to extension
@@ -215,6 +226,7 @@ export type WebviewToExtensionMessage =
   | { type: "openProjectFolder" }
   | { type: "selectBead"; beadId: string }
   | { type: "updateBead"; beadId: string; updates: Partial<Bead> }
+  | { type: "saveBoardColumns"; projectId: string; config: BoardColumnsConfig | null }
   | { type: "deleteBead"; beadId: string }
   | { type: "addDependency"; beadId: string; targetId: string; dependencyType: DependencyType; reverse: boolean }
   | { type: "removeDependency"; beadId: string; dependsOnId: string }
@@ -403,7 +415,7 @@ export function issueToWebviewBead(issue: {
   dependencies?: BackendBeadDependency[];
   dependents?: BackendBeadDependency[];
   comments?: Array<{ id: string; author: string; text: string; created_at: string }>;
-}): Bead | null {
+}, workState?: ComputedWorkState): Bead | null {
   const status = normalizeStatus(issue.status);
   if (status === null) {
     return null;
@@ -418,6 +430,8 @@ export function issueToWebviewBead(issue: {
     type: issue.issue_type,
     priority: normalizePriority(issue.priority),
     status,
+    isReady: workState?.readyIds?.has(issue.id),
+    blockedBy: workState?.blockedBy ? [...(workState.blockedBy.get(issue.id) ?? [])] : undefined,
     assignee: issue.assignee,
     labels: issue.labels,
     estimatedMinutes: issue.estimated_minutes,

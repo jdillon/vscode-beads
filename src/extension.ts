@@ -60,7 +60,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   beadsPanelProvider = new BeadsPanelViewProvider(
     context.extensionUri,
     projectManager,
-    log
+    log,
+    context.workspaceState
   );
 
   detailsProvider = new BeadDetailsViewProvider(

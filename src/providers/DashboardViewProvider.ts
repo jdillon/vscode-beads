@@ -110,7 +110,7 @@ export class DashboardViewProvider extends BaseViewProvider {
         return;
       }
 
-      const beads = issues.map(issueToWebviewBead).filter((b): b is Bead => b !== null);
+      const beads = issues.map((issue) => issueToWebviewBead(issue)).filter((b): b is Bead => b !== null);
       // Seed the built-in statuses so they report 0 rather than undefined;
       // custom statuses are added on demand as they are encountered.
       const byStatus: Record<string, number> = Object.fromEntries(
