@@ -20,3 +20,6 @@ CLAUDE.local.md
 # OpenCode's generated plugin state remains local. Project MCP configuration is
 # tracked separately in the root opencode.json.
 .opencode/
+
+# bd flock gate files, created once and never deleted by bd.
+*.gate.lock*
