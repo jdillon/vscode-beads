@@ -52,8 +52,9 @@ matching `~/.local/share/code-server/logs/<session>/exthost*/planet57.vscode-bea
 Fresh code-server sessions can start in **Restricted Mode**. The extension will
 not activate and the activity icon stays hidden.
 
-For a test or demo fixture created by this repository's scripts during the current
-workflow, verify that the loaded `?folder=` path exactly matches the emitted
+For a test or demo fixture created by this repository's `make-test-fixture.sh` or
+`make-demo-fixture.sh` during the current workflow, verify that the loaded
+`?folder=` path exactly matches the emitted
 `FIXTURE_DIR` (also `WORKSPACE_DIR` for managed startup), then click **Yes, I trust
 the authors** through Chrome DevTools MCP without asking the user. This is a
 required fixture setup step, including in a new worktree. Leave the option to

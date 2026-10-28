@@ -76,7 +76,9 @@ DOM/accessibility state, click, read console messages, and capture screenshots.
 
 ## Workspace Trust
 
-Trust generated test and demo fixtures from the current workflow without asking.
+Trust only test and demo fixtures created by this repository's
+`make-test-fixture.sh` or `make-demo-fixture.sh` scripts during the current
+workflow without asking.
 Verify the loaded folder matches the emitted fixture path, then click **Yes, I
 trust the authors** through Chrome DevTools MCP, leaving parent-folder trust
 unchecked. This is required setup for a new fixture, including in a new worktree.
