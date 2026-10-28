@@ -76,8 +76,14 @@ DOM/accessibility state, click, read console messages, and capture screenshots.
 
 ## Workspace Trust
 
-Trust only a fixture generated during the current workflow without asking. For
-the current repository, require explicit approval to trust that exact checkout
+Trust only test and demo fixtures created by this repository's
+`make-test-fixture.sh` or `make-demo-fixture.sh` scripts during the current
+workflow without asking.
+Verify the loaded folder matches the emitted fixture path, then click **Yes, I
+trust the authors** through Chrome DevTools MCP, leaving parent-folder trust
+unchecked. This is required setup for a new fixture, including in a new worktree.
+
+For the current repository, require explicit approval to trust that exact checkout
 unless the user already granted it for this task. Stop and ask before trusting
 any other folder. Extension-host logs, not the browser console, prove
 activation; see `docs/code-server-testing.md`.

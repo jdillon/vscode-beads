@@ -50,10 +50,17 @@ matching `~/.local/share/code-server/logs/<session>/exthost*/planet57.vscode-bea
 ## Workspace Trust
 
 Fresh code-server sessions can start in **Restricted Mode**. The extension will
-not activate and the activity icon stays hidden. An agent may grant trust
-without asking only when the loaded folder exactly matches `WORKSPACE_DIR` and
-is a fixture created by this repository's fixture script during the current
-workflow. Trusting the current worktree requires explicit approval for that
+not activate and the activity icon stays hidden.
+
+For a test or demo fixture created by this repository's `make-test-fixture.sh` or
+`make-demo-fixture.sh` during the current workflow, verify that the loaded
+`?folder=` path exactly matches the emitted
+`FIXTURE_DIR` (also `WORKSPACE_DIR` for managed startup), then click **Yes, I trust
+the authors** through Chrome DevTools MCP without asking the user. This is a
+required fixture setup step, including in a new worktree. Leave the option to
+trust the parent folder unchecked; trust only the generated fixture.
+
+Trusting the current worktree requires explicit approval for that
 checkout unless the user already granted it for this task. Stop and ask before
 trusting any other folder. After trust changes reload the window, then confirm
 `Activating` and `Extension activated` in the current `Beads.log`.

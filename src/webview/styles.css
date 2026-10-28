@@ -181,7 +181,7 @@ textarea {
 }
 
 .dropdown-trigger:hover {
-  background: var(--vscode-dropdown-listBackground);
+  background: var(--vscode-dropdown-listBackground, var(--vscode-dropdown-background));
 }
 
 .dropdown-trigger:active {
@@ -194,7 +194,7 @@ textarea {
   left: 0;
   margin-top: 2px;
   min-width: 100%;
-  background: var(--vscode-dropdown-listBackground);
+  background: var(--vscode-dropdown-listBackground, var(--vscode-dropdown-background));
   border: 1px solid var(--vscode-dropdown-border);
   border-radius: var(--border-radius);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
