@@ -525,13 +525,13 @@ export abstract class BaseViewProvider implements vscode.WebviewViewProvider {
   /**
    * Triggers a refresh of the view
    */
-  public refresh(): void {
+  public async refresh(): Promise<void> {
     if (!this.isVisible) {
       return;
     }
 
     this.postProjectState();
-    this.loadData("background");
+    await this.loadData("background");
   }
 
   /** Refreshes as a user-initiated action, which shows the loading state. */

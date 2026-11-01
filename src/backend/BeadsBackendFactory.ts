@@ -3,11 +3,11 @@ import * as util from "util";
 import type { Logger } from "../utils/logger";
 import { BeadsBackend } from "./BeadsBackend";
 import { BeadsCommandRunner } from "./BeadsCommandRunner";
-import { BeadsDoltBackend } from "./BeadsDoltBackend";
+import { BeadsHttpBackend } from "./beads-http-backend";
 
 const execFileAsync = util.promisify(execFile);
 
-export type BeadsBackendKind = "cli" | "dolt-sql";
+export type BeadsBackendKind = "cli" | "http";
 
 type BackendFactoryParams = {
   bdPath: string;
@@ -15,15 +15,23 @@ type BackendFactoryParams = {
   beadsDir: string;
   log: Logger;
   minSupportedVersion?: string;
+  onMutation?: () => void;
 };
 
 type DoltShowInfo = {
   embedded?: unknown;
   mode?: unknown;
   backend?: unknown;
+  host?: unknown;
+  port?: unknown;
 };
 
 export async function createBeadsBackend(params: BackendFactoryParams): Promise<BeadsBackend> {
+  // Version detection does not open storage. Reject old installations before
+  // mode discovery or starting a long-lived process.
+  const cli = new BeadsCommandRunner(params);
+  const compatibility = await cli.checkCompatibility();
+  if (!compatibility.supported) return cli;
   const kind = await selectBackendKind(
     () => readDoltShowInfo(params),
     (error) => {
@@ -33,11 +41,12 @@ export async function createBeadsBackend(params: BackendFactoryParams): Promise<
 
   if (kind === "cli") {
     params.log.info("Using bd CLI backend for embedded Dolt project");
-    return new BeadsCommandRunner(params);
+    return cli;
   }
 
-  params.log.info("Using Dolt SQL backend");
-  return new BeadsDoltBackend(params);
+  await cli.dispose();
+  params.log.info("Using bd HTTP backend");
+  return new BeadsHttpBackend(params);
 }
 
 export async function selectBackendKind(
@@ -46,10 +55,14 @@ export async function selectBackendKind(
 ): Promise<BeadsBackendKind> {
   try {
     const info = await readDoltShowInfo();
-    return isEmbeddedDoltInfo(info) ? "cli" : "dolt-sql";
+    if (isEmbeddedDoltInfo(info)) return "cli";
+    const mode = typeof info.mode === "string" ? info.mode.toLowerCase() : "";
+    if (mode === "server" || mode === "proxied" ||
+        (typeof info.host === "string" && typeof info.port === "number")) return "http";
+    throw new Error("Cannot determine Beads storage mode from bd dolt show");
   } catch (error) {
     onDetectionError?.(error);
-    return "dolt-sql";
+    throw error;
   }
 }
 
@@ -69,8 +82,7 @@ async function readDoltShowInfo(params: BackendFactoryParams): Promise<DoltShowI
       BEADS_DIR: params.beadsDir,
     },
     maxBuffer: 1024 * 1024,
-    // Don't let a hung bd block project activation; on timeout the factory
-    // falls back to the Dolt SQL backend.
+    // Bound discovery; never guess a backend after failed mode detection.
     timeout: 5000,
     killSignal: "SIGTERM",
   });

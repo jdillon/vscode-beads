@@ -7,6 +7,7 @@
  */
 
 import * as vscode from "vscode";
+import { RefreshCoordinator } from "./backend/refresh-coordinator";
 import { BeadsProjectManager } from "./backend/BeadsProjectManager";
 import { DashboardViewProvider } from "./providers/DashboardViewProvider";
 import { BeadsPanelViewProvider } from "./providers/BeadsPanelViewProvider";
@@ -174,6 +175,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       vscode.window.setStatusBarMessage("$(check) Beads: Refreshed", 2000);
     }),
 
+    vscode.commands.registerCommand("beads.enableLiveUpdates", async () => {
+      const project = projectManager.getActiveProject();
+      const backend = projectManager.getBackend();
+      if (!project || !backend) return;
+      const action = await vscode.window.showWarningMessage(
+        `Enable the Beads events journal for ${project.name}? This changes this project's Beads configuration. Restart other long-running Beads writers to pick it up.`,
+        { modal: true }, "Enable"
+      );
+      if (action !== "Enable" || projectManager.getBackend() !== backend) return;
+      try { await projectManager.enableEventsJournal(); }
+      catch (error) { await log.errorNotify(`Unable to enable live updates: ${error}`); }
+    }),
+
     vscode.commands.registerCommand("beads.startDoltServer", async () => {
       const client = projectManager.getClient();
       const project = projectManager.getActiveProject();
@@ -284,6 +298,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
       items.push(
         { label: "$(refresh) Refresh", description: "Refresh Beads data" },
+        { label: "$(broadcast) Enable Live Updates", description: "Enable this project’s events journal" },
         { label: "$(server-process) Dolt Status", description: "Log Dolt server status" },
         { label: "$(play) Start Dolt", description: "Start the Dolt server for this project" },
         { label: "$(debug-stop) Stop Dolt", description: "Stop the Dolt server for this project" },
@@ -298,6 +313,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (selected) {
         if (selected.label.includes("Refresh")) {
           vscode.commands.executeCommand("beads.refresh");
+        } else if (selected.label.includes("Enable Live Updates")) {
+          vscode.commands.executeCommand("beads.enableLiveUpdates");
         } else if (selected.label.includes("Dolt Status")) {
           vscode.commands.executeCommand("beads.showDoltStatus");
         } else if (selected.label.includes("Start Dolt")) {
@@ -311,13 +328,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     })
   );
 
+  const refreshCoordinator = new RefreshCoordinator(
+    () => Promise.allSettled([dashboardProvider.refresh(), beadsPanelProvider.refresh(), detailsProvider.refresh()]),
+    (error) => log.warn(`Refresh failed: ${error}`)
+  );
+  context.subscriptions.push(refreshCoordinator);
   // Subscribe to project changes to refresh views
   context.subscriptions.push(
-    projectManager.onDataChanged(() => {
-      dashboardProvider.refresh();
-      beadsPanelProvider.refresh();
-      detailsProvider.refresh();
-    }),
+    projectManager.onDataChanged(() => refreshCoordinator.request()),
+    projectManager.onLiveUpdateStateChanged(() => { void updateStatusBar(); }),
 
     projectManager.onActiveProjectChanged(() => {
       beadsPanelProvider.setSelectedBead(null); // Clear selection on project switch
@@ -331,7 +350,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.workspace.onDidChangeWorkspaceFolders(async () => {
       log.info("Workspace folders changed, refreshing projects...");
       const previousActiveId = projectManager.getActiveProject()?.id;
-      await projectManager.discoverProjects();
+      await projectManager.refresh();
 
       // If active project was removed, switch to first available
       const projects = projectManager.getProjects();
@@ -376,6 +395,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
 export function deactivate(): void {
   log?.info("Extension deactivating...");
+  projectManager?.dispose();
 }
 
 /**
@@ -389,13 +409,14 @@ async function updateStatusBar(): Promise<void> {
     return;
   }
 
-  const status = await projectManager.getBackendStatus();
+  const status = await projectManager.getBackendStatus().catch((error) => ({ state: "unknown", message: String(error) }));
+  if (projectManager.getActiveProject() !== project) return;
 
   switch (status.state) {
     case "running":
       statusBar.text = "$(check) Beads";
       statusBar.backgroundColor = undefined;
-      statusBar.tooltip = `Beads ready for ${project.name}\n${status.message}\nClick for options`;
+      statusBar.tooltip = `Beads ready for ${project.name}\n${status.message}\nUpdates: ${projectManager.getLiveUpdateState()}\nClick for options`;
       break;
     case "stopped":
       statusBar.text = "$(circle-slash) Beads";

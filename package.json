@@ -109,6 +109,10 @@
         "command": "beads.copyBeadId",
         "title": "Beads: Copy Issue ID",
         "icon": "$(copy)"
+      },
+      {
+        "command": "beads.enableLiveUpdates",
+        "title": "Beads: Enable Live Updates"
       }
     ],
     "menus": {
@@ -163,8 +167,8 @@
         },
         "beads.refreshInterval": {
           "type": "number",
-          "default": 3000,
-          "description": "Polling interval in milliseconds for Dolt change detection (0 to disable)"
+          "default": 30000,
+          "description": "Authoritative refresh interval in milliseconds, alongside journal updates. Set to 0 to disable background updates."
         },
         "beads.renderMarkdown": {
           "type": "boolean",

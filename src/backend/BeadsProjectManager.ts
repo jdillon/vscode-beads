@@ -8,6 +8,8 @@ import { Logger } from "../utils/logger";
 import { resolveEnvVariables } from "../utils/resolve-env-variables";
 import { BeadsBackend, MIN_SUPPORTED_BD_VERSION } from "./BeadsBackend";
 import { createBeadsBackend } from "./BeadsBackendFactory";
+import { BeadsChangeSource } from "./beads-change-source";
+import { BeadsHttpBackend } from "./beads-http-backend";
 import { BeadsProject } from "./types";
 
 const ACTIVE_PROJECT_KEY = "beads.activeProjectId";
@@ -23,7 +25,36 @@ export class BeadsProjectManager implements vscode.Disposable {
   private backend: BeadsBackend | null = null;
 
   private activePollTimer: NodeJS.Timeout | null = null;
-  private activePollToken: string | null = null;
+  private changeSource: BeadsChangeSource | null = null;
+  private activationGeneration = 0;
+  private disposed = false;
+  private activationError: string | null = null;
+  private liveUpdateState = "periodic";
+
+  private readonly _onLiveUpdateStateChanged = new vscode.EventEmitter<void>();
+  public readonly onLiveUpdateStateChanged = this._onLiveUpdateStateChanged.event;
+
+  getLiveUpdateState(): string { return this.liveUpdateState; }
+
+  private invalidateData(): void {
+    this.backend?.invalidateReads?.();
+    this._onDataChanged.fire();
+  }
+
+  async enableEventsJournal(): Promise<void> {
+    const backend = this.backend;
+    const generation = this.activationGeneration;
+    if (!backend?.enableEventsJournal) throw new Error("No compatible active Beads project");
+    await backend.enableEventsJournal();
+    if (generation === this.activationGeneration) await this.refresh();
+  }
+
+  private stopWatching(): void {
+    if (this.activePollTimer) clearInterval(this.activePollTimer);
+    this.activePollTimer = null;
+    this.changeSource?.dispose();
+    this.changeSource = null;
+  }
 
   private readonly _onProjectsChanged = new vscode.EventEmitter<BeadsProject[]>();
   public readonly onProjectsChanged = this._onProjectsChanged.event;
@@ -128,8 +159,13 @@ export class BeadsProjectManager implements vscode.Disposable {
 
     const stillExists = this.projects.some((p) => p.id === activeId);
     if (!stillExists) {
+      const generation = ++this.activationGeneration;
+      this.stopWatching();
+      const oldBackend = this.backend;
       this.activeProject = null;
       this.backend = null;
+      await oldBackend?.dispose();
+      if (this.disposed || generation !== this.activationGeneration) return;
       this._onActiveProjectChanged.fire(null);
       this._onDataChanged.fire();
       return;
@@ -146,11 +182,14 @@ export class BeadsProjectManager implements vscode.Disposable {
   }
 
   async getBackendStatus(): Promise<{ state: BackendStatusState; message: string; details?: Record<string, unknown> }> {
-    if (!this.activeProject || !this.backend) {
+    const project = this.activeProject;
+    const backend = this.backend;
+    if (this.activationError) return { state: "stopped", message: this.activationError };
+    if (!project || !backend) {
       return { state: "unknown", message: "No active project" };
     }
 
-    const compatibility = await this.backend.checkCompatibility();
+    const compatibility = await backend.checkCompatibility();
     if (!compatibility.supported) {
       return {
         state: "stopped",
@@ -163,7 +202,7 @@ export class BeadsProjectManager implements vscode.Disposable {
     }
 
     try {
-      await this.backend.probeLive();
+      await backend.probeLive();
     } catch (error) {
       if (this.isNotInitializedError(error)) {
         return {
@@ -177,7 +216,7 @@ export class BeadsProjectManager implements vscode.Disposable {
         state: "zombie",
         message,
         details: {
-          beadsDir: this.activeProject.beadsDir,
+          beadsDir: project.beadsDir,
           detectedVersion: compatibility.detectedVersion,
           minimumVersion: compatibility.minimumVersion,
         },
@@ -188,7 +227,7 @@ export class BeadsProjectManager implements vscode.Disposable {
         state: "running",
         message: compatibility.message,
         details: {
-          beadsDir: this.activeProject.beadsDir,
+          beadsDir: project.beadsDir,
         },
       };
   }
@@ -221,13 +260,17 @@ export class BeadsProjectManager implements vscode.Disposable {
   }
 
   dispose(): void {
-    if (this.activePollTimer) {
-      clearInterval(this.activePollTimer);
-      this.activePollTimer = null;
-    }
+    if (this.disposed) return;
+    this.disposed = true;
+    this.activationGeneration++;
+    this.stopWatching();
+    const backend = this.backend;
+    this.backend = null;
+    void backend?.dispose().catch((error) => this.log.warn(`Backend disposal failed: ${error}`));
     this._onProjectsChanged.dispose();
     this._onActiveProjectChanged.dispose();
     this._onDataChanged.dispose();
+    this._onLiveUpdateStateChanged.dispose();
   }
 
   private getConfiguredProjectPaths(): string[] {
@@ -280,6 +323,7 @@ export class BeadsProjectManager implements vscode.Disposable {
         cwd: rootPath,
         env,
         maxBuffer: 1024 * 1024,
+        timeout: 5000,
       });
       const elapsedMs = Date.now() - startedAt;
       this.log.debug(`Completed discovery probe: ${commandLabel} (${elapsedMs}ms)`);
@@ -319,49 +363,37 @@ export class BeadsProjectManager implements vscode.Disposable {
   }
 
   private syncActiveProjectPolling(): void {
-    if (this.activePollTimer) {
-      clearInterval(this.activePollTimer);
-      this.activePollTimer = null;
-    }
-    this.activePollToken = null;
-
+    this.stopWatching();
     const project = this.activeProject;
     const backend = this.backend;
+    const generation = this.activationGeneration;
     if (!project || !backend) return;
-
-    const intervalMs = Math.max(
-      0,
-      vscode.workspace.getConfiguration("beads").get<number>("refreshInterval", 0)
-    );
+    const current = () => !this.disposed && generation === this.activationGeneration && this.backend === backend;
+    const configured = vscode.workspace.getConfiguration("beads").get<number>("refreshInterval", 30000);
+    const intervalMs = Number.isFinite(configured) ? Math.max(0, configured) : 30000;
+    this.liveUpdateState = intervalMs === 0 ? "manual" : "periodic";
     if (intervalMs === 0) return;
-
-    this.log.debug(`Watching Dolt changes for ${project.name} every ${intervalMs}ms`);
-
-    const poll = async () => {
-      if (this.activeProject?.id !== project.id || this.backend !== backend) return;
-      try {
-        this.log.trace(`Polling Dolt change token for ${project.name}`);
-        const token = await backend.getChangeToken();
-        if (!token) return;
-        if (this.activePollToken === null) {
-          this.activePollToken = token;
-          this.log.debug(`Initialized Dolt change token for ${project.name}`);
-          return;
-        }
-        if (token !== this.activePollToken) {
-          this.activePollToken = token;
-          this.log.debug(`Detected Dolt change for ${project.name}`);
-          this._onDataChanged.fire();
-        }
-      } catch (error) {
-        this.log.trace(`Active project poll failed: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    };
-
-    void poll();
+    this.changeSource = new BeadsChangeSource({
+      bdPath: this.getBdPath(), cwd: project.rootPath, beadsDir: project.beadsDir, log: this.log,
+      ...(backend instanceof BeadsHttpBackend ? { getHttpClient: () => backend.getHttpClient() } : {}),
+      onChange: () => { if (current()) this.invalidateData(); },
+      onState: (state) => {
+        if (!current()) return;
+        const next = state === "live" ? "live" : `periodic (${state})`;
+        if (this.liveUpdateState === next) return;
+        this.liveUpdateState = next;
+        this._onLiveUpdateStateChanged.fire();
+      },
+    });
+    this.changeSource.start();
+    // Journal events are hints: sync/restore/direct writes can bypass them.
+    // Periodically restart the cursor too, since sequence numbers can reset.
+    let reconciliations = 0;
     this.activePollTimer = setInterval(() => {
-      void poll();
-    }, intervalMs);
+      if (!current()) return;
+      this.invalidateData();
+      if (++reconciliations % 10 === 0 && this.liveUpdateState !== "periodic (disabled)") this.changeSource?.restart();
+    }, Math.max(1000, intervalMs));
   }
 
   private async tryStat(target: string): Promise<fs.Stats | null> {
@@ -376,49 +408,45 @@ export class BeadsProjectManager implements vscode.Disposable {
     project: BeadsProject,
     options: { emitActiveProjectChanged: boolean; persistSelection: boolean; emitDataChanged: boolean }
   ): Promise<void> {
+    this.activationError = null;
+    const generation = ++this.activationGeneration;
+    const current = () => !this.disposed && generation === this.activationGeneration;
+    this.stopWatching();
     const oldBackend = this.backend;
-    if (oldBackend) {
-      await oldBackend.dispose();
-    }
-
+    this.backend = null;
     this.activeProject = project;
-
+    await oldBackend?.dispose();
+    if (!current()) return;
     if (options.persistSelection) {
       await this.context.workspaceState.update(ACTIVE_PROJECT_KEY, project.id);
+      if (!current()) return;
     }
-
-    const bdPath = this.getBdPath();
-
-    this.backend = await createBeadsBackend({
-      bdPath,
-      cwd: project.rootPath,
-      beadsDir: project.beadsDir,
-      log: this.log,
-      minSupportedVersion: MIN_SUPPORTED_BD_VERSION,
-    });
-
-    project.backendStatus = "unknown";
-    this.activePollToken = null;
-
-    if (options.emitActiveProjectChanged) {
+    let backend: BeadsBackend;
+    try {
+      backend = await createBeadsBackend({
+      bdPath: this.getBdPath(), cwd: project.rootPath, beadsDir: project.beadsDir,
+      log: this.log, minSupportedVersion: MIN_SUPPORTED_BD_VERSION,
+      onMutation: () => { if (current()) this.invalidateData(); },
+      });
+    } catch (error) {
+      if (!current()) return;
+      this.activationError = error instanceof Error ? error.message : String(error);
+      project.backendStatus = "stopped";
+      this.log.warn(`Unable to activate Beads project: ${this.activationError}`);
       this._onActiveProjectChanged.fire(project);
+      this._onLiveUpdateStateChanged.fire();
+      this.invalidateData();
+      return;
     }
-
-    this.syncActiveProjectPolling();
-
-    if (options.emitDataChanged) {
-      this._onDataChanged.fire();
-    }
-
-    const compatibility = await this.backend.checkCompatibility();
+    if (!current()) { await backend.dispose(); return; }
+    this.backend = backend;
+    project.backendStatus = "unknown";
+    if (options.emitActiveProjectChanged) this._onActiveProjectChanged.fire(project);
+    if (options.emitDataChanged) this.invalidateData();
+    const compatibility = await backend.checkCompatibility();
+    if (!current()) return;
     project.backendStatus = compatibility.supported ? "running" : "stopped";
-    if (compatibility.supported) {
-      try {
-        this.activePollToken = await this.backend.getChangeToken();
-      } catch (error) {
-        this.log.trace(`Failed to initialize change token: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    }
+    if (compatibility.supported) this.syncActiveProjectPolling();
   }
 
   private resolveBdPath(configuredPath: string): string {

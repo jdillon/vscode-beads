@@ -7,8 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Opt-in journal notifications with periodic authoritative refreshes and live-update status (#98)
+
+### Changed
+
+- Require stable Beads 1.3.0+ and use its HTTP read API for server/proxied projects (#98)
+
 ### Fixed
 
+- Refresh after local writes and discard stale results across cache invalidation and project changes (#98)
 - Show the stored close reason in closed bead details (#96)
 
 ## [0.15.0] - 2026-09-09

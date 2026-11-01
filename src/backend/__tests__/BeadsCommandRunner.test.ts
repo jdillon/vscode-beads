@@ -101,3 +101,34 @@ describe("createUpdateCommandArgs", () => {
     ]);
   });
 });
+
+
+describe("read invalidation", () => {
+  function setup(onMutation = jest.fn()) {
+    const log = { child: () => log, trace: jest.fn() } as unknown as Logger;
+    const runner = new BeadsCommandRunner({ bdPath: "bd", cwd: "/tmp", beadsDir: "/tmp/.beads", log, onMutation });
+    const runJson = jest.spyOn(runner as unknown as { runJson(args: string[]): Promise<unknown> }, "runJson");
+    return { runner, runJson, onMutation };
+  }
+  it("does not cache an in-flight read that predates invalidation", async () => {
+    const { runner, runJson } = setup();
+    let resolve!: (value: unknown) => void;
+    runJson.mockImplementationOnce(() => new Promise(done => { resolve = done; })).mockResolvedValue([]);
+    const old = runner.list();
+    runner.invalidateReads();
+    const fresh = runner.list();
+    resolve([{ id: "old" }]);
+    await old; await fresh;
+    expect(await runner.list()).toEqual([]);
+    expect(runJson).toHaveBeenCalledTimes(2);
+  });
+  it("invalidates and notifies once even when a mutation response fails", async () => {
+    const { runner, runJson, onMutation } = setup();
+    runJson.mockResolvedValueOnce([]).mockRejectedValueOnce(new Error("connection lost")).mockResolvedValueOnce([]);
+    await runner.list();
+    await expect(runner.update({ id: "bd-1", title: "changed" })).rejects.toThrow("connection lost");
+    await runner.list();
+    expect(onMutation).toHaveBeenCalledTimes(1);
+    expect(runJson).toHaveBeenCalledTimes(3);
+  });
+});

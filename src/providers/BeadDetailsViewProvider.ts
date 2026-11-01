@@ -181,6 +181,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
     }
     const thisRequest = target ? this.loadSequence : ++this.loadSequence;
     const isCurrentRequest = () =>
+      this.projectManager.getClient() === client &&
       thisRequest === this.loadSequence &&
       (!target || this.targetLoadTokens.get(target) === targetLoadToken) &&
       (this.projectManager.getActiveProject()?.id ?? null) === activeProjectId &&
@@ -211,7 +212,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
       // Start both reads, but do not make the issue wait for slow comments.
       const commentsPromise = client.listComments(beadId!).catch((err) => {
         this.log.trace(`Failed to fetch comments: ${err}`);
-        return [];
+        return undefined;
       });
       const issue = await client.show(beadId!);
 
@@ -231,7 +232,8 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
           if (!isCurrentRequest()) {
             return;
           }
-          bead.comments = (comments ?? []).map((comment) => ({
+          if (comments === undefined) this.setError("Comments could not be refreshed; showing previously loaded comments.", target);
+          else bead.comments = comments.map((comment) => ({
             id: comment.id,
             author: comment.author,
             text: comment.text,
@@ -249,6 +251,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
           this.postMessage({ type: "setBead", bead: null }, target);
         }
       } else {
+        this.snapshot = null;
         this.setError("Bead not found", target);
         this.postMessage({ type: "setBead", bead: null }, target);
       }
@@ -258,7 +261,7 @@ export class BeadDetailsViewProvider extends BaseViewProvider {
         return;
       }
       this.setError(String(err), target);
-      this.postMessage({ type: "setBead", bead: null }, target);
+      // Keep the last successful selection during transient failures.
       this.handleBackendError("Failed to load bead details", err);
     } finally {
       // Only update loading state if this is still the current request

@@ -1,8 +1,10 @@
 # Beads - VS Code Extension
 
+> This branch contains a shelved, incomplete events/HTTP draft. See the [checkpoint and continuation notes](sandbox/2026-10-31-issue-98-shelved/README.md) before resuming.
+
 <img src="resources/icon.png" alt="Beads icon" width="128" align="right">
 
-VS Code extension for managing [Beads](https://github.com/gastownhall/beads) issues. Uses `bd` for project discovery and Dolt lifecycle control. Projects backed by a Dolt SQL server are read directly over SQL for a faster UI; projects using embedded Dolt go through the `bd` CLI.
+VS Code extension for managing [Beads](https://github.com/gastownhall/beads) issues. Uses `bd` for project discovery and Dolt lifecycle control. Server and proxied projects use an extension-owned loopback `bd serve` process for HTTP reads; embedded projects use the `bd` CLI. Writes use the CLI in both modes to preserve Beads hooks.
 
 <img src="docs/images/beads-issues.png" alt="Beads VS Code Extension" width="750">
 
@@ -50,8 +52,8 @@ VS Code extension for managing [Beads](https://github.com/gastownhall/beads) iss
 
 - Auto-detects `.beads` directories in workspace
 - Project switcher and compact dashboard controls
-- Direct Dolt-backed reads for issues, details, and comments
-- Configurable Dolt change polling for near-real-time updates
+- Beads HTTP/CLI reads for issues, details, and comments
+- Journal-driven updates with periodic authoritative refreshes
 
 ## Development
 
@@ -60,7 +62,7 @@ See [docs/development.md](docs/development.md) for build commands, architecture,
 ## Requirements
 
 - VS Code 1.85.0+
-- Beads CLI (`bd`) 1.0.5+ in PATH
+- Beads CLI (`bd`) 1.3.0+ (stable release) in PATH
 - Initialized project (`bd init`)
 
 ## Installation
@@ -114,10 +116,18 @@ controls rather than palette commands.
 | ----------------------- | ------- | --------------------------------------------------- |
 | `beads.pathToBd`          | `"bd"`  | Path to `bd` CLI                                     |
 | `beads.projects`          | `[]`    | Extra project paths to load (project root or `.beads`) |
-| `beads.refreshInterval`   | `3000`  | Dolt change polling interval in ms (0 = disable)     |
+| `beads.refreshInterval`   | `30000` | Authoritative refresh interval in ms (0 disables background updates) |
 | `beads.renderMarkdown`    | `true`  | Render markdown in text fields                       |
 | `beads.userId`            | `""`    | Your user ID for "Assign to me" (defaults to $USER)  |
 | `beads.tooltipHoverDelay` | `1000` | Delay in ms before showing tooltip on hover (0 = disable) |
+
+## Live updates
+
+Run **Beads: Enable Live Updates** to enable the active project's events journal. This explicitly changes that project's Beads configuration; restart other long-running Beads writers afterward. Journaling is optional. Without it, views still refresh periodically and after local edits. If journaling is enabled outside VS Code, run **Beads: Refresh** to reconnect.
+
+The status-bar tooltip reports live, periodic, or manual updates. Periodic refreshes cover changes that bypass the journal, such as sync and restore. Set `beads.refreshInterval` to `0` to disable background updates.
+
+HTTP requires server or proxied storage in released Beads 1.3. Embedded storage uses CLI reads and journal following; embedded HTTP support is not assumed. The extension stops its HTTP child when switching projects or closing. The child exposes Beads' write-capable API on an ephemeral loopback port; the extension itself uses only HTTP reads.
 
 ## Troubleshooting
 

@@ -67,6 +67,7 @@ export class DashboardViewProvider extends BaseViewProvider {
     }
     const thisRequest = target ? this.loadSequence : ++this.loadSequence;
     const isCurrentRequest = () =>
+      this.projectManager.getClient() === client &&
       thisRequest === this.loadSequence &&
       (!target || this.targetLoadTokens.get(target) === targetLoadToken);
     const client = this.projectManager.getClient();

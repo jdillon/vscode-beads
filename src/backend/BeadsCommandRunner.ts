@@ -29,9 +29,9 @@ function compareSemver(a: string, b: string): number {
 }
 
 function detectSemver(text: string): string | undefined {
-  const match = text.match(/(\d+)\.(\d+)\.(\d+)/);
+  const match = text.match(/(\d+)\.(\d+)\.(\d+)(-[0-9A-Za-z.-]+)?/);
   if (!match) return undefined;
-  return `${match[1]}.${match[2]}.${match[3]}`;
+  return `${match[1]}.${match[2]}.${match[3]}${match[4] ?? ""}`;
 }
 
 function toStringArray(values?: string[]): string[] {
@@ -105,6 +105,10 @@ export class BeadsCommandRunner implements BeadsBackend {
   private readonly beadsDir: string;
   private readonly log: Logger;
   private readonly minSupportedVersion: string;
+  private readonly onMutation?: () => void;
+  private readGeneration = 0;
+  private disposed = false;
+  private readonly lifetime = new AbortController();
   private compatibilityPromise: Promise<BackendCompatibility> | null = null;
   private readonly inFlightReads = new Map<string, Promise<unknown>>();
   private readonly recentJsonCache = new Map<string, { expiresAt: number; value: unknown }>();
@@ -115,7 +119,9 @@ export class BeadsCommandRunner implements BeadsBackend {
     beadsDir: string;
     log: Logger;
     minSupportedVersion?: string;
+    onMutation?: () => void;
   }) {
+    this.onMutation = params.onMutation;
     this.bdPath = params.bdPath;
     this.cwd = params.cwd;
     this.beadsDir = params.beadsDir;
@@ -124,6 +130,13 @@ export class BeadsCommandRunner implements BeadsBackend {
   }
 
   async dispose(): Promise<void> {
+    this.disposed = true;
+    this.lifetime.abort();
+    this.invalidateReads();
+  }
+
+  invalidateReads(): void {
+    this.readGeneration++;
     this.inFlightReads.clear();
     this.recentJsonCache.clear();
   }
@@ -134,7 +147,7 @@ export class BeadsCommandRunner implements BeadsBackend {
   }
 
   async probeLive(): Promise<void> {
-    await this.checkCompatibility();
+    await this.runJson(["list", "--limit", "1", "--json"]);
   }
 
   async list(): Promise<BeadsIssue[]> {
@@ -192,7 +205,7 @@ export class BeadsCommandRunner implements BeadsBackend {
     if (args.acceptance_criteria) cmdArgs.push("--acceptance", args.acceptance_criteria);
     if (args.assignee) cmdArgs.push("--assignee", args.assignee);
 
-    const result = await this.runJson(cmdArgs);
+    const result = await this.runMutation(cmdArgs);
     return this.pickSingleIssue(result, "create");
   }
 
@@ -213,26 +226,26 @@ export class BeadsCommandRunner implements BeadsBackend {
       return currentIssue;
     }
 
-    const result = await this.runJson(cmdArgs);
+    const result = await this.runMutation(cmdArgs);
     return this.pickSingleIssue(result, "update");
   }
 
   async close(args: CloseIssueArgs): Promise<BeadsIssue> {
     const cmdArgs = ["close", args.id, "--json"];
     if (args.reason) cmdArgs.push("--reason", args.reason);
-    const result = await this.runJson(cmdArgs);
+    const result = await this.runMutation(cmdArgs);
     return this.pickSingleIssue(result, "close");
   }
 
   async addDependency(args: DependencyArgs): Promise<void> {
     const depType = args.dep_type ?? "blocks";
-    await this.runJson(["dep", "add", args.from_id, args.to_id, "--type", depType, "--json"]);
+    await this.runMutation(["dep", "add", args.from_id, args.to_id, "--type", depType, "--json"]);
   }
 
   async removeDependency(args: DependencyArgs): Promise<void> {
     const cmdArgs = ["dep", "remove", args.from_id, args.to_id, "--json"];
     if (args.dep_type) cmdArgs.push("--type", args.dep_type);
-    await this.runJson(cmdArgs);
+    await this.runMutation(cmdArgs);
   }
 
   async listComments(id: string): Promise<Array<{ id: string; author: string; text: string; created_at: string }>> {
@@ -245,10 +258,26 @@ export class BeadsCommandRunner implements BeadsBackend {
   async addComment(args: AddCommentArgs): Promise<void> {
     const cmdArgs = ["comments", "add", args.id, args.text, "--json"];
     if (args.author) cmdArgs.push("--author", args.author);
-    await this.runJson(cmdArgs);
+    await this.runMutation(cmdArgs);
+  }
+
+  async enableEventsJournal(): Promise<void> {
+    await this.runText(["config", "set", "events-journal", "true"]);
+  }
+
+  private async runMutation(args: string[]): Promise<unknown> {
+    try {
+      return await this.runJson(args);
+    } finally {
+      // Even a failed response can follow a committed write. Never replay a
+      // mutation automatically; reconcile authoritative state instead.
+      this.invalidateReads();
+      if (!this.disposed) this.onMutation?.();
+    }
   }
 
   private async execBd(args: string[], maxBuffer: number): Promise<{ stdout: string; stderr: string }> {
+    if (this.disposed) throw new Error("Beads backend is disposed");
     const commandLabel = [this.bdPath, ...args].join(" ");
     this.log.debug(`Running: ${commandLabel} (cwd=${this.cwd}, BEADS_DIR=${this.beadsDir})`);
 
@@ -260,6 +289,7 @@ export class BeadsCommandRunner implements BeadsBackend {
         BEADS_DIR: this.beadsDir,
       },
       maxBuffer,
+      signal: this.lifetime.signal,
       timeout: BD_COMMAND_TIMEOUT_MS,
       killSignal: "SIGTERM",
     });
@@ -277,7 +307,7 @@ export class BeadsCommandRunner implements BeadsBackend {
     };
   }
 
-  private async runJson(args: string[], recoveryAttempted = false): Promise<unknown> {
+  private async runJson(args: string[]): Promise<unknown> {
     const compatibility = await this.checkCompatibility();
     if (!compatibility.supported) {
       throw new Error(compatibility.message);
@@ -296,15 +326,9 @@ export class BeadsCommandRunner implements BeadsBackend {
       this.log.trace(`bd command failed: ${args.join(" ")} :: ${rawMessage}`);
 
       if (this.isDoltConnectionError(rawMessage)) {
-        if (!recoveryAttempted) {
-          const recovered = await this.tryRecoverDolt(rawMessage);
-          if (recovered) {
-            return this.runJson(args, true);
-          }
-        }
 
         throw new Error(
-          "Beads cannot connect to the Dolt server for this project. Run `bd dolt start` and retry. See Output > Beads for details."
+          "Beads cannot connect to the Dolt server for this project. Check the project’s Dolt server configuration and retry. See Output > Beads for details."
         );
       }
 
@@ -331,10 +355,11 @@ export class BeadsCommandRunner implements BeadsBackend {
       return existing;
     }
 
+    const generation = this.readGeneration;
     const promise = this.runJson(args)
       .then((result) => {
         const ttlMs = options?.cacheTtlMs ?? 0;
-        if (ttlMs > 0) {
+        if (ttlMs > 0 && generation === this.readGeneration && !this.disposed) {
           this.recentJsonCache.set(cacheKey, {
             expiresAt: Date.now() + ttlMs,
             value: result,
@@ -343,7 +368,7 @@ export class BeadsCommandRunner implements BeadsBackend {
         return result;
       })
       .finally(() => {
-        this.inFlightReads.delete(cacheKey);
+        if (this.inFlightReads.get(cacheKey) === promise) this.inFlightReads.delete(cacheKey);
       });
 
     this.inFlightReads.set(cacheKey, promise);
@@ -398,12 +423,12 @@ export class BeadsCommandRunner implements BeadsBackend {
 
     this.log.debug(`Using bd ${version} from ${this.bdPath}`);
 
-    if (compareSemver(version, this.minSupportedVersion) < 0) {
+    if (version.includes("-") || compareSemver(version, this.minSupportedVersion) < 0) {
       return {
         supported: false,
         detectedVersion: version,
         minimumVersion: this.minSupportedVersion,
-        message: `Unsupported bd version ${version}. Requires >= ${this.minSupportedVersion}.`,
+        message: `Unsupported bd version ${version}. Requires a stable release >= ${this.minSupportedVersion}.`,
       };
     }
 
@@ -487,24 +512,4 @@ export class BeadsCommandRunner implements BeadsBackend {
     );
   }
 
-  private async tryRecoverDolt(rawMessage: string): Promise<boolean> {
-    this.log.info(`Attempting Dolt recovery after CLI failure: ${rawMessage}`);
-
-    try {
-      const status = await this.runText(["dolt", "status"]);
-      this.log.debug(`Current Dolt status before recovery: ${status}`);
-    } catch (error) {
-      this.log.debug(`Unable to read Dolt status before recovery: ${error instanceof Error ? error.message : String(error)}`);
-    }
-
-    try {
-      const output = await this.runText(["dolt", "start"]);
-      this.log.info(`Dolt recovery start result: ${output || "<no output>"}`);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      return true;
-    } catch (error) {
-      this.log.warn(`Dolt recovery failed: ${error instanceof Error ? error.message : String(error)}`);
-      return false;
-    }
-  }
 }

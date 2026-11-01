@@ -13,7 +13,7 @@ describe("selectBackendKind", () => {
     expect(kind).toBe("cli");
   });
 
-  it("keeps the Dolt SQL backend for server-mode projects", async () => {
+  it("uses the HTTP backend for server-mode projects", async () => {
     const kind = await selectBackendKind(async () => ({
       host: "127.0.0.1",
       port: 3306,
@@ -23,14 +23,17 @@ describe("selectBackendKind", () => {
       shared_server: false,
     }));
 
-    expect(kind).toBe("dolt-sql");
+    expect(kind).toBe("http");
   });
 
-  it("falls back to the Dolt SQL backend when mode detection fails", async () => {
-    const kind = await selectBackendKind(async () => {
-      throw new Error("bd dolt show failed");
-    });
-
-    expect(kind).toBe("dolt-sql");
+  it("does not guess a backend when mode detection fails", async () => {
+    await expect(selectBackendKind(async () => { throw new Error("bd dolt show failed"); }))
+      .rejects.toThrow("bd dolt show failed");
+  });
+  it("rejects unknown storage modes", async () => {
+    await expect(selectBackendKind(async () => ({ mode: "unknown" }))).rejects.toThrow("Cannot determine");
+  });
+  it("uses HTTP for proxied mode", async () => {
+    expect(await selectBackendKind(async () => ({ mode: "proxied" }))).toBe("http");
   });
 });
