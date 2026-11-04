@@ -51,8 +51,9 @@ const HIDDEN_LIST_TYPES = ["gate", "agent", "role", "message"];
 
 type Env = Record<string, string | undefined>;
 
-function doltCredentialsPath(env: Env): string {
-  if (env.BEADS_CREDENTIALS_FILE) return env.BEADS_CREDENTIALS_FILE;
+/** A relative BEADS_CREDENTIALS_FILE resolves against `cwd` because bd opens it from the project directory. */
+function doltCredentialsPath(env: Env, cwd: string): string {
+  if (env.BEADS_CREDENTIALS_FILE) return path.resolve(cwd, env.BEADS_CREDENTIALS_FILE);
   if (process.platform === "win32" && env.APPDATA) {
     return path.join(env.APPDATA, "beads", "credentials");
   }
@@ -73,12 +74,12 @@ function doltCredentialsSectionKeys(host: string, port: number): string[] {
  * connection does. `#` cuts a line even inside a value, as bd does, so a
  * password bd can't read is one the extension doesn't send either.
  */
-export function resolveDoltPassword(host: string, port: number, env: Env): string {
+export function resolveDoltPassword(host: string, port: number, env: Env, cwd: string): string {
   if (env.BEADS_DOLT_PASSWORD) return env.BEADS_DOLT_PASSWORD;
 
   let content: string;
   try {
-    content = fs.readFileSync(doltCredentialsPath(env), "utf8");
+    content = fs.readFileSync(doltCredentialsPath(env, cwd), "utf8");
   } catch {
     return "";
   }
@@ -512,7 +513,7 @@ export class BeadsDoltBackend implements BeadsBackend {
         this.pool = null;
       }
       this.connectionInfo = info;
-      const password = resolveDoltPassword(info.host, info.port, process.env);
+      const password = resolveDoltPassword(info.host, info.port, process.env, this.cwd);
       const pool = mysql.createPool({
         host: info.host,
         port: info.port,
@@ -529,13 +530,13 @@ export class BeadsDoltBackend implements BeadsBackend {
       try {
         await pool.query("SELECT 1");
       } catch (error) {
-        if ((error as { code?: string }).code !== "ER_ACCESS_DENIED_ERROR") throw error;
         await pool.end().catch(() => undefined);
+        if ((error as { code?: string }).code !== "ER_ACCESS_DENIED_ERROR") throw error;
         const section = doltCredentialsSectionKeys(info.host, info.port)[0];
         const passwordState = password ? "A password was found but the server rejected it." : "No password was found.";
         throw new Error(
           `Dolt SQL access denied for user '${info.user}' at ${info.host}:${info.port}. ${passwordState} ` +
-          `Set BEADS_DOLT_PASSWORD or add password=... under [${section}] in ${doltCredentialsPath(process.env)}.`
+          `Set BEADS_DOLT_PASSWORD or add password=... under [${section}] in ${doltCredentialsPath(process.env, this.cwd)}.`
         );
       }
       this.pool = pool;

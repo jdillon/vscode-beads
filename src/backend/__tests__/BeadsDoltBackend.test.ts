@@ -71,6 +71,9 @@ describe("resolveDoltPassword", () => {
       "",
       "[[::1]:3307]",
       "password=quince",
+      "",
+      "[fe80::1:3307]",
+      "password=mango",
     ].join("\n"));
   });
 
@@ -84,8 +87,10 @@ describe("resolveDoltPassword", () => {
     ["wrong port gives empty", "orchard.example", 3308, {}, ""],
     ["# cuts the value", "seeds.example", 3307, {}, "apple"],
     ["bracketed IPv6 host", "[::1]", 3307, {}, "quince"],
+    ["legacy unbracketed IPv6 section", "fe80::1", 3307, {}, "mango"],
+    ["relative file resolves against project cwd", "orchard.example", 3307, { BEADS_CREDENTIALS_FILE: "credentials" }, "pear-cider"],
     ["missing file gives empty", "orchard.example", 3307, { BEADS_CREDENTIALS_FILE: "/nonexistent/credentials" }, ""],
   ])("%s", (_name, host, port, env, expected) => {
-    expect(resolveDoltPassword(host, port, { BEADS_CREDENTIALS_FILE: credentialsFile, ...env })).toBe(expected);
+    expect(resolveDoltPassword(host, port, { BEADS_CREDENTIALS_FILE: credentialsFile, ...env }, dir)).toBe(expected);
   });
 });
