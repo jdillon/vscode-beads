@@ -55,7 +55,12 @@ type Env = Record<string, string | undefined>;
 
 /** Like Go's strings.TrimSpace, which keeps a leading U+FEFF that String.trim() strips. */
 function trimSpace(s: string): string {
-  return s.replace(/^[^\S\uFEFF]+|[^\S\uFEFF]+$/g, "");
+  const isSpace = (c: string) => c !== "\uFEFF" && c.trim() === "";
+  let start = 0;
+  let end = s.length;
+  while (start < end && isSpace(s[start])) start++;
+  while (end > start && isSpace(s[end - 1])) end--;
+  return s.slice(start, end);
 }
 
 /** A relative BEADS_CREDENTIALS_FILE resolves against `cwd` because bd opens it from the project directory. */

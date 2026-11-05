@@ -63,6 +63,10 @@ describe("resolveDoltPassword", () => {
     credentialsFile = path.join(dir, "credentials");
     // bd's strings.TrimSpace keeps the BOM, so the first header never matches there.
     fs.writeFileSync(path.join(dir, "credentials-bom"), "\uFEFF[bom.example:3307]\npassword=pomelo\n\n[after.example:3307]\npassword=kiwi\n");
+    fs.writeFileSync(
+      path.join(dir, "credentials-bom-mid"),
+      "[one.example:3307]\n\uFEFF[two.example:3307]\npassword=carried\n\n[pad.example:3307]\n \t password \t=\t plain \t \n"
+    );
     fs.writeFileSync(credentialsFile, [
       "[orchard.example:3307]",
       "password = pear-cider",
@@ -94,6 +98,8 @@ describe("resolveDoltPassword", () => {
     ["missing file gives empty", "orchard.example", 3307, { BEADS_CREDENTIALS_FILE: "/nonexistent/credentials" }, ""],
     ["BOM-prefixed first section is ignored, as in bd", "bom.example", 3307, { BEADS_CREDENTIALS_FILE: "credentials-bom" }, ""],
     ["section after a BOM-prefixed first line still matches", "after.example", 3307, { BEADS_CREDENTIALS_FILE: "credentials-bom" }, "kiwi"],
+    ["BOM-prefixed later header does not end the previous section, as in bd", "one.example", 3307, { BEADS_CREDENTIALS_FILE: "credentials-bom-mid" }, "carried"],
+    ["whitespace around a value is trimmed", "pad.example", 3307, { BEADS_CREDENTIALS_FILE: "credentials-bom-mid" }, "plain"],
   ])("%s", (_name, host, port, env, expected) => {
     expect(resolveDoltPassword(host, port, { BEADS_CREDENTIALS_FILE: credentialsFile, ...env }, dir)).toBe(expected);
   });
