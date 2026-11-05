@@ -25,6 +25,7 @@ interface DoltConnectionInfo {
   user: string;
   database: string;
   sharedServer: boolean;
+  tls: boolean;
 }
 
 interface DoltShowInfo {
@@ -34,6 +35,7 @@ interface DoltShowInfo {
   database?: string;
   connection_ok?: boolean;
   shared_server?: boolean;
+  tls?: boolean;
 }
 
 type SqlRow = Record<string, unknown>;
@@ -51,6 +53,16 @@ const HIDDEN_LIST_TYPES = ["gate", "agent", "role", "message"];
 
 type Env = Record<string, string | undefined>;
 
+/** Like Go's strings.TrimSpace, which keeps a leading U+FEFF that String.trim() strips. */
+function trimSpace(s: string): string {
+  const isSpace = (c: string) => c !== "\uFEFF" && c.trim() === "";
+  let start = 0;
+  let end = s.length;
+  while (start < end && isSpace(s[start])) start++;
+  while (end > start && isSpace(s[end - 1])) end--;
+  return s.slice(start, end);
+}
+
 /** A relative BEADS_CREDENTIALS_FILE resolves against `cwd` because bd opens it from the project directory. */
 function doltCredentialsPath(env: Env, cwd: string): string {
   if (env.BEADS_CREDENTIALS_FILE) return path.resolve(cwd, env.BEADS_CREDENTIALS_FILE);
@@ -62,7 +74,7 @@ function doltCredentialsPath(env: Env, cwd: string): string {
 
 /** Mirrors bd's CredentialsSectionKeys: the net.JoinHostPort form first, then the legacy host:port form. */
 function doltCredentialsSectionKeys(host: string, port: number): string[] {
-  let bare = host.trim();
+  let bare = trimSpace(host);
   if (bare.startsWith("[") && bare.endsWith("]")) bare = bare.slice(1, -1);
   const joined = bare.includes(":") ? `[${bare}]:${port}` : `${bare}:${port}`;
   const legacy = `${bare}:${port}`;
@@ -88,9 +100,9 @@ export function resolveDoltPassword(host: string, port: number, env: Env, cwd: s
   const found = new Map<string, string>();
   let section: string | null = null;
   for (const rawLine of content.split("\n")) {
-    let line = rawLine.trim();
+    let line = trimSpace(rawLine);
     const commentAt = line.indexOf("#");
-    if (commentAt >= 0) line = line.slice(0, commentAt).trim();
+    if (commentAt >= 0) line = trimSpace(line.slice(0, commentAt));
     if (!line) continue;
 
     if (line.startsWith("[") && line.endsWith("]")) {
@@ -100,8 +112,8 @@ export function resolveDoltPassword(host: string, port: number, env: Env, cwd: s
     }
 
     const eq = line.indexOf("=");
-    if (section && eq >= 0 && line.slice(0, eq).trim() === "password" && !found.has(section)) {
-      found.set(section, line.slice(eq + 1).trim());
+    if (section && eq >= 0 && trimSpace(line.slice(0, eq)) === "password" && !found.has(section)) {
+      found.set(section, trimSpace(line.slice(eq + 1)));
     }
   }
 
@@ -520,6 +532,10 @@ export class BeadsDoltBackend implements BeadsBackend {
         user: info.user,
         database: info.database,
         ...(password ? { password } : {}),
+        // bd dials with go-sql-driver tls=true: verify the chain and the hostname, no plaintext fallback.
+        // mysql2 skips the hostname check unless verifyIdentity is set.
+        // shortcut: mysql2 checks an IP host against "localhost", so a cert valid only for that IP is rejected; hand-roll the TLS upgrade if that bites.
+        ...(info.tls ? { ssl: { verifyIdentity: true } } : {}),
         connectionLimit: 1,
         maxIdle: 1,
         idleTimeout: 60000,
@@ -565,7 +581,7 @@ export class BeadsDoltBackend implements BeadsBackend {
       throw new Error(`Unable to determine Dolt connection details. status=${statusOutput} show=${JSON.stringify(showInfo)}`);
     }
 
-    return { host, port, user, database, sharedServer: showInfo.shared_server === true };
+    return { host, port, user, database, sharedServer: showInfo.shared_server === true, tls: showInfo.tls === true };
   }
 
   private async ensureServerRunning(): Promise<string> {
@@ -652,7 +668,7 @@ export class BeadsDoltBackend implements BeadsBackend {
   }
 
   private sameConnectionInfo(a: DoltConnectionInfo, b: DoltConnectionInfo): boolean {
-    return a.host === b.host && a.port === b.port && a.user === b.user && a.database === b.database;
+    return a.host === b.host && a.port === b.port && a.user === b.user && a.database === b.database && a.tls === b.tls;
   }
 
   private isConnectionError(message: string): boolean {

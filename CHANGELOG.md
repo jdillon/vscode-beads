@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Authenticate SQL reads against password-protected Dolt servers (#104)
+- Connect to Dolt over TLS when `bd` reports it; a private CA outside Node's bundled roots may need `NODE_EXTRA_CA_CERTS` (#105)
+
 ## [0.16.0] - 2026-10-27
 
 ### Fixed
