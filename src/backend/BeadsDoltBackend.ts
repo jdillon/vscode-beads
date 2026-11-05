@@ -25,6 +25,7 @@ interface DoltConnectionInfo {
   user: string;
   database: string;
   sharedServer: boolean;
+  tls: boolean;
 }
 
 interface DoltShowInfo {
@@ -34,6 +35,7 @@ interface DoltShowInfo {
   database?: string;
   connection_ok?: boolean;
   shared_server?: boolean;
+  tls?: boolean;
 }
 
 type SqlRow = Record<string, unknown>;
@@ -525,6 +527,10 @@ export class BeadsDoltBackend implements BeadsBackend {
         user: info.user,
         database: info.database,
         ...(password ? { password } : {}),
+        // bd dials with go-sql-driver tls=true: verify the chain and the hostname, no plaintext fallback.
+        // mysql2 skips the hostname check unless verifyIdentity is set.
+        // shortcut: mysql2 checks an IP host against "localhost", so a cert valid only for that IP is rejected; hand-roll the TLS upgrade if that bites.
+        ...(info.tls ? { ssl: { verifyIdentity: true } } : {}),
         connectionLimit: 1,
         maxIdle: 1,
         idleTimeout: 60000,
@@ -570,7 +576,7 @@ export class BeadsDoltBackend implements BeadsBackend {
       throw new Error(`Unable to determine Dolt connection details. status=${statusOutput} show=${JSON.stringify(showInfo)}`);
     }
 
-    return { host, port, user, database, sharedServer: showInfo.shared_server === true };
+    return { host, port, user, database, sharedServer: showInfo.shared_server === true, tls: showInfo.tls === true };
   }
 
   private async ensureServerRunning(): Promise<string> {
@@ -657,7 +663,7 @@ export class BeadsDoltBackend implements BeadsBackend {
   }
 
   private sameConnectionInfo(a: DoltConnectionInfo, b: DoltConnectionInfo): boolean {
-    return a.host === b.host && a.port === b.port && a.user === b.user && a.database === b.database;
+    return a.host === b.host && a.port === b.port && a.user === b.user && a.database === b.database && a.tls === b.tls;
   }
 
   private isConnectionError(message: string): boolean {
