@@ -1,5 +1,8 @@
 import { execFile } from "child_process";
+import * as fs from "fs";
 import mysql from "mysql2/promise";
+import * as os from "os";
+import * as path from "path";
 import * as util from "util";
 import { Logger } from "../utils/logger";
 import {
@@ -45,6 +48,69 @@ type SqlRow = Record<string, unknown>;
  * molecules are hidden, which the is_template check covers.
  */
 const HIDDEN_LIST_TYPES = ["gate", "agent", "role", "message"];
+
+type Env = Record<string, string | undefined>;
+
+/** A relative BEADS_CREDENTIALS_FILE resolves against `cwd` because bd opens it from the project directory. */
+function doltCredentialsPath(env: Env, cwd: string): string {
+  if (env.BEADS_CREDENTIALS_FILE) return path.resolve(cwd, env.BEADS_CREDENTIALS_FILE);
+  if (process.platform === "win32" && env.APPDATA) {
+    return path.join(env.APPDATA, "beads", "credentials");
+  }
+  return path.join(os.homedir(), ".config", "beads", "credentials");
+}
+
+/** Mirrors bd's CredentialsSectionKeys: the net.JoinHostPort form first, then the legacy host:port form. */
+function doltCredentialsSectionKeys(host: string, port: number): string[] {
+  let bare = host.trim();
+  if (bare.startsWith("[") && bare.endsWith("]")) bare = bare.slice(1, -1);
+  const joined = bare.includes(":") ? `[${bare}]:${port}` : `${bare}:${port}`;
+  const legacy = `${bare}:${port}`;
+  return joined === legacy ? [joined] : [joined, legacy];
+}
+
+/**
+ * Mirrors bd's ServerPasswordFor so SQL reads authenticate exactly as bd's own
+ * connection does. `#` cuts a line even inside a value, as bd does, so a
+ * password bd can't read is one the extension doesn't send either.
+ */
+export function resolveDoltPassword(host: string, port: number, env: Env, cwd: string): string {
+  if (env.BEADS_DOLT_PASSWORD) return env.BEADS_DOLT_PASSWORD;
+
+  let content: string;
+  try {
+    content = fs.readFileSync(doltCredentialsPath(env, cwd), "utf8");
+  } catch {
+    return "";
+  }
+
+  const keys = doltCredentialsSectionKeys(host, port);
+  const found = new Map<string, string>();
+  let section: string | null = null;
+  for (const rawLine of content.split("\n")) {
+    let line = rawLine.trim();
+    const commentAt = line.indexOf("#");
+    if (commentAt >= 0) line = line.slice(0, commentAt).trim();
+    if (!line) continue;
+
+    if (line.startsWith("[") && line.endsWith("]")) {
+      const name = line.slice(1, -1);
+      section = keys.includes(name) ? name : null;
+      continue;
+    }
+
+    const eq = line.indexOf("=");
+    if (section && eq >= 0 && line.slice(0, eq).trim() === "password" && !found.has(section)) {
+      found.set(section, line.slice(eq + 1).trim());
+    }
+  }
+
+  for (const key of keys) {
+    const password = found.get(key);
+    if (password !== undefined) return password;
+  }
+  return "";
+}
 
 export class BeadsDoltBackend implements BeadsBackend {
   private readonly cli: BeadsCommandRunner;
@@ -447,11 +513,13 @@ export class BeadsDoltBackend implements BeadsBackend {
         this.pool = null;
       }
       this.connectionInfo = info;
+      const password = resolveDoltPassword(info.host, info.port, process.env, this.cwd);
       const pool = mysql.createPool({
         host: info.host,
         port: info.port,
         user: info.user,
         database: info.database,
+        ...(password ? { password } : {}),
         connectionLimit: 1,
         maxIdle: 1,
         idleTimeout: 60000,
@@ -459,7 +527,18 @@ export class BeadsDoltBackend implements BeadsBackend {
         dateStrings: true,
         enableKeepAlive: true,
       });
-      await pool.query("SELECT 1");
+      try {
+        await pool.query("SELECT 1");
+      } catch (error) {
+        await pool.end().catch(() => undefined);
+        if ((error as { code?: string }).code !== "ER_ACCESS_DENIED_ERROR") throw error;
+        const section = doltCredentialsSectionKeys(info.host, info.port)[0];
+        const passwordState = password ? "A password was found but the server rejected it." : "No password was found.";
+        throw new Error(
+          `Dolt SQL access denied for user '${info.user}' at ${info.host}:${info.port}. ${passwordState} ` +
+          `Set BEADS_DOLT_PASSWORD or add password=... under [${section}] in ${doltCredentialsPath(process.env, this.cwd)}.`
+        );
+      }
       this.pool = pool;
       const mode = info.sharedServer ? "shared" : "per-project";
       this.log.info(`Connected to Dolt SQL at ${info.host}:${info.port}/${info.database} (${mode} server)`);

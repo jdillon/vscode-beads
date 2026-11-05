@@ -1,4 +1,7 @@
-import { BeadsDoltBackend } from "../BeadsDoltBackend";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
+import { BeadsDoltBackend, resolveDoltPassword } from "../BeadsDoltBackend";
 import { Logger } from "../../utils/logger";
 
 const issueRow = {
@@ -48,5 +51,46 @@ describe("BeadsDoltBackend close reason", () => {
 
     expect(query.mock.calls[0][0]).toMatch(/close_reason\s+FROM issues/);
     expect(issue).toMatchObject({ status: "closed", close_reason: issueRow.close_reason });
+  });
+});
+
+describe("resolveDoltPassword", () => {
+  let dir: string;
+  let credentialsFile: string;
+
+  beforeAll(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "dolt-credentials-"));
+    credentialsFile = path.join(dir, "credentials");
+    fs.writeFileSync(credentialsFile, [
+      "[orchard.example:3307]",
+      "password = pear-cider",
+      "password=second-ignored",
+      "",
+      "[seeds.example:3307]",
+      "password=apple#core",
+      "",
+      "[[::1]:3307]",
+      "password=quince",
+      "",
+      "[fe80::1:3307]",
+      "password=mango",
+    ].join("\n"));
+  });
+
+  afterAll(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it.each([
+    ["env wins over file", "orchard.example", 3307, { BEADS_DOLT_PASSWORD: "plum-jam" }, "plum-jam"],
+    ["empty env falls back to file", "orchard.example", 3307, { BEADS_DOLT_PASSWORD: "" }, "pear-cider"],
+    ["wrong port gives empty", "orchard.example", 3308, {}, ""],
+    ["# cuts the value", "seeds.example", 3307, {}, "apple"],
+    ["bracketed IPv6 host", "[::1]", 3307, {}, "quince"],
+    ["legacy unbracketed IPv6 section", "fe80::1", 3307, {}, "mango"],
+    ["relative file resolves against project cwd", "orchard.example", 3307, { BEADS_CREDENTIALS_FILE: "credentials" }, "pear-cider"],
+    ["missing file gives empty", "orchard.example", 3307, { BEADS_CREDENTIALS_FILE: "/nonexistent/credentials" }, ""],
+  ])("%s", (_name, host, port, env, expected) => {
+    expect(resolveDoltPassword(host, port, { BEADS_CREDENTIALS_FILE: credentialsFile, ...env }, dir)).toBe(expected);
   });
 });
