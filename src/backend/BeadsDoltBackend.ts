@@ -51,6 +51,11 @@ const HIDDEN_LIST_TYPES = ["gate", "agent", "role", "message"];
 
 type Env = Record<string, string | undefined>;
 
+/** Like Go's strings.TrimSpace, which keeps a leading U+FEFF that String.trim() strips. */
+function trimSpace(s: string): string {
+  return s.replace(/^[^\S\uFEFF]+|[^\S\uFEFF]+$/g, "");
+}
+
 /** A relative BEADS_CREDENTIALS_FILE resolves against `cwd` because bd opens it from the project directory. */
 function doltCredentialsPath(env: Env, cwd: string): string {
   if (env.BEADS_CREDENTIALS_FILE) return path.resolve(cwd, env.BEADS_CREDENTIALS_FILE);
@@ -62,7 +67,7 @@ function doltCredentialsPath(env: Env, cwd: string): string {
 
 /** Mirrors bd's CredentialsSectionKeys: the net.JoinHostPort form first, then the legacy host:port form. */
 function doltCredentialsSectionKeys(host: string, port: number): string[] {
-  let bare = host.trim();
+  let bare = trimSpace(host);
   if (bare.startsWith("[") && bare.endsWith("]")) bare = bare.slice(1, -1);
   const joined = bare.includes(":") ? `[${bare}]:${port}` : `${bare}:${port}`;
   const legacy = `${bare}:${port}`;
@@ -88,9 +93,9 @@ export function resolveDoltPassword(host: string, port: number, env: Env, cwd: s
   const found = new Map<string, string>();
   let section: string | null = null;
   for (const rawLine of content.split("\n")) {
-    let line = rawLine.trim();
+    let line = trimSpace(rawLine);
     const commentAt = line.indexOf("#");
-    if (commentAt >= 0) line = line.slice(0, commentAt).trim();
+    if (commentAt >= 0) line = trimSpace(line.slice(0, commentAt));
     if (!line) continue;
 
     if (line.startsWith("[") && line.endsWith("]")) {
@@ -100,8 +105,8 @@ export function resolveDoltPassword(host: string, port: number, env: Env, cwd: s
     }
 
     const eq = line.indexOf("=");
-    if (section && eq >= 0 && line.slice(0, eq).trim() === "password" && !found.has(section)) {
-      found.set(section, line.slice(eq + 1).trim());
+    if (section && eq >= 0 && trimSpace(line.slice(0, eq)) === "password" && !found.has(section)) {
+      found.set(section, trimSpace(line.slice(eq + 1)));
     }
   }
 

@@ -61,6 +61,8 @@ describe("resolveDoltPassword", () => {
   beforeAll(() => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), "dolt-credentials-"));
     credentialsFile = path.join(dir, "credentials");
+    // bd's strings.TrimSpace keeps the BOM, so the first header never matches there.
+    fs.writeFileSync(path.join(dir, "credentials-bom"), "\uFEFF[bom.example:3307]\npassword=pomelo\n\n[after.example:3307]\npassword=kiwi\n");
     fs.writeFileSync(credentialsFile, [
       "[orchard.example:3307]",
       "password = pear-cider",
@@ -90,6 +92,8 @@ describe("resolveDoltPassword", () => {
     ["legacy unbracketed IPv6 section", "fe80::1", 3307, {}, "mango"],
     ["relative file resolves against project cwd", "orchard.example", 3307, { BEADS_CREDENTIALS_FILE: "credentials" }, "pear-cider"],
     ["missing file gives empty", "orchard.example", 3307, { BEADS_CREDENTIALS_FILE: "/nonexistent/credentials" }, ""],
+    ["BOM-prefixed first section is ignored, as in bd", "bom.example", 3307, { BEADS_CREDENTIALS_FILE: "credentials-bom" }, ""],
+    ["section after a BOM-prefixed first line still matches", "after.example", 3307, { BEADS_CREDENTIALS_FILE: "credentials-bom" }, "kiwi"],
   ])("%s", (_name, host, port, env, expected) => {
     expect(resolveDoltPassword(host, port, { BEADS_CREDENTIALS_FILE: credentialsFile, ...env }, dir)).toBe(expected);
   });
