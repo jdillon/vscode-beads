@@ -21,6 +21,7 @@ import { DetailsView } from "./views/DetailsView";
 import { Loading } from "./common/Loading";
 import { NoProject } from "./common/NoProject";
 import { ToastProvider, triggerToast } from "./common/Toast";
+import type { BoardColumnsConfig } from "../shared/board-columns";
 
 interface AppState {
   viewType: string;
@@ -34,6 +35,7 @@ interface AppState {
   error: string | null;
   settings: WebviewSettings;
   projectInitialized: boolean;
+  boardColumns: BoardColumnsConfig | null;
 }
 
 const initialState: AppState = {
@@ -48,6 +50,7 @@ const initialState: AppState = {
   error: null,
   settings: { renderMarkdown: true, userId: "", tooltipHoverDelay: 1000 },
   projectInitialized: false,
+  boardColumns: null,
 };
 
 export function App(): React.ReactElement {
@@ -62,7 +65,10 @@ export function App(): React.ReactElement {
         setState((prev) => ({ ...prev, viewType: message.viewType }));
         break;
       case "setProject":
-        setState((prev) => ({ ...prev, project: message.project, projectInitialized: true }));
+        setState((prev) => ({ ...prev, project: message.project, boardColumns: prev.project?.id === message.project?.id ? prev.boardColumns : null, projectInitialized: true }));
+        break;
+      case "setBoardColumns":
+        setState((prev) => prev.project?.id === message.projectId ? { ...prev, boardColumns: message.config } : prev);
         break;
       case "setProjects":
         setState((prev) => ({ ...prev, projects: message.projects }));
@@ -180,6 +186,7 @@ export function App(): React.ReactElement {
       case "beadsPanel":
         return (
           <IssuesView
+            key={state.project?.id ?? "no-project"}
             beads={state.beads}
             loading={state.loading}
             error={state.error}
@@ -194,6 +201,10 @@ export function App(): React.ReactElement {
             onRetry={() =>
               vscode.postMessage({ type: "refresh" })
             }
+            boardColumns={state.boardColumns}
+            onSaveBoardColumns={(config) => {
+              if (state.project) vscode.postMessage({ type: "saveBoardColumns", projectId: state.project.id, config });
+            }}
           />
         );
 
