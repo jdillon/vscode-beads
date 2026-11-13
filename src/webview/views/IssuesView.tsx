@@ -47,6 +47,7 @@ import { TypeBadge } from "../common/TypeBadge";
 import { TypeIcon } from "../common/TypeIcon";
 import { LabelBadge } from "../common/LabelBadge";
 import { FilterChip } from "../common/FilterChip";
+import { FILTER_PRESETS, DEFAULT_PRESET_ID, presetStatuses, isBlockedPresetMatch } from "../utils/filter-presets";
 import { Table, Kanban } from "lucide-react";
 import { ErrorMessage } from "../common/ErrorMessage";
 import { Loading } from "../common/Loading";
@@ -81,26 +82,6 @@ const typeSortingFn = (rowA: { getValue: (id: string) => unknown }, rowB: { getV
   const b = getTypeSortOrder(rowB.getValue("type") as string | undefined);
   return a - b;
 };
-
-// Filter presets
-interface FilterPreset {
-  id: string;
-  label: string;
-  statuses: BeadStatus[];
-}
-
-const FILTER_PRESETS: FilterPreset[] = [
-  { id: "all", label: "All", statuses: [] },
-  { id: "not-closed", label: "Not Closed", statuses: ["open", "in_progress", "blocked", "deferred", "pinned", "hooked"] },
-  { id: "active", label: "Active", statuses: ["in_progress", "blocked", "hooked"] },
-  { id: "blocked", label: "Blocked", statuses: ["blocked"] },
-  { id: "closed", label: "Closed", statuses: ["closed"] },
-];
-
-const DEFAULT_PRESET_ID = "not-closed";
-
-const presetStatuses = (id: string): BeadStatus[] =>
-  FILTER_PRESETS.find((p) => p.id === id)?.statuses ?? [];
 
 const columnHelper = createColumnHelper<Bead>();
 
@@ -290,6 +271,25 @@ export function IssuesView({
           return filterValue.includes(row.getValue(columnId));
         },
       }),
+      columnHelper.accessor("isReady", {
+        header: "Ready",
+        size: 60,
+        minSize: 50,
+        cell: (info) => info.getValue() === undefined ? "Unknown" : info.getValue() ? "Yes" : "No",
+      }),
+      columnHelper.accessor("blockedBy", {
+        header: "Blocked by",
+        size: 120,
+        minSize: 80,
+        enableSorting: false,
+        filterFn: (row, _columnId, enabled: boolean) => !enabled || isBlockedPresetMatch(row.original),
+        cell: (info) => {
+          const blockers = info.getValue();
+          if (blockers === undefined) return "Unknown";
+          if (blockers.length === 0) return "—";
+          return <span title={blockers.join(", ")}>{blockers.join(", ")}</span>;
+        },
+      }),
       columnHelper.accessor("priority", {
         header: "Priority",
         size: 70,
@@ -413,15 +413,17 @@ export function IssuesView({
   const typeFilter = (columnFilters.find((f) => f.id === "type")?.value || []) as string[];
   const assigneeFilter = (columnFilters.find((f) => f.id === "assignee")?.value || []) as string[];
   const labelFilter = (columnFilters.find((f) => f.id === "labels")?.value || []) as string[];
-  const hasActiveFilters = statusFilter.length > 0 || priorityFilter.length > 0 || typeFilter.length > 0 || assigneeFilter.length > 0 || labelFilter.length > 0;
+  const blockedPresetFilter = columnFilters.some((f) => f.id === "blockedBy");
+  const hasActiveFilters = blockedPresetFilter || statusFilter.length > 0 || priorityFilter.length > 0 || typeFilter.length > 0 || assigneeFilter.length > 0 || labelFilter.length > 0;
 
   const applyPreset = (presetId: string) => {
     const preset = FILTER_PRESETS.find((p) => p.id === presetId);
     if (preset) {
       setColumnFilters((prev) =>
         prev
-          .filter((f) => f.id !== "status")
+          .filter((f) => f.id !== "status" && f.id !== "blockedBy")
           .concat(preset.statuses.length > 0 ? [{ id: "status", value: preset.statuses }] : [])
+          .concat(preset.includeBlockedBy ? [{ id: "blockedBy", value: true }] : [])
       );
       setActivePreset(presetId);
     }
@@ -701,6 +703,17 @@ export function IssuesView({
           </Dropdown>
 
           {/* Active filter chips */}
+          {blockedPresetFilter && (
+            <FilterChip
+              key="blocked-by"
+              label="Blocked or has blockers"
+              accentColor={STATUS_COLORS.blocked}
+              onRemove={() => {
+                setColumnFilters((prev) => prev.filter((f) => f.id !== "blockedBy"));
+                setActivePreset("");
+              }}
+            />
+          )}
           {statusFilter.map((status) => (
             <FilterChip
               key={`status-${status}`}

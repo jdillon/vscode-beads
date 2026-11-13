@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Show computed readiness and active blocker IDs in the issue list and details (#95)
+
+### Changed
+
+- Blocked filter preset also lists beads with active blockers, not just stored status blocked (#95)
+
 ### Fixed
 
 - Authenticate SQL reads against password-protected Dolt servers (#104)

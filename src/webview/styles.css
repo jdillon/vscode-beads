@@ -1882,6 +1882,28 @@ textarea {
   align-items: center;
 }
 
+.details-work-state {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm) var(--spacing-md);
+  margin-top: var(--spacing-sm);
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.work-state-blocker {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--vscode-textLink-foreground);
+  cursor: pointer;
+  font: inherit;
+}
+
+.work-state-blocker:hover {
+  text-decoration: underline;
+}
+
 .badges-spacer {
   flex: 1;
 }

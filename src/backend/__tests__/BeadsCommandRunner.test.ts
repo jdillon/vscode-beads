@@ -13,6 +13,54 @@ describe("createListCommandArgs", () => {
   });
 });
 
+describe("getWorkState", () => {
+  it("reads all ready issues and active blocker IDs as separate queries", async () => {
+    const log = { child: () => log } as unknown as Logger;
+    const runner = new BeadsCommandRunner({
+      bdPath: "bd",
+      cwd: "/tmp",
+      beadsDir: "/tmp/.beads",
+      log,
+    });
+    const runJson = jest.spyOn(
+      runner as unknown as { runJson: (args: string[]) => Promise<unknown> },
+      "runJson"
+    ).mockImplementation(async (args) => args[0] === "ready"
+      ? [{ id: "bd-ready" }]
+      : [{ id: "bd-open", status: "open", blocked_by: ["bd-parent"] }]);
+
+    const state = await runner.getWorkState();
+
+    expect(runJson).toHaveBeenCalledWith(["ready", "--limit", "0", "--json"]);
+    expect(runJson).toHaveBeenCalledWith(["blocked", "--json"]);
+    expect([...(state.readyIds ?? [])]).toEqual(["bd-ready"]);
+    expect(state.blockedBy?.get("bd-open")).toEqual(["bd-parent"]);
+    expect(state.readyIds?.has("bd-open")).toBe(false);
+    expect(state.blockedBy?.has("bd-ready")).toBe(false);
+  });
+
+  it("keeps ready results when blocker data is malformed", async () => {
+    const log = { child: () => log, warn: jest.fn() } as unknown as Logger;
+    const runner = new BeadsCommandRunner({
+      bdPath: "bd",
+      cwd: "/tmp",
+      beadsDir: "/tmp/.beads",
+      log,
+    });
+    jest.spyOn(
+      runner as unknown as { runJson: (args: string[]) => Promise<unknown> },
+      "runJson"
+    ).mockImplementation(async (args) => args[0] === "ready"
+      ? [{ id: "bd-ready" }]
+      : [{ id: "bd-open", blocked_by: null }]);
+
+    const state = await runner.getWorkState();
+    expect(state.readyIds?.has("bd-ready")).toBe(true);
+    expect(state.blockedBy).toBeUndefined();
+    expect(log.warn).toHaveBeenCalledWith(expect.stringContaining("Invalid bd blocked"));
+  });
+});
+
 describe("createShowCommandArgs", () => {
   it("opts in to the dependents payload bd 1.0.5+ omits by default", () => {
     expect(createShowCommandArgs("bd-abc")).toEqual([

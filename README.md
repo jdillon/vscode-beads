@@ -81,6 +81,8 @@ Install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
 - Use filter presets or create custom filter combinations
 - Show/hide and reorder columns via ⋮ menu
 - Click row to view details, click bead ID to copy
+- `Ready` and `Blocked by` are read-only computed columns from `bd ready` and `bd blocked`. They are independent of the stored status; `Unknown` means the queries were unavailable.
+- The Blocked preset shows beads whose stored status is blocked or that have active blockers. Kanban columns use stored status.
 
 ### Details Panel
 
@@ -89,6 +91,7 @@ Install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
 - Add/remove labels with auto-generated colors
 - Markdown rendering in description/notes
 - View dependencies grouped by relationship type
+- View computed readiness and active blocker IDs; click a blocker ID to open it
 
 ## Commands
 

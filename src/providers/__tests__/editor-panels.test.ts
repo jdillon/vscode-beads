@@ -48,9 +48,13 @@ function harness<T>(
   const posted: ExtensionToWebviewMessage[] = [];
   const notifyBackendError = jest.fn();
   let projectId = activeProjectId;
+  const backend = client ? {
+    getWorkState: async () => ({ readyIds: new Set<string>(), blockedBy: new Map<string, string[]>() }),
+    ...client,
+  } : null;
 
   const projectManager = {
-    getClient: () => client,
+    getClient: () => backend,
     getActiveProject: () => (projectId ? { id: projectId, name: projectId } : null),
     getProjects: () => [],
     notifyBackendError,
@@ -361,12 +365,21 @@ describe("host seeding", () => {
     const { provider, posted, attachSidebar } = harness(
       BeadsPanelViewProvider,
       "project-a",
-      { list }
+      {
+        list,
+        getWorkState: async () => ({
+          readyIds: new Set<string>(),
+          blockedBy: new Map([["bd-1", ["bd-parent"]]]),
+        }),
+      }
     );
     attachSidebar();
     await (provider as unknown as {
       loadData: (reason: "background") => Promise<void>;
     }).loadData("background");
+    expect(provider.getCachedBead("bd-1")).toMatchObject({
+      status: "open", isReady: false, blockedBy: ["bd-parent"],
+    });
     posted.length = 0;
 
     provider.showInEditor();
@@ -482,6 +495,7 @@ describe("progressive Details loading", () => {
     const comments = deferred<[]>();
     const { provider, posted, attachSidebar } = harness(BeadDetailsViewProvider, "project-a", {
       show: () => show.promise, listComments: () => comments.promise,
+      getWorkState: async () => ({ readyIds: new Set(["bd-1"]), blockedBy: new Map() }),
     }, preview);
     attachSidebar();
     const load = provider.showBead("bd-1");
@@ -491,7 +505,9 @@ describe("progressive Details loading", () => {
     expect(posted).toContainEqual({ type: "setBead", bead: expect.objectContaining({ title: "Title bd-1", comments: undefined }) });
     comments.resolve([]);
     await load;
-    expect(posted).toContainEqual({ type: "setBead", bead: expect.objectContaining({ id: "bd-1", comments: [] }) });
+    expect(posted).toContainEqual({ type: "setBead", bead: expect.objectContaining({
+      id: "bd-1", comments: [], isReady: true, blockedBy: [],
+    }) });
     expect(posted[posted.length - 1]).toEqual({ type: "setLoading", loading: false });
   });
 
