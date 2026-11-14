@@ -1,4 +1,4 @@
-import { FILTER_PRESETS, isBlockedPresetMatch } from "../filter-presets";
+import { FILTER_PRESETS, isBlockedPresetMatch, isReadyPresetMatch } from "../filter-presets";
 
 describe("Blocked filter preset", () => {
   const blocked = FILTER_PRESETS.find((p) => p.id === "blocked")!;
@@ -22,5 +22,30 @@ describe("Blocked filter preset", () => {
     expect(blocked.includeBlockedBy).toBe(true);
     expect(blocked.statuses).toEqual([]);
     expect(FILTER_PRESETS.filter((p) => p.includeBlockedBy)).toEqual([blocked]);
+  });
+});
+
+describe("Ready filter preset", () => {
+  const ready = FILTER_PRESETS.find((p) => p.id === "ready")!;
+
+  it("matches beads bd ready listed, whatever their stored status", () => {
+    expect(isReadyPresetMatch({ isReady: true })).toBe(true);
+  });
+
+  it("skips beads bd ready did not list", () => {
+    expect(isReadyPresetMatch({ isReady: false })).toBe(false);
+  });
+
+  it("skips beads when the ready query failed (unknown)", () => {
+    expect(isReadyPresetMatch({})).toBe(false);
+    expect(isReadyPresetMatch({ isReady: undefined })).toBe(false);
+  });
+
+  it("sits right before Blocked, with no status filter that would AND it away", () => {
+    const ids = FILTER_PRESETS.map((p) => p.id);
+    expect(ids.indexOf("ready")).toBe(ids.indexOf("blocked") - 1);
+    expect(ready.readyOnly).toBe(true);
+    expect(ready.statuses).toEqual([]);
+    expect(FILTER_PRESETS.filter((p) => p.readyOnly)).toEqual([ready]);
   });
 });

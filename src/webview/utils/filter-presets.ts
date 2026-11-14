@@ -6,13 +6,17 @@ export interface FilterPreset {
   statuses: BeadStatus[];
   /** Also match beads with active dependency blockers, whatever their stored status. */
   includeBlockedBy?: boolean;
+  /** Only match beads that `bd ready` reported as ready. */
+  readyOnly?: boolean;
 }
 
 export const FILTER_PRESETS: FilterPreset[] = [
   { id: "all", label: "All", statuses: [] },
   { id: "not-closed", label: "Not Closed", statuses: ["open", "in_progress", "blocked", "deferred", "pinned", "hooked"] },
   { id: "active", label: "Active", statuses: ["in_progress", "blocked", "hooked"] },
-  // No status filter: the blockedBy filter already matches status "blocked" (an OR across columns).
+  // No status filter on the next two: they filter on their own computed column.
+  { id: "ready", label: "Ready", statuses: [], readyOnly: true },
+  // The blockedBy filter already matches status "blocked" (an OR across columns).
   { id: "blocked", label: "Blocked", statuses: [], includeBlockedBy: true },
   { id: "closed", label: "Closed", statuses: ["closed"] },
 ];
@@ -25,3 +29,6 @@ export const presetStatuses = (id: string): BeadStatus[] =>
 /** Blocked preset: stored status is blocked, or `bd blocked` reported active blockers. */
 export const isBlockedPresetMatch = (bead: Pick<Bead, "status" | "blockedBy">): boolean =>
   bead.status === "blocked" || (bead.blockedBy?.length ?? 0) > 0;
+
+/** Ready preset: `bd ready` listed the bead. Unknown (query failed) does not match. */
+export const isReadyPresetMatch = (bead: Pick<Bead, "isReady">): boolean => bead.isReady === true;

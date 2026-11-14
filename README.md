@@ -26,7 +26,7 @@ VS Code extension for managing [Beads](https://github.com/gastownhall/beads) iss
 - Filter by status, priority, type, assignee, and labels
 - Multi-column sorting (shift+click for secondary sort)
 - Persistent column visibility, order, and sort preferences
-- Filter presets: All, Not Closed, Active, Blocked, Closed
+- Filter presets: All, Not Closed, Active, Ready, Blocked, Closed
 - Click-to-copy bead IDs
 
 **Details Panel**
@@ -82,7 +82,7 @@ Install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?it
 - Show/hide and reorder columns via ⋮ menu
 - Click row to view details, click bead ID to copy
 - `Ready` and `Blocked by` are read-only computed columns from `bd ready` and `bd blocked`. They are independent of the stored status; `Unknown` means the queries were unavailable.
-- The Blocked preset shows beads whose stored status is blocked or that have active blockers. Kanban columns use stored status.
+- The Ready preset shows beads that `bd ready` lists; beads with `Unknown` readiness are left out. The Blocked preset shows beads whose stored status is blocked or that have active blockers. Kanban columns use stored status.
 
 ### Details Panel
 

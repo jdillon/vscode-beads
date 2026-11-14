@@ -47,7 +47,7 @@ import { TypeBadge } from "../common/TypeBadge";
 import { TypeIcon } from "../common/TypeIcon";
 import { LabelBadge } from "../common/LabelBadge";
 import { FilterChip } from "../common/FilterChip";
-import { FILTER_PRESETS, DEFAULT_PRESET_ID, presetStatuses, isBlockedPresetMatch } from "../utils/filter-presets";
+import { FILTER_PRESETS, DEFAULT_PRESET_ID, presetStatuses, isBlockedPresetMatch, isReadyPresetMatch } from "../utils/filter-presets";
 import { Table, Kanban } from "lucide-react";
 import { ErrorMessage } from "../common/ErrorMessage";
 import { Loading } from "../common/Loading";
@@ -275,6 +275,7 @@ export function IssuesView({
         header: "Ready",
         size: 60,
         minSize: 50,
+        filterFn: (row, _columnId, enabled: boolean) => !enabled || isReadyPresetMatch(row.original),
         cell: (info) => info.getValue() === undefined ? "Unknown" : info.getValue() ? "Yes" : "No",
       }),
       columnHelper.accessor("blockedBy", {
@@ -414,16 +415,18 @@ export function IssuesView({
   const assigneeFilter = (columnFilters.find((f) => f.id === "assignee")?.value || []) as string[];
   const labelFilter = (columnFilters.find((f) => f.id === "labels")?.value || []) as string[];
   const blockedPresetFilter = columnFilters.some((f) => f.id === "blockedBy");
-  const hasActiveFilters = blockedPresetFilter || statusFilter.length > 0 || priorityFilter.length > 0 || typeFilter.length > 0 || assigneeFilter.length > 0 || labelFilter.length > 0;
+  const readyPresetFilter = columnFilters.some((f) => f.id === "isReady");
+  const hasActiveFilters = readyPresetFilter || blockedPresetFilter || statusFilter.length > 0 || priorityFilter.length > 0 || typeFilter.length > 0 || assigneeFilter.length > 0 || labelFilter.length > 0;
 
   const applyPreset = (presetId: string) => {
     const preset = FILTER_PRESETS.find((p) => p.id === presetId);
     if (preset) {
       setColumnFilters((prev) =>
         prev
-          .filter((f) => f.id !== "status" && f.id !== "blockedBy")
+          .filter((f) => f.id !== "status" && f.id !== "blockedBy" && f.id !== "isReady")
           .concat(preset.statuses.length > 0 ? [{ id: "status", value: preset.statuses }] : [])
           .concat(preset.includeBlockedBy ? [{ id: "blockedBy", value: true }] : [])
+          .concat(preset.readyOnly ? [{ id: "isReady", value: true }] : [])
       );
       setActivePreset(presetId);
     }
@@ -703,6 +706,17 @@ export function IssuesView({
           </Dropdown>
 
           {/* Active filter chips */}
+          {readyPresetFilter && (
+            <FilterChip
+              key="is-ready"
+              label="Ready"
+              accentColor={STATUS_COLORS.open}
+              onRemove={() => {
+                setColumnFilters((prev) => prev.filter((f) => f.id !== "isReady"));
+                setActivePreset("");
+              }}
+            />
+          )}
           {blockedPresetFilter && (
             <FilterChip
               key="blocked-by"

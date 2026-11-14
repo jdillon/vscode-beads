@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Show computed readiness and active blocker IDs in the issue list and details (#95)
+- Show computed readiness and active blocker IDs in the issue list and details, with a Ready filter preset (#95)
 
 ### Changed
 
