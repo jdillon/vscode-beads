@@ -61,6 +61,8 @@ export interface Bead {
   type?: string;
   priority?: BeadPriority;
   status: BeadStatus;
+  isReady?: boolean;
+  blockedBy?: string[];
   assignee?: string;
   labels?: string[];
   estimatedMinutes?: number;
