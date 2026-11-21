@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Configure ordered, filter-based Kanban columns per project, including computed readiness and blockers (#95)
+
 ## [0.17.0] - 2026-11-21
 
 ### Added

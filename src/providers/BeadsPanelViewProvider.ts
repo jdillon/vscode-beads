@@ -15,6 +15,7 @@ import { BeadsProjectManager } from "../backend/BeadsProjectManager";
 import { WebviewToExtensionMessage, Bead, issueToWebviewBead } from "../backend/types";
 import { Logger } from "../utils/logger";
 import { buildUpdateArgs } from "./bead-updates";
+import { parseBoardColumns } from "../shared/board-columns";
 
 export class BeadsPanelViewProvider extends BaseViewProvider {
   protected readonly viewType = "beadsPanel";
@@ -30,7 +31,8 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
   constructor(
     extensionUri: vscode.Uri,
     projectManager: BeadsProjectManager,
-    logger: Logger
+    logger: Logger,
+    private readonly workspaceState?: vscode.Memento
   ) {
     super(extensionUri, projectManager, logger.child("Panel"));
   }
@@ -53,6 +55,19 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
 
   protected seedView(target?: WebviewHost): void {
     this.postMessage({ type: "setSelectedBeadId", beadId: this.selectedBeadId }, target);
+    this.postBoardColumns(target);
+  }
+
+  public refreshForProjectChange(): void {
+    super.refreshForProjectChange();
+    this.postBoardColumns();
+  }
+
+  private postBoardColumns(target?: WebviewHost): void {
+    const projectId = this.projectManager.getActiveProject()?.id ?? null;
+    const stored = projectId && typeof this.workspaceState?.get === "function"
+      ? this.workspaceState.get<unknown>(`beads.boardColumns.${projectId}`) : undefined;
+    this.postMessage({ type: "setBoardColumns", projectId, config: parseBoardColumns(stored) }, target);
   }
 
   protected async loadData(
@@ -146,6 +161,22 @@ export class BeadsPanelViewProvider extends BaseViewProvider {
   protected async handleCustomMessage(
     message: WebviewToExtensionMessage
   ): Promise<void> {
+    if (message.type === "saveBoardColumns") {
+      if (!message.projectId || message.projectId !== this.projectManager.getActiveProject()?.id) return;
+      const config = message.config === null ? null : parseBoardColumns(message.config);
+      if (message.config !== null && !config) {
+        this.log.warn("Ignoring malformed board column configuration");
+        return;
+      }
+      try {
+        if (!this.workspaceState || typeof this.workspaceState.update !== "function") return;
+        await this.workspaceState.update(`beads.boardColumns.${message.projectId}`, config ?? undefined);
+        this.postMessage({ type: "setBoardColumns", projectId: message.projectId, config });
+      } catch (err) {
+        vscode.window.showErrorMessage(`Failed to save board columns: ${err}`);
+      }
+      return;
+    }
     const client = this.projectManager.getClient();
     if (!client) {
       return;
